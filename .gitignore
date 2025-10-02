@@ -1,0 +1,39 @@
+# ---- Java / Spring Boot ----
+/target/
+*.class
+*.log
+*.jar
+*.war
+*.ear
+
+# ---- IntelliJ IDEA / Eclipse / VSCode ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+
+# ---- OS generated ----
+.DS_Store
+Thumbs.db
+
+# ---- Docker ----
+/secrets/*
+!secrets/.gitkeep
+docker-compose.override.yml
+
+# ---- Environment files ----
+.env
+*.env
+
+# ---- Firebase keys ----
+firebase-*.json
+serviceAccountKey.json
+
+# ---- Logs ----
+*.out
+*.err
+logs/

@@ -1,0 +1,17 @@
+package com.hmkeyewear.blog_service.model;
+
+import com.google.cloud.Timestamp;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class Blog {
+    private String blogId;
+    private String title;
+    private String content;
+    private String thumbnail;
+    private String status;
+    private Timestamp createdAt;
+    private String createdBy;
+}

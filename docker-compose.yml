@@ -1,0 +1,89 @@
+services:
+  service-registry:
+    build:
+      context: ./service_registry
+      dockerfile: Dockerfile
+    container_name: service-registry
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  blog-service:
+    build:
+      context: ./blog-service
+      dockerfile: Dockerfile
+    container_name: blog-service
+    ports:
+      - "8084:8084"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-blog.json
+    volumes:
+      - ./secrets/firebase-blog.json:/app/firebase-blog.json
+    depends_on:
+      service-registry:
+        condition: service_healthy
+
+  cart-service:
+    build:
+      context: ./cart-service
+      dockerfile: Dockerfile
+    container_name: cart-service
+    ports:
+      - "8083:8083"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-cart.json
+    volumes:
+      - ./secrets/firebase-cart.json:/app/firebase-cart.json
+    depends_on:
+      service-registry:
+        condition: service_healthy
+
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "8082:8082"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-order.json
+    volumes:
+      - ./secrets/firebase-order.json:/app/firebase-order.json
+    depends_on:
+      service-registry:
+        condition: service_healthy
+
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "8081:8081"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-product.json
+    volumes:
+      - ./secrets/firebase-product.json:/app/firebase-product.json
+    depends_on:
+      service-registry:
+        condition: service_healthy
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8080:8080"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
+    volumes:
+      - ./secrets/firebase-user.json:/app/firebase-user.json
+    depends_on:
+      service-registry:
+        condition: service_healthy
