@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("product")
 public class ProductController {
 
@@ -33,7 +34,8 @@ public class ProductController {
 
     // READ ONE PRODUCT
     @GetMapping("/get")
-    public ResponseEntity<ProductResponseDto> getProductById(@RequestParam String productId) throws InterruptedException, ExecutionException {
+    public ResponseEntity<ProductResponseDto> getProductById(@RequestParam String productId)
+            throws InterruptedException, ExecutionException {
         ProductResponseDto response = productService.getProductById(productId);
         return ResponseEntity.ok(response);
     }
@@ -57,7 +59,7 @@ public class ProductController {
             @Valid @RequestBody ProductRequestDto productRequestDto)
             throws InterruptedException, ExecutionException {
 
-        String updatedBy = "admin"; //temp
+        String updatedBy = "admin"; // temp
 
         ProductResponseDto response = productService.updateProduct(productId, productRequestDto, updatedBy);
         return ResponseEntity.ok(response);
