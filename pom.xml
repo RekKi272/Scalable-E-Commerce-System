@@ -9,6 +9,8 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>api-gateway</module>
+        <module>auth-service</module>
         <module>service_registry</module>
         <module>blog-service</module>
         <module>cart-service</module>

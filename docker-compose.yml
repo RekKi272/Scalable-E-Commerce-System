@@ -12,6 +12,31 @@ services:
       timeout: 5s
       retries: 5
 
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8090:8090"
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+    volumes:
+      - ./secrets/firebase-user.json:/app/firebase-user.json
+    depends_on:
+      service-registry:
+        condition: service_healthy
 
   blog-service:
     build:
@@ -79,7 +104,7 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     ports:
-      - "8080:8080"
+      - "8085:8085"
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
     volumes:

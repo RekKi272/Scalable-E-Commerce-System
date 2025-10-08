@@ -1,0 +1,15 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: user-service
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://service-registry:8761/eureka/
+
+firebase:
+  credentials:
+    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-user.json}

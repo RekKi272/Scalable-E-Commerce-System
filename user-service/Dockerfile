@@ -6,4 +6,4 @@ ADD ${FILE_JAR} user-service.jar
 
 ENTRYPOINT ["java", "-jar", "/user-service.jar"]
 
-EXPOSE 8080
+EXPOSE 8085
