@@ -27,35 +27,27 @@ spring:
                     - id: blog-service
                       uri: lb://blog-service
                       predicates:
-                        - Path=/blogs/**
+                        - Path=/blog/**
                     # Cart Service
                     - id: cart-service
                       uri: lb://cart-service
                       predicates:
                         - Path=/cart/**
-                      filters:
-                        - JwtAuthenticationFilter
                     # Order Service
                     - id: order-service
                       uri: lb://order-service
                       predicates:
-                        - Path=/orders/**
-                      filters:
-                        - JwtAuthenticationFilter
+                        - Path=/order/**
                     # Product Service
                     - id: product-service
                       uri: lb://product-service
                       predicates:
-                        - Path=/products/**
-                      filters:
-                        - JwtAuthenticationFilter
+                        - Path=/product/**
                     # User Service
                     - id: user-service
                       uri: lb://user-service
                       predicates:
-                        - Path=/users/**
-                      filters:
-                        - JwtAuthenticationFilter
+                        - Path=/user/**
           httpclient:
             connect-timeout: 5000
             response-timeout: 10s
@@ -70,19 +62,23 @@ spring:
           globalcors:
             cors-configurations:
               '[/**]':
+                allowed-origins:
+                  - http://localhost:8086
                 allowed-methods:
                   - GET
                   - POST
                   - PUT
                   - DELETE
-                  - PATH
+                  - PATCH
                   - OPTIONS
                 allowed-headers:
-                  - "*"
+                  - Authorization
+                  - Content-Type
+                  - Accept
                 allow-credentials: true
 
 jwt:
-  secret: ${JWT_SECRET:defaultFallbackSecretKey1234567890}
+  secret: ${JWT_SECRET}
 
 auth:
   service:

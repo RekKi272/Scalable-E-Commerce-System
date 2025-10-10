@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("brand")
-@CrossOrigin(origins = "*")
 public class BrandController {
 
     private final BrandService brandService;

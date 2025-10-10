@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("category")
-@CrossOrigin(origins = "*")
 public class CategoryController {
 
     private final CategoryService categoryService;
