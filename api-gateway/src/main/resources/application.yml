@@ -27,7 +27,7 @@ spring:
                     - id: blog-service
                       uri: lb://blog-service
                       predicates:
-                        - Path=/blogs/**
+                        - Path=/blog/**
                     # Cart Service
                     - id: cart-service
                       uri: lb://cart-service
@@ -39,21 +39,21 @@ spring:
                     - id: order-service
                       uri: lb://order-service
                       predicates:
-                        - Path=/orders/**
+                        - Path=/order/**
                       filters:
                         - JwtAuthenticationFilter
                     # Product Service
                     - id: product-service
                       uri: lb://product-service
                       predicates:
-                        - Path=/products/**
+                        - Path=/product/**
                       filters:
                         - JwtAuthenticationFilter
                     # User Service
                     - id: user-service
                       uri: lb://user-service
                       predicates:
-                        - Path=/users/**
+                        - Path=/user/**
                       filters:
                         - JwtAuthenticationFilter
           httpclient:
@@ -70,15 +70,19 @@ spring:
           globalcors:
             cors-configurations:
               '[/**]':
+                allowed-origins:
+                  - http://localhost:8086
                 allowed-methods:
                   - GET
                   - POST
                   - PUT
                   - DELETE
-                  - PATH
+                  - PATCH
                   - OPTIONS
                 allowed-headers:
-                  - "*"
+                  - Authorization
+                  - Content-Type
+                  - Accept
                 allow-credentials: true
 
 jwt:
