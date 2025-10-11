@@ -21,10 +21,10 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    @PostConstruct
-    public void printSecret() {
-        System.out.println("🔑 [AUTH SERVICE] JWT_SECRET = " + secretKey);
-    }
+//    @PostConstruct
+//    public void printSecret() {
+//        System.out.println("🔑 [AUTH SERVICE] JWT_SECRET = " + secretKey);
+//    }
 
     private Key getSignKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
