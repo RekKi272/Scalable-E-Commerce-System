@@ -40,7 +40,7 @@ public class JwtUtil {
     }
 
     public Claims extractClaims(String token) {
-        System.out.println("JWT_SECRET loading: " + secretKey);
+        //System.out.println("JWT_SECRET loading: " + secretKey);
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
                 .build()

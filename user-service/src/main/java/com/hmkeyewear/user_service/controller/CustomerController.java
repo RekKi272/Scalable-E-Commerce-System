@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.concurrent.ExecutionException;
 
 @RestController
-@RequestMapping("/customers")
+@RequestMapping("/user")
 public class CustomerController {
     @Autowired
     private CustomerService customerService;
