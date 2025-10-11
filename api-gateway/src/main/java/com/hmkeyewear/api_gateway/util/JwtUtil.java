@@ -17,10 +17,10 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    @PostConstruct
-    public void logSecret() {
-        System.out.println(">>> [API-GATEWAY] JWT_SECRET (loaded after @Value) = " + secretKey);
-    }
+//    @PostConstruct
+//    public void logSecret() {
+//        System.out.println(">>> [API-GATEWAY] JWT_SECRET (loaded after @Value) = " + secretKey);
+//    }
 
     public boolean validateToken(final String token) {
         try {
@@ -40,7 +40,7 @@ public class JwtUtil {
     }
 
     public Claims extractClaims(String token) {
-        System.out.println("JWT_SECRET loading: " + secretKey);
+        //System.out.println("JWT_SECRET loading: " + secretKey);
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
                 .build()

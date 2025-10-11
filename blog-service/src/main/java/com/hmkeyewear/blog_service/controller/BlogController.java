@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RestController
-@RequestMapping("/blogs")
+@RequestMapping("/blog")
 public class BlogController {
     @Autowired
     private BlogService blogService;
