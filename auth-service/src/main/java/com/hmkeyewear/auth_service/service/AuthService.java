@@ -23,18 +23,37 @@ public class AuthService {
 
     private static final String COLLECTION_NAME = "customers";
 
-    @Autowired
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Autowired
-    private JwtService jwtService;
-
-    public AuthService(PasswordEncoder passwordEncoder) {
+    public AuthService(PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
-    public String generateToken(String email) {
-        return jwtService.generateToken(email);
+    // Extract role from email
+    public String getRoleFromEmail(String email) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+
+        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+                .whereEqualTo("email", email)
+                .get();
+
+        QuerySnapshot snapshot = query.get();
+
+        if (snapshot.isEmpty()) {
+            throw new RuntimeException("User not found with email: " + email);
+        }
+
+        DocumentSnapshot doc = snapshot.getDocuments().get(0);
+        Customer customer = doc.toObject(Customer.class);
+
+        return customer.getRole();
+    }
+
+    public String generateToken(String email, String role) {
+        return jwtService.generateToken(email, role);
     }
 
     public void validateToken(String token) {
@@ -122,7 +141,7 @@ public class AuthService {
         result.get();
 
         // Tạo JWT sau khi đăng ký
-        String token = generateToken(customer.getEmail());
+        String token = generateToken(customer.getEmail(), customer.getRole());
 
         return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), token);
     }
@@ -148,7 +167,7 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = generateToken(customer.getEmail());
+        String token = generateToken(customer.getEmail(), customer.getRole());
         return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), token);
     }
 

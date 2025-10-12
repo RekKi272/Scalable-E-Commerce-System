@@ -17,10 +17,6 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secretKey;
 
-//    @PostConstruct
-//    public void logSecret() {
-//        System.out.println(">>> [API-GATEWAY] JWT_SECRET (loaded after @Value) = " + secretKey);
-//    }
 
     public boolean validateToken(final String token) {
         try {
@@ -50,5 +46,9 @@ public class JwtUtil {
 
     public String extractUsername(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public String extractRole(String token) {
+        return extractClaims(token).get("role", String.class);
     }
 }

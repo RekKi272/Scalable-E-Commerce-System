@@ -34,10 +34,10 @@ public class AuthController {
     }
 
     @PostMapping("/token")
-    public String getToken(@RequestBody LoginRequestDto loginRequestDto) {
+    public String getToken(@RequestBody LoginRequestDto loginRequestDto) throws ExecutionException, InterruptedException {
         Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword()));
         if (authenticate.isAuthenticated()) {
-            return authService.generateToken(loginRequestDto.getEmail());
+            return authService.generateToken(loginRequestDto.getEmail(), authService.getRoleFromEmail(loginRequestDto.getEmail()));
         } else {
             throw new RuntimeException("invalid access");
         }

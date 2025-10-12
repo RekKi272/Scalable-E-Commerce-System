@@ -1,5 +1,6 @@
 package com.hmkeyewear.auth_service.service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -26,17 +27,29 @@ public class JwtService {
 //        System.out.println("🔑 [AUTH SERVICE] JWT_SECRET = " + secretKey);
 //    }
 
+    private Claims extractAllClaimsFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSignKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
     private Key getSignKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public void validateToken(final String token) {
-        Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token);
+        Jwts.parserBuilder()
+                .setSigningKey(getSignKey())
+                .build()
+                .parseClaimsJws(token);
     }
 
 
-    public String generateToken(String userName) {
+    public String generateToken(String userName, String role) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
         return createToken(claims, userName);
     }
 
@@ -45,9 +58,19 @@ public class JwtService {
                 .setClaims(claims)
                 .setSubject(userName)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30)) // 30 minutes
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
 
+    // Extract Username from token
+    public String extractUsername(String token) {
+        return extractAllClaimsFromToken(token).getSubject();
+    }
+
+    // Extract role from token
+    public String extractRole(String token) {
+        return extractAllClaimsFromToken(token).get("role", String.class);
+    }
 
 }

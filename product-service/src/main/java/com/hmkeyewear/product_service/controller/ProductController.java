@@ -22,12 +22,18 @@ public class ProductController {
     }
 
     // CREATE Product
-    @PostMapping("/create")
-    public ResponseEntity<ProductResponseDto> createProduct(
+    @PostMapping("/admin/create")
+    public ResponseEntity<?> createProduct(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
             @Valid @RequestBody ProductRequestDto productRequestDto)
             throws ExecutionException, InterruptedException {
 
-        ProductResponseDto response = productService.createProduct(productRequestDto, "admin");
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền tạo sản phẩm");
+        }
+
+        ProductResponseDto response = productService.createProduct(productRequestDto, username);
         return ResponseEntity.ok(response);
     }
 
@@ -53,20 +59,30 @@ public class ProductController {
 
     // UPDATE PRODUCT
     @PutMapping("/update/{productId}")
-    public ResponseEntity<ProductResponseDto> updateProduct(
+    public ResponseEntity<?> updateProduct(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
             @PathVariable String productId,
             @Valid @RequestBody ProductRequestDto productRequestDto)
             throws InterruptedException, ExecutionException {
 
-        String updatedBy = "admin"; // temp
+        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền sửa sản phẩm");
+        }
 
-        ProductResponseDto response = productService.updateProduct(productId, productRequestDto, updatedBy);
+        ProductResponseDto response = productService.updateProduct(productId, productRequestDto, username);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/delete")
-    public String deleteProduct(@RequestParam String productId) throws InterruptedException, ExecutionException {
-        return productService.deleteProduct(productId);
+    public ResponseEntity<?> deleteProduct(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam String productId)
+            throws InterruptedException, ExecutionException {
+        if(!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền xóa sản phẩm");
+        }
+        return ResponseEntity.ok(productService.deleteProduct(productId));
     }
 
 }

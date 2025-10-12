@@ -20,9 +20,16 @@ public class CategoryController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<CategoryResponseDto> createCategory(@RequestBody CategoryRequestDto dto)
+    public ResponseEntity<?> createCategory(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @RequestBody CategoryRequestDto dto)
             throws ExecutionException, InterruptedException {
-        CategoryResponseDto response = categoryService.createCategory(dto, "admin");
+
+        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền sửa sản phẩm");
+        }
+        CategoryResponseDto response = categoryService.createCategory(dto, username);
         return ResponseEntity.ok(response);
     }
 
@@ -39,15 +46,28 @@ public class CategoryController {
     }
 
     @PutMapping("/update/{categoryId}")
-    public ResponseEntity<CategoryResponseDto> updateCategory(@PathVariable String categoryId,
+    public ResponseEntity<?> updateCategory(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @PathVariable String categoryId,
             @RequestBody CategoryRequestDto dto) throws ExecutionException, InterruptedException {
-        CategoryResponseDto response = categoryService.updateCategory(categoryId, dto, "admin");
+
+        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền  sửa danh mục sản phẩm");
+        }
+
+        CategoryResponseDto response = categoryService.updateCategory(categoryId, dto, username);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<String> deleteCategory(@RequestParam String categoryId)
+    public ResponseEntity<?> deleteCategory(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam String categoryId)
             throws ExecutionException, InterruptedException {
+        if(!"ROLE_ADMIN".equalsIgnoreCase(role)){
+            return ResponseEntity.status(403).body("Bạn không có quyền xóa danh mục sản phẩm");
+        }
         return ResponseEntity.ok(categoryService.deleteCategory(categoryId));
     }
 }
