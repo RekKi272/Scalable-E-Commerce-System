@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -18,13 +19,13 @@ public class CustomerController {
 
     @PostMapping("/create")
     public ResponseEntity<CustomerResponseDto> createCustomer(
-            @RequestBody CustomerRequestDto dto
-    ) throws ExecutionException, InterruptedException {
+            @RequestBody CustomerRequestDto dto) throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(customerService.createCustomer(dto));
     }
 
     @GetMapping("/get/{customerId}")
-    public ResponseEntity<CustomerResponseDto> getCustomer(@PathVariable String customerId) throws ExecutionException, InterruptedException {
+    public ResponseEntity<CustomerResponseDto> getCustomer(@PathVariable String customerId)
+            throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(customerService.getCustomer(customerId));
     }
 
@@ -32,14 +33,26 @@ public class CustomerController {
     public ResponseEntity<CustomerResponseDto> updateCustomer(
             @PathVariable String customerId,
             @RequestParam String updatedBy,
-            @RequestBody CustomerRequestDto dto
-    ) throws ExecutionException, InterruptedException {
+            @RequestBody CustomerRequestDto dto) throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(customerService.updateCustomer(customerId, updatedBy, dto));
     }
 
     @DeleteMapping("/delete/{customerId}")
-    public ResponseEntity<String> deleteCustomer(@PathVariable String customerId) throws ExecutionException, InterruptedException {
+    public ResponseEntity<String> deleteCustomer(@PathVariable String customerId)
+            throws ExecutionException, InterruptedException {
         customerService.deleteCustomer(customerId);
         return ResponseEntity.ok("Deleted customer with ID: " + customerId);
+    }
+
+    // Lấy tất cả nhân viên
+    @GetMapping("/getAllEmployee")
+    public ResponseEntity<List<CustomerResponseDto>> getAllEmployee() throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(customerService.getAllEmployee());
+    }
+
+    // Lấy tất cả user
+    @GetMapping("/getAllUser")
+    public ResponseEntity<List<CustomerResponseDto>> getAllUser() throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(customerService.getAllUser());
     }
 }

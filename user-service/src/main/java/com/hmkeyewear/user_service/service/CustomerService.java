@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutionException;
+import java.util.List;
 
 @Service
 public class CustomerService {
@@ -51,7 +52,8 @@ public class CustomerService {
     }
 
     // UPDATE customer
-    public CustomerResponseDto updateCustomer(String customerId, String updatedBy, CustomerRequestDto dto) throws ExecutionException, InterruptedException {
+    public CustomerResponseDto updateCustomer(String customerId, String updatedBy, CustomerRequestDto dto)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(customerId);
 
@@ -69,5 +71,31 @@ public class CustomerService {
     public void deleteCustomer(String customerId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         db.collection(COLLECTION_NAME).document(customerId).delete().get();
+    }
+
+    // GET ALL Employee
+    public List<CustomerResponseDto> getAllEmployee() throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+                .whereEqualTo("role", "ROLE_EMPLOYER")
+                .get();
+
+        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+        return documents.stream()
+                .map(doc -> customerMapper.toResponseDto(doc.toObject(Customer.class)))
+                .toList();
+    }
+
+    // GET ALL User
+    public List<CustomerResponseDto> getAllUser() throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+                .whereEqualTo("role", "USER")
+                .get();
+
+        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+        return documents.stream()
+                .map(doc -> customerMapper.toResponseDto(doc.toObject(Customer.class)))
+                .toList();
     }
 }
