@@ -20,9 +20,16 @@ public class BrandController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<BrandResponseDto> createBrand(@RequestBody BrandRequestDto dto)
+    public ResponseEntity<?> createBrand(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @RequestBody BrandRequestDto dto)
             throws ExecutionException, InterruptedException {
-        BrandResponseDto response = brandService.createBrand(dto, "admin"); // tạm thời dùng admin
+
+        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền tạo brand");
+        }
+        BrandResponseDto response = brandService.createBrand(dto, username);
         return ResponseEntity.ok(response);
     }
 
@@ -38,15 +45,30 @@ public class BrandController {
     }
 
     @PutMapping("/update/{brandId}")
-    public ResponseEntity<BrandResponseDto> updateBrand(@PathVariable String brandId, @RequestBody BrandRequestDto dto)
+    public ResponseEntity<?> updateBrand(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @PathVariable String brandId, @RequestBody BrandRequestDto dto)
             throws ExecutionException, InterruptedException {
-        BrandResponseDto response = brandService.updateBrand(brandId, dto, "admin"); // tạm thời admin
+
+        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền chỉnh sửa brand");
+        }
+
+        BrandResponseDto response = brandService.updateBrand(brandId, dto, username); // tạm thời admin
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<String> deleteBrand(@RequestParam String brandId)
+    public ResponseEntity<String> deleteBrand(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam String brandId)
             throws ExecutionException, InterruptedException {
+
+        if(!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền xóa brand");
+        }
+
         return ResponseEntity.ok(brandService.deleteBrand(brandId));
     }
 }
