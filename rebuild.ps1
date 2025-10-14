@@ -1,19 +1,40 @@
 # =========================================
-# 🚀 Script PowerShell: Rebuild Maven + Docker
+# 🚀 Script PowerShell: Full Clean + Rebuild All Services
+# Chạy từ root folder chứa tất cả services
 # =========================================
 
-# Bước 1: Dừng và xóa tất cả Docker container đang chạy
-# Lấy tất cả container (running & stopped) và xóa bắt buộc (-f)
+# 1️⃣ Dừng và xóa tất cả Docker container
+Write-Host "==> Stopping and removing all Docker containers..."
 docker ps -aq | ForEach-Object { docker rm -f $_ }
 
-# Bước 2: Maven build project
-# Chạy clean + package, bỏ qua test để build nhanh
-mvn clean package -DskipTests
-if ($LASTEXITCODE -ne 0) {
-    # Nếu Maven build thất bại, thoát script với mã lỗi
-    exit $LASTEXITCODE
+# 2️⃣ (Tùy chọn) Xóa tất cả Docker image của project
+# Nếu bạn muốn rebuild từ scratch, uncomment phần này
+# Write-Host "==> Removing Docker images..."
+# docker images -aq | ForEach-Object { docker rmi -f $_ }
+
+# 3️⃣ Clean all Maven builds
+Write-Host "==> Cleaning all Maven target folders..."
+# Giả sử tất cả services đều có pom.xml ở folder con
+Get-ChildItem -Path . -Recurse -Filter "pom.xml" | ForEach-Object {
+    $serviceFolder = Split-Path $_.FullName -Parent
+    Write-Host "Cleaning $serviceFolder"
+    mvn -f $serviceFolder clean
 }
 
-# Bước 3: Docker Compose build & up
-# Build lại image và chạy container
-docker-compose up --build
+# 4️⃣ Build all services with Maven (skip tests để nhanh)
+Write-Host "==> Building all services..."
+Get-ChildItem -Path . -Recurse -Filter "pom.xml" | ForEach-Object {
+    $serviceFolder = Split-Path $_.FullName -Parent
+    Write-Host "Building $serviceFolder"
+    mvn -f $serviceFolder package -DskipTests
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Build failed in $serviceFolder. Exiting."
+        exit $LASTEXITCODE
+    }
+}
+
+# 5️⃣ Docker Compose up (rebuild images)
+Write-Host "==> Building and running Docker Compose..."
+docker-compose up --build -d
+
+Write-Host "✅ All services rebuilt and running."

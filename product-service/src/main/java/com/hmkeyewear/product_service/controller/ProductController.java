@@ -2,7 +2,6 @@ package com.hmkeyewear.product_service.controller;
 
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
-import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -79,7 +78,7 @@ public class ProductController {
             @RequestHeader("X-User-Role") String role,
             @RequestParam String productId)
             throws InterruptedException, ExecutionException {
-        if(!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền xóa sản phẩm");
         }
         return ResponseEntity.ok(productService.deleteProduct(productId));

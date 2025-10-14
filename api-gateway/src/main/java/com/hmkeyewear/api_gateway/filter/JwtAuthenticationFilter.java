@@ -1,7 +1,6 @@
 package com.hmkeyewear.api_gateway.filter;
 
 import com.hmkeyewear.api_gateway.util.JwtUtil;
-import com.netflix.discovery.converters.Auto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
@@ -33,10 +32,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     // Gateway-level authorization
     private static final Map<String, String[]> ROLE_ACCESS = Map.of(
-            "/product/admin", new String[]{"ROLE_ADMIN"},
-            "/product/employer", new String[]{"ROLE_EMPLOYER", "ROLE_ADMIN"},
-            "/product/user", new String[]{"ROLE_USER", "ROLE_EMPLOYER", "ROLE_ADMIN"}
-    );
+            "/product/admin", new String[] { "ROLE_ADMIN" },
+            "/product/employer", new String[] { "ROLE_EMPLOYER", "ROLE_ADMIN" },
+            "/product/user", new String[] { "ROLE_USER", "ROLE_EMPLOYER", "ROLE_ADMIN" });
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -87,7 +85,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     }
                 }
             }
-            //Pass role & username information down to microservice (via header)
+            // Pass role & username information down to microservice (via header)
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(r -> r.headers(headers -> {
                         headers.add("X-User-Name", username);

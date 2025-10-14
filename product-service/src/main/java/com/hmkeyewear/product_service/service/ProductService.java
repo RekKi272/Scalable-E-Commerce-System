@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -59,7 +58,8 @@ public class ProductService {
     }
 
     // CREATE Product
-    public ProductResponseDto createProduct(ProductRequestDto dto, String createdBy) throws ExecutionException, InterruptedException {
+    public ProductResponseDto createProduct(ProductRequestDto dto, String createdBy)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
         // Generate new ID
@@ -120,7 +120,8 @@ public class ProductService {
     }
 
     // UPDATE Product
-    public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String updatedBy) throws ExecutionException, InterruptedException {
+    public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String updatedBy)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
 

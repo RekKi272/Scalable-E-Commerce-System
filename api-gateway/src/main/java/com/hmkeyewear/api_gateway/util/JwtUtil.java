@@ -3,11 +3,9 @@ package com.hmkeyewear.api_gateway.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 
@@ -16,7 +14,6 @@ public class JwtUtil {
 
     @Value("${jwt.secret}")
     private String secretKey;
-
 
     public boolean validateToken(final String token) {
         try {
@@ -36,7 +33,7 @@ public class JwtUtil {
     }
 
     public Claims extractClaims(String token) {
-        //System.out.println("JWT_SECRET loading: " + secretKey);
+        // System.out.println("JWT_SECRET loading: " + secretKey);
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
                 .build()

@@ -9,71 +9,88 @@ spring:
 
   cloud:
     gateway:
-      server:
-        webflux:
-          discovery:
-            locator:
-              lower-case-service-id: true
-              enabled: true
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
 
+      routes:
+        # Auth Service
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**
 
-          routes:
-            # Auth Service
-                    - id: auth-service
-                      uri: lb://auth-service
-                      predicates:
-                        - Path=/auth/**
-                    # Blog Service
-                    - id: blog-service
-                      uri: lb://blog-service
-                      predicates:
-                        - Path=/blog/**
-                    # Cart Service
-                    - id: cart-service
-                      uri: lb://cart-service
-                      predicates:
-                        - Path=/cart/**
-                    # Order Service
-                    - id: order-service
-                      uri: lb://order-service
-                      predicates:
-                        - Path=/order/**
-                    # Product Service
-                    - id: product-service
-                      uri: lb://product-service
-                      predicates:
-                        - Path=/product/**,/category/**,/brand/**
-                    # User Service
-                    - id: user-service
-                      uri: lb://user-service
-                      predicates:
-                        - Path=/user/**
-          httpclient:
-            connect-timeout: 5000
-            response-timeout: 10s
-          default-filters:
-            - name: DedupeResponseHeader
-              args:
-                strategy : RETAIN_UNIQUE
-                name: Access-Control-Allow-Credentials
-            - name: RemoveRequestHeader
-              args:
-                name: Cookie
-          globalcors:
-            cors-configurations:
-              '[/**]':
-                allowed-origins:
-                  - http://localhost:8086
-                allowed-methods:
-                  - GET
-                  - POST
-                  - PUT
-                  - DELETE
-                  - PATCH
-                  - OPTIONS
-                allowed-headers:
-                  - "*"
-                allow-credentials: true
+        # Blog Service
+        - id: blog-service
+          uri: lb://blog-service
+          predicates:
+            - Path=/blog/**
+
+        # Cart Service
+        - id: cart-service
+          uri: lb://cart-service
+          predicates:
+            - Path=/cart/**
+
+        # Order Service
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/order/**
+
+        # Product Service
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/product/**,/category/**,/brand/**
+
+        # User Service
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/user/**
+
+        # Store Service
+        - id: store-service
+          uri: lb://store-service
+          predicates:
+            - Path=/store/**
+
+        # Inventory Service
+        - id: inventory-service
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory/**  
+
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10s
+
+      default-filters:
+        - name: DedupeResponseHeader
+          args:
+            strategy: RETAIN_UNIQUE
+            name: Access-Control-Allow-Credentials
+        - name: RemoveRequestHeader
+          args:
+            name: Cookie
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins:
+              - http://localhost:8086
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowed-headers:
+              - "*"
+            allow-credentials: true
 
 jwt:
   secret: ${JWT_SECRET}
@@ -86,8 +103,6 @@ eureka:
   client:
     serviceUrl:
       defaultZone: http://service-registry:8761/eureka/
-
-
 
 logging:
   level:

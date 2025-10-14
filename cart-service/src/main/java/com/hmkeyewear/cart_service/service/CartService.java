@@ -1,7 +1,6 @@
 package com.hmkeyewear.cart_service.service;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
@@ -32,7 +31,7 @@ public class CartService {
         cart.setItems(dto.getItems());
 
         double totalPrice = 0.0;
-        for (CartItem cartItem : cart.getItems()){
+        for (CartItem cartItem : cart.getItems()) {
             totalPrice += cartItem.getUnitPrice() * cartItem.getQuantity();
         }
         cart.setTotal(totalPrice);
@@ -49,14 +48,15 @@ public class CartService {
         ApiFuture<DocumentSnapshot> docSnapshot = docRef.get();
         DocumentSnapshot snapshot = docSnapshot.get();
 
-        if(snapshot.exists()) {
+        if (snapshot.exists()) {
             Cart cart = snapshot.toObject(Cart.class);
             return cartMapper.toResponseDto(cart);
         }
         return null;
     }
 
-    public CartResponseDto updateCart(String customerId, CartRequestDto dto) throws ExecutionException, InterruptedException {
+    public CartResponseDto updateCart(String customerId, CartRequestDto dto)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(customerId);
 
@@ -65,7 +65,7 @@ public class CartService {
         cart.setItems(dto.getItems());
 
         double totalPrice = 0.0;
-        for (CartItem cartItem : cart.getItems()){
+        for (CartItem cartItem : cart.getItems()) {
             totalPrice += cartItem.getUnitPrice() * cartItem.getQuantity();
         }
         cart.setTotal(totalPrice);

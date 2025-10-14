@@ -10,7 +10,6 @@ public class Variant {
     private String variantId;
     private String color;
     private String thumbnail;
-    private int quantity;
     // Danh sách ảnh của variant
     private List<Image> images;
 }

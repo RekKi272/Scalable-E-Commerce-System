@@ -2,7 +2,6 @@ package com.hmkeyewear.user_service.controller;
 
 import com.hmkeyewear.user_service.dto.CustomerRequestDto;
 import com.hmkeyewear.user_service.dto.CustomerResponseDto;
-import com.hmkeyewear.user_service.model.Customer;
 import com.hmkeyewear.user_service.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

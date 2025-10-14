@@ -1,6 +1,5 @@
 package com.hmkeyewear.cart_service.dto;
 
-import com.google.cloud.Timestamp;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

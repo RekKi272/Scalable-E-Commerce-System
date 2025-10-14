@@ -1,6 +1,5 @@
 package com.hmkeyewear.cart_service.model;
 
-import com.google.cloud.Timestamp;
 import lombok.Getter;
 import lombok.Setter;
 

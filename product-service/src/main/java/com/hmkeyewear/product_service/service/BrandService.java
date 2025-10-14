@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +48,8 @@ public class BrandService {
     }
 
     // CREATE Brand
-    public BrandResponseDto createBrand(BrandRequestDto dto, String createdBy) throws ExecutionException, InterruptedException {
+    public BrandResponseDto createBrand(BrandRequestDto dto, String createdBy)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
         String newBrandId = generateBrandId(db);
@@ -97,7 +97,8 @@ public class BrandService {
     }
 
     // UPDATE Brand
-    public BrandResponseDto updateBrand(String brandId, BrandRequestDto dto, String updatedBy) throws ExecutionException, InterruptedException {
+    public BrandResponseDto updateBrand(String brandId, BrandRequestDto dto, String updatedBy)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference brandRef = db.collection(COLLECTION_NAME).document(brandId);
 

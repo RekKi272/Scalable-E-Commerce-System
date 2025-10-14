@@ -113,3 +113,39 @@ services:
     depends_on:
       service-registry:
         condition: service_healthy
+
+  store-service:
+    build:
+      context: ./store-service
+      dockerfile: Dockerfile
+    container_name: store-service
+    ports:
+      - "8087:8087"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-store.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_APPLICATION_NAME=store-service
+      - SERVER_PORT=8087
+    volumes:
+      - ./secrets/firebase-store.json:/app/firebase-store.json
+    depends_on:
+      service-registry:
+        condition: service_healthy
+
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    ports:
+      - "8088:8088"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-inventory.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_APPLICATION_NAME=inventory-service
+      - SERVER_PORT=8088
+    volumes:
+      - ./secrets/firebase-inventory.json:/app/firebase-inventory.json
+    depends_on:
+      service-registry:
+        condition: service_healthy

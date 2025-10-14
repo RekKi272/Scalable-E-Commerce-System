@@ -8,13 +8,10 @@ import com.hmkeyewear.auth_service.dto.LoginRequestDto;
 import com.hmkeyewear.auth_service.dto.AuthResponseDto;
 import com.hmkeyewear.auth_service.dto.RegisterRequestDto;
 import com.hmkeyewear.auth_service.model.Customer;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
@@ -60,53 +57,54 @@ public class AuthService {
         jwtService.validateToken(token);
     }
     // Tạo sẵn 3 user mặc định: ADMIN, EMPLOYER, USER
-//    @PostConstruct
-//    public void initDefaultUsers() throws ExecutionException, InterruptedException {
-//        Firestore db = FirestoreClient.getFirestore();
-//
-//        List<String> defaultEmails = List.of(
-//                "admin@hmkeyewear.com",
-//                "employer@hmkeyewear.com",
-//                "user@hmkeyewear.com"
-//        );
-//
-//        List<String> roles = List.of("ROLE_ADMIN", "ROLE_EMPLOYER", "ROLE_USER");
-//
-//        for (int i = 0; i < defaultEmails.size(); i++) {
-//            String email = defaultEmails.get(i);
-//            String role = roles.get(i);
-//
-//            // Kiểm tra xem user này đã tồn tại chưa
-//            ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
-//                    .whereEqualTo("email", email)
-//                    .get();
-//
-//            QuerySnapshot snapshot = query.get();
-//
-//            if (snapshot.isEmpty()) {
-//                DocumentReference docRef = db.collection(COLLECTION_NAME).document();
-//
-//                Customer customer = new Customer();
-//                customer.setCustomerId(docRef.getId());
-//                customer.setFirstName(role + " First");
-//                customer.setLastName(role + " Last");
-//                customer.setPhone("0123456789");
-//                customer.setAddress("Default Address");
-//                customer.setEmail(email);
-//                customer.setPassword(passwordEncoder.encode("123456")); // password mặc định
-//                customer.setSex(true);
-//                customer.setRole(role);
-//                customer.setStatus("ACTIVE");
-//                customer.setCreatedAt(Timestamp.now());
-//                customer.setCreatedBy("system");
-//
-//                docRef.set(customer);
-//                System.out.println("Created default user: " + email + " with role: " + role);
-//            } else {
-//                System.out.println("User already exists: " + email);
-//            }
-//        }
-//    }
+    // @PostConstruct
+    // public void initDefaultUsers() throws ExecutionException,
+    // InterruptedException {
+    // Firestore db = FirestoreClient.getFirestore();
+    //
+    // List<String> defaultEmails = List.of(
+    // "admin@hmkeyewear.com",
+    // "employer@hmkeyewear.com",
+    // "user@hmkeyewear.com"
+    // );
+    //
+    // List<String> roles = List.of("ROLE_ADMIN", "ROLE_EMPLOYER", "ROLE_USER");
+    //
+    // for (int i = 0; i < defaultEmails.size(); i++) {
+    // String email = defaultEmails.get(i);
+    // String role = roles.get(i);
+    //
+    // // Kiểm tra xem user này đã tồn tại chưa
+    // ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+    // .whereEqualTo("email", email)
+    // .get();
+    //
+    // QuerySnapshot snapshot = query.get();
+    //
+    // if (snapshot.isEmpty()) {
+    // DocumentReference docRef = db.collection(COLLECTION_NAME).document();
+    //
+    // Customer customer = new Customer();
+    // customer.setCustomerId(docRef.getId());
+    // customer.setFirstName(role + " First");
+    // customer.setLastName(role + " Last");
+    // customer.setPhone("0123456789");
+    // customer.setAddress("Default Address");
+    // customer.setEmail(email);
+    // customer.setPassword(passwordEncoder.encode("123456")); // password mặc định
+    // customer.setSex(true);
+    // customer.setRole(role);
+    // customer.setStatus("ACTIVE");
+    // customer.setCreatedAt(Timestamp.now());
+    // customer.setCreatedBy("system");
+    //
+    // docRef.set(customer);
+    // System.out.println("Created default user: " + email + " with role: " + role);
+    // } else {
+    // System.out.println("User already exists: " + email);
+    // }
+    // }
+    // }
 
     // Đăng ký tài khoản
     public AuthResponseDto register(RegisterRequestDto dto) throws ExecutionException, InterruptedException {

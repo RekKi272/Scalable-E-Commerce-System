@@ -5,7 +5,6 @@ import com.hmkeyewear.cart_service.dto.CartResponseDto;
 import com.hmkeyewear.cart_service.model.Cart;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Mappings;
 
 @Mapper(componentModel = "spring")
 public interface CartMapper {
