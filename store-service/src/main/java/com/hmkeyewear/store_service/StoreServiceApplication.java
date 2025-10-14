@@ -15,7 +15,7 @@ import java.io.IOException;
 public class StoreServiceApplication {
 
 	public static void main(String[] args) throws IOException {
-		// 🔥 Load Firebase credentials từ biến môi trường
+		// Load Firebase credentials từ biến môi trường
 		String credentialPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
 		if (credentialPath == null || credentialPath.isEmpty()) {
 			throw new IllegalStateException("Missing GOOGLE_APPLICATION_CREDENTIALS environment variable");

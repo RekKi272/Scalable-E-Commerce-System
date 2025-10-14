@@ -28,7 +28,7 @@ public class InventoryController {
             @RequestHeader("X-User-StoreId") String storeId,
             @Valid @RequestBody InventoryRequestDto dto) {
 
-        if (!"ROLE_EMPLOYEER".equalsIgnoreCase(role)) {
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
 
@@ -51,7 +51,7 @@ public class InventoryController {
             @RequestHeader("X-User-StoreId") String storeId,
             @Valid @RequestBody InventoryRequestDto dto) {
 
-        if (!"ROLE_EMPLOYEER".equalsIgnoreCase(role)) {
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
 
@@ -74,7 +74,7 @@ public class InventoryController {
             @RequestHeader("X-User-StoreId") String storeId,
             @Valid @RequestBody InventoryBatchRequestDto batchDto) {
 
-        if (!"ROLE_EMPLOYEER".equalsIgnoreCase(role)) {
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
 
@@ -97,7 +97,7 @@ public class InventoryController {
             @RequestHeader("X-User-StoreId") String storeId,
             @Valid @RequestBody InventoryBatchRequestDto batchDto) {
 
-        if (!"ROLE_EMPLOYEER".equalsIgnoreCase(role)) {
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
 
@@ -118,7 +118,7 @@ public class InventoryController {
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-StoreId") String storeId) {
 
-        if (!"ROLE_EMPLOYEER".equalsIgnoreCase(role) && !"ROLE_ADMIN".equalsIgnoreCase(role)) {
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role) && !"ROLE_ADMIN".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền xem kho");
         }
 
