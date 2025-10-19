@@ -1,6 +1,7 @@
 package com.hmkeyewear.product_service.dto;
 
 import com.hmkeyewear.product_service.model.Variant;
+import com.hmkeyewear.product_service.model.Image;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,11 +24,12 @@ public class ProductResponseDto {
     private double importPrice;
     private double sellingPrice;
 
-    // attributes dạng key-value
     private Map<String, Object> attributes;
 
-    // danh sách variant
     private List<Variant> variants;
+
+    // Images moved out of variant
+    private List<Image> images;
 
     private Timestamp createdAt;
     private String createdBy;

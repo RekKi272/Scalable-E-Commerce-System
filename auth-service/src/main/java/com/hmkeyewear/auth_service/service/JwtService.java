@@ -42,9 +42,10 @@ public class JwtService {
                 .parseClaimsJws(token);
     }
 
-    public String generateToken(String userName, String role) {
+    public String generateToken(String userName, String role, String storeId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
+        claims.put("storeId", storeId);
         return createToken(claims, userName);
     }
 

@@ -65,6 +65,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
             String role = jwtUtil.extractRole(token);
             String username = jwtUtil.extractUsername(token);
+            String storeId = jwtUtil.extractStoreId(token);
 
             // Debug
             System.out.println("[GATEWAY] User: " + username + " | Role: " + role + " | Path: " + path);
@@ -90,6 +91,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .request(r -> r.headers(headers -> {
                         headers.add("X-User-Name", username);
                         headers.add("X-User-Role", role);
+                        headers.add("X-User-StoreId", storeId != null ? storeId : "UNKNOWN");
                     }))
                     .build();
 

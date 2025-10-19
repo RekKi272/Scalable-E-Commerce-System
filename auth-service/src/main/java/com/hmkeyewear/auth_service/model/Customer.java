@@ -22,6 +22,7 @@ public class Customer {
     private String email;
     private String password;
     private Date birthday;
+    private String storeId;
 
     private Timestamp createdAt;
     private String createdBy;

@@ -24,28 +24,43 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDto> register(@RequestBody RegisterRequestDto registerRequestDto) throws ExecutionException, InterruptedException {
+    public ResponseEntity<AuthResponseDto> register(@RequestBody RegisterRequestDto registerRequestDto)
+            throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(authService.register(registerRequestDto));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) throws ExecutionException, InterruptedException {
+    public ResponseEntity<AuthResponseDto> login(@RequestBody LoginRequestDto loginRequestDto)
+            throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(authService.login(loginRequestDto));
     }
 
     @PostMapping("/token")
-    public String getToken(@RequestBody LoginRequestDto loginRequestDto) throws ExecutionException, InterruptedException {
-        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword()));
+    public String getToken(@RequestBody LoginRequestDto loginRequestDto)
+            throws ExecutionException, InterruptedException {
+
+        Authentication authenticate = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequestDto.getEmail(),
+                        loginRequestDto.getPassword()));
+
         if (authenticate.isAuthenticated()) {
-            return authService.generateToken(loginRequestDto.getEmail(), authService.getRoleFromEmail(loginRequestDto.getEmail()));
+            // Lấy thông tin customer từ Firestore
+            var customer = authService.findByEmail(loginRequestDto.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Gọi generateToken 3 tham số: email, role, storeId
+            return authService.generateToken(
+                    loginRequestDto.getEmail(),
+                    authService.getRoleFromEmail(loginRequestDto.getEmail()),
+                    customer.getStoreId());
         } else {
             throw new RuntimeException("invalid access");
         }
-
     }
 
     @GetMapping("/validate")
-    public String validateToken(@RequestParam String token){
+    public String validateToken(@RequestParam String token) {
         authService.validateToken(token);
         return "Token is valid";
     }

@@ -49,62 +49,13 @@ public class AuthService {
         return customer.getRole();
     }
 
-    public String generateToken(String email, String role) {
-        return jwtService.generateToken(email, role);
+    public String generateToken(String email, String role, String storeId) {
+        return jwtService.generateToken(email, role, storeId);
     }
 
     public void validateToken(String token) {
         jwtService.validateToken(token);
     }
-    // Tạo sẵn 3 user mặc định: ADMIN, EMPLOYER, USER
-    // @PostConstruct
-    // public void initDefaultUsers() throws ExecutionException,
-    // InterruptedException {
-    // Firestore db = FirestoreClient.getFirestore();
-    //
-    // List<String> defaultEmails = List.of(
-    // "admin@hmkeyewear.com",
-    // "employer@hmkeyewear.com",
-    // "user@hmkeyewear.com"
-    // );
-    //
-    // List<String> roles = List.of("ROLE_ADMIN", "ROLE_EMPLOYER", "ROLE_USER");
-    //
-    // for (int i = 0; i < defaultEmails.size(); i++) {
-    // String email = defaultEmails.get(i);
-    // String role = roles.get(i);
-    //
-    // // Kiểm tra xem user này đã tồn tại chưa
-    // ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
-    // .whereEqualTo("email", email)
-    // .get();
-    //
-    // QuerySnapshot snapshot = query.get();
-    //
-    // if (snapshot.isEmpty()) {
-    // DocumentReference docRef = db.collection(COLLECTION_NAME).document();
-    //
-    // Customer customer = new Customer();
-    // customer.setCustomerId(docRef.getId());
-    // customer.setFirstName(role + " First");
-    // customer.setLastName(role + " Last");
-    // customer.setPhone("0123456789");
-    // customer.setAddress("Default Address");
-    // customer.setEmail(email);
-    // customer.setPassword(passwordEncoder.encode("123456")); // password mặc định
-    // customer.setSex(true);
-    // customer.setRole(role);
-    // customer.setStatus("ACTIVE");
-    // customer.setCreatedAt(Timestamp.now());
-    // customer.setCreatedBy("system");
-    //
-    // docRef.set(customer);
-    // System.out.println("Created default user: " + email + " with role: " + role);
-    // } else {
-    // System.out.println("User already exists: " + email);
-    // }
-    // }
-    // }
 
     // Đăng ký tài khoản
     public AuthResponseDto register(RegisterRequestDto dto) throws ExecutionException, InterruptedException {
@@ -134,14 +85,15 @@ public class AuthService {
         customer.setStatus("ACTIVE");
         customer.setCreatedAt(Timestamp.now());
         customer.setCreatedBy(customer.getCustomerId());
+        customer.setStoreId(dto.getStoreId());
 
         ApiFuture<WriteResult> result = docRef.set(customer);
         result.get();
 
         // Tạo JWT sau khi đăng ký
-        String token = generateToken(customer.getEmail(), customer.getRole());
+        String token = jwtService.generateToken(customer.getEmail(), customer.getRole(), customer.getStoreId());
 
-        return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), token);
+        return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), customer.getRole(), token);
     }
 
     // Đăng nhập
@@ -165,8 +117,8 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = generateToken(customer.getEmail(), customer.getRole());
-        return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), token);
+        String token = jwtService.generateToken(customer.getEmail(), customer.getRole(), customer.getStoreId());
+        return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), customer.getRole(), token);
     }
 
     // Find By Email

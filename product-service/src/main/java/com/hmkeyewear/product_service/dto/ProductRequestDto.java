@@ -1,6 +1,7 @@
 package com.hmkeyewear.product_service.dto;
 
 import com.hmkeyewear.product_service.model.Variant;
+import com.hmkeyewear.product_service.model.Image;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -36,7 +37,6 @@ public class ProductRequestDto {
     private Map<String, Object> attributes;
     private List<Variant> variants;
 
-    private String createdBy;
-    private String updatedBy;
-
+    // Moved images out of variant
+    private List<Image> images;
 }

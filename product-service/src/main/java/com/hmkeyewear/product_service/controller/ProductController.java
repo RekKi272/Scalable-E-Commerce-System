@@ -14,17 +14,17 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("product")
 public class ProductController {
 
-    public ProductService productService;
+    private final ProductService productService;
 
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
 
     // CREATE Product
-    @PostMapping("/admin/create")
+    @PostMapping("/create")
     public ResponseEntity<?> createProduct(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Name") String username,
+            @RequestHeader("X-User-Id") String userId,
             @Valid @RequestBody ProductRequestDto productRequestDto)
             throws ExecutionException, InterruptedException {
 
@@ -32,7 +32,7 @@ public class ProductController {
             return ResponseEntity.status(403).body("Bạn không có quyền tạo sản phẩm");
         }
 
-        ProductResponseDto response = productService.createProduct(productRequestDto, username);
+        ProductResponseDto response = productService.createProduct(productRequestDto, userId);
         return ResponseEntity.ok(response);
     }
 
@@ -51,16 +51,11 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/getUser")
-    public String getUserName(@RequestParam String customerId) throws InterruptedException, ExecutionException {
-        return productService.getCustomer(customerId);
-    }
-
     // UPDATE PRODUCT
     @PutMapping("/update/{productId}")
     public ResponseEntity<?> updateProduct(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Name") String username,
+            @RequestHeader("X-User-Id") String userId,
             @PathVariable String productId,
             @Valid @RequestBody ProductRequestDto productRequestDto)
             throws InterruptedException, ExecutionException {
@@ -69,13 +64,15 @@ public class ProductController {
             return ResponseEntity.status(403).body("Bạn không có quyền sửa sản phẩm");
         }
 
-        ProductResponseDto response = productService.updateProduct(productId, productRequestDto, username);
+        ProductResponseDto response = productService.updateProduct(productId, productRequestDto, userId);
         return ResponseEntity.ok(response);
     }
 
+    // DELETE Product
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteProduct(
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Id") String userId,
             @RequestParam String productId)
             throws InterruptedException, ExecutionException {
         if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
@@ -83,5 +80,4 @@ public class ProductController {
         }
         return ResponseEntity.ok(productService.deleteProduct(productId));
     }
-
 }

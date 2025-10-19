@@ -9,69 +9,95 @@ import com.hmkeyewear.product_service.feign.ProductInterface;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
 import com.hmkeyewear.product_service.model.Customer;
 import com.hmkeyewear.product_service.model.Product;
+import com.hmkeyewear.product_service.model.Variant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Service
 public class ProductService {
 
     @Autowired
-    ProductInterface productInterface;
+    private ProductInterface productInterface;
 
     @Autowired
-    public ProductMapper productMapper;
+    private ProductMapper productMapper;
 
+    private static final String COLLECTION_NAME = "products";
+    private static final String COUNTER_COLLECTION = "counters";
+    private static final String PRODUCT_COUNTER_DOC = "productCounter";
+    private static final String VARIANT_COUNTER_DOC = "variantCounter";
+
+    // Lấy tên khách hàng từ user-service
     public String getCustomer(String customerId) throws ExecutionException, InterruptedException {
         Customer customer = productInterface.getCustomer(customerId);
         return customer.getFirstName();
     }
 
-    private static final String COLLECTION_NAME = "products";
-    private static final String COUNTER_COLLECTION = "counters";
-    private static final String PRODUCT_COUNTER_DOC = "productCounter";
-
-    // GENERATE ProductId
     private String generateProductId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(PRODUCT_COUNTER_DOC);
 
         ApiFuture<String> future = db.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(counterRef).get();
 
-            long lastId = 0;
-            if (snapshot.exists() && snapshot.contains("lastId")) {
-                lastId = snapshot.getLong("lastId");
-            }
+            Long lastIdObj = (snapshot.exists() && snapshot.contains("lastId")) ? snapshot.getLong("lastId") : null;
+            long lastId = (lastIdObj != null) ? lastIdObj : 0;
 
             long newId = lastId + 1;
-            transaction.update(counterRef, "lastId", newId);
+            transaction.set(counterRef, Map.of("lastId", newId), SetOptions.merge());
 
-            // format: PROD0001, PROD0002
-            return String.format("PROD%04d", newId);
+            // --- Fix lỗi dữ chuỗi ---
+            String formattedId = String.format("%03d", newId);
+            if (formattedId.length() > 3)
+                formattedId = String.valueOf(newId); // giữ nguyên nếu vượt 999
+            return "PROD" + formattedId;
         });
 
         return future.get();
     }
 
-    // CREATE Product
-    public ProductResponseDto createProduct(ProductRequestDto dto, String createdBy)
+    // Tạo VariantId theo productId
+    private String generateVariantId(Firestore db, String productId) throws ExecutionException, InterruptedException {
+        DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(VARIANT_COUNTER_DOC);
+
+        ApiFuture<String> future = db.runTransaction(transaction -> {
+            DocumentSnapshot snapshot = transaction.get(counterRef).get();
+
+            Long lastIdObj = (snapshot.exists() && snapshot.contains(productId)) ? snapshot.getLong(productId) : null;
+            long lastId = (lastIdObj != null) ? lastIdObj : 0;
+
+            long newId = lastId + 1;
+
+            // Dùng set với merge để tạo field mới nếu chưa tồn tại
+            transaction.set(counterRef, Map.of(productId, newId), SetOptions.merge());
+
+            // --- Fix lỗi dữ chuỗi ---
+            String formattedVariant = String.format("%02d", newId);
+            if (formattedVariant.length() > 2)
+                formattedVariant = String.valueOf(newId); // giữ nguyên nếu vượt 99
+            return productId + formattedVariant; // PROD00101
+        });
+
+        return future.get();
+    }
+
+    // CREATE product
+    public ProductResponseDto createProduct(ProductRequestDto dto, String userId)
             throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
-        // Generate new ID
         String newProductId = generateProductId(db);
 
         Product product = new Product();
         product.setProductId(newProductId);
         product.setCategoryId(dto.getCategoryId());
         product.setBrandId(dto.getBrandId());
-
-        product.setCreatedAt(Timestamp.now());
-
         product.setProductName(dto.getProductName());
         product.setDescription(dto.getDescription());
         product.setStatus(dto.getStatus());
@@ -79,88 +105,102 @@ public class ProductService {
         product.setImportPrice(dto.getImportPrice());
         product.setSellingPrice(dto.getSellingPrice());
         product.setAttributes(dto.getAttributes());
-        product.setVariants(dto.getVariants());
-        product.setCreatedBy(dto.getCreatedBy());
-        product.setUpdatedBy(dto.getUpdatedBy());
+        product.setCreatedAt(Timestamp.now());
+        product.setCreatedBy(userId); // <-- từ header
+        product.setUpdatedAt(Timestamp.now());
+        product.setUpdatedBy(userId); // <-- từ header
 
-        ApiFuture<WriteResult> future = db.collection(COLLECTION_NAME)
-                .document(product.getProductId())
-                .set(product);
+        if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
+            List<Variant> variantsWithId = new ArrayList<>();
+            for (Variant v : dto.getVariants()) {
+                v.setVariantId(generateVariantId(db, newProductId));
+                variantsWithId.add(v);
+            }
+            product.setVariants(variantsWithId);
+        }
 
-        future.get();
+        if (dto.getImages() != null) {
+            product.setImages(dto.getImages());
+        }
+
+        db.collection(COLLECTION_NAME).document(product.getProductId()).set(product).get();
+
         return productMapper.toProductResponseDto(product);
     }
 
-    // Get Product by Id
+    // GET Product by Id
     public ProductResponseDto getProductById(String productId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
-        DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
-        ApiFuture<DocumentSnapshot> future = productRef.get();
-        DocumentSnapshot snapshot = future.get();
+        DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(productId).get().get();
 
         if (snapshot.exists()) {
             Product product = snapshot.toObject(Product.class);
+            if (product == null) {
+                throw new RuntimeException("Product data is null for ID " + productId);
+            }
             return productMapper.toProductResponseDto(product);
         }
         return null;
     }
 
-    // GET ALL Product
+    // GET All Products
     public List<ProductResponseDto> getAllProducts() throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME).get();
-        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME).get().get().getDocuments();
 
         List<ProductResponseDto> result = new ArrayList<>();
         for (QueryDocumentSnapshot doc : documents) {
             Product product = doc.toObject(Product.class);
-            result.add(productMapper.toProductResponseDto(product));
+            if (product != null) {
+                result.add(productMapper.toProductResponseDto(product));
+            }
         }
         return result;
     }
 
     // UPDATE Product
-    public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String updatedBy)
+    public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String userId)
             throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
 
-        // Check existed
-        ApiFuture<DocumentSnapshot> future = productRef.get();
-        DocumentSnapshot document = future.get();
-        if (!document.exists()) {
-            throw new RuntimeException("Product with ID" + productId + " not found");
+        DocumentSnapshot snapshot = productRef.get().get();
+        if (!snapshot.exists()) {
+            throw new RuntimeException("Product with ID " + productId + " not found");
         }
 
-        // get old data
-        Product existingProduct = document.toObject(Product.class);
+        Product existingProduct = snapshot.toObject(Product.class);
+        if (existingProduct == null) {
+            throw new RuntimeException("Product data is null for ID " + productId);
+        }
 
-        // Map dto to product
         Product updatedProduct = productMapper.toProduct(dto);
-
         updatedProduct.setProductId(productId);
         updatedProduct.setCreatedAt(existingProduct.getCreatedAt());
         updatedProduct.setCreatedBy(existingProduct.getCreatedBy());
-
-        // Set updated info
         updatedProduct.setUpdatedAt(Timestamp.now());
-        updatedProduct.setUpdatedBy(updatedBy);
+        updatedProduct.setUpdatedBy(userId); // <-- từ header
 
-        // Store to Firestore
-        ApiFuture<WriteResult> writeResult = productRef.set(updatedProduct);
-        writeResult.get(); // wait until done
+        if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
+            List<Variant> variantsWithId = new ArrayList<>();
+            for (Variant v : dto.getVariants()) {
+                if (v.getVariantId() == null || v.getVariantId().isEmpty()) {
+                    v.setVariantId(generateVariantId(db, productId));
+                }
+                variantsWithId.add(v);
+            }
+            updatedProduct.setVariants(variantsWithId);
+        }
 
-        // return DTO
+        productRef.set(updatedProduct).get();
+
         return productMapper.toProductResponseDto(updatedProduct);
     }
 
-    // DELETE product
+    // DELETE Product
     public String deleteProduct(String productId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<WriteResult> future = db.collection(COLLECTION_NAME)
-                .document(productId)
-                .delete();
-        future.get(); // wait until delete is done
+        db.collection(COLLECTION_NAME).document(productId).delete().get();
         return "Successfully deleted product with id " + productId;
     }
 }

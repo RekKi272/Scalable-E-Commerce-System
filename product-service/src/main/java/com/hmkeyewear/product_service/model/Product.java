@@ -26,6 +26,9 @@ public class Product {
     // danh sách variant
     private List<Variant> variants;
 
+    // Danh sách ảnh của product
+    private List<Image> images;
+
     private Timestamp createdAt;
     private String createdBy;
     private Timestamp updatedAt;

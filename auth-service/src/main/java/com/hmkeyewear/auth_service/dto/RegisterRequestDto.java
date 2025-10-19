@@ -17,5 +17,6 @@ public class RegisterRequestDto {
     private String email;
     @NotBlank
     private String password;
-    private String role; // optional, default ROLE_USER
+    private String role;
+    private String storeId;
 }
