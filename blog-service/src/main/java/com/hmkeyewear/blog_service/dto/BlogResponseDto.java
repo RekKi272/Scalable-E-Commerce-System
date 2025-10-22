@@ -16,4 +16,6 @@ public class BlogResponseDto {
     private String status;
     private Timestamp createdAt;
     private String createdBy;
+    private Timestamp updatedAt;
+    private String updatedBy;
 }

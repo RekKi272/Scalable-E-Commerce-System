@@ -18,10 +18,15 @@ public class BlogController {
 
     @PostMapping("/create")
     public ResponseEntity<BlogResponseDto> createBlog(
-            @RequestParam String createdBy,
-            @RequestBody BlogRequestDto blogRequestDto
-    ) throws ExecutionException, InterruptedException {
+            @RequestHeader("X-User-Name") String createdBy,
+            @RequestBody BlogRequestDto blogRequestDto) throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(blogService.createBlog(createdBy, blogRequestDto));
+    }
+
+    @GetMapping("/getAll")
+    public ResponseEntity<List<BlogResponseDto>> getAllBlogs()
+            throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(blogService.getAllBlogs());
     }
 
     @GetMapping("/get/{blogId}")
@@ -33,9 +38,10 @@ public class BlogController {
     @PutMapping("/update/{blogId}")
     public ResponseEntity<BlogResponseDto> updateBlog(
             @PathVariable String blogId,
-            @RequestBody BlogRequestDto dto
-    ) throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(blogService.updateBlog(blogId, dto));
+            @RequestHeader("X-User-Name") String updatedBy,
+            @RequestBody BlogRequestDto dto) throws ExecutionException, InterruptedException {
+
+        return ResponseEntity.ok(blogService.updateBlog(blogId, dto, updatedBy));
     }
 
     @DeleteMapping("/delete/{blogId}")

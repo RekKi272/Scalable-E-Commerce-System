@@ -67,6 +67,31 @@ public class StoreController {
         }
     }
 
+
+    // UPDATE
+    @PutMapping("/update/{storeId}")
+    public ResponseEntity<?> updateStore(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @PathVariable String storeId,
+            @Valid @RequestBody StoreRequestDto requestDto) {
+
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền cập nhật chi nhánh");
+        }
+
+        try {
+            StoreResponseDto updated = storeService.updateStore(storeId, requestDto, username);
+            return ResponseEntity.ok(updated);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật chi nhánh: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
     // DELETE
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteStore(

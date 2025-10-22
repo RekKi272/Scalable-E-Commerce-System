@@ -10,9 +10,13 @@ public class Store {
     private String storeId;
     private String storeName;
     private String address;
+    private String ward;
     private String province;
     private String status;
 
     private Timestamp createdAt;
     private String createdBy;
+
+    private Timestamp updatedAt;
+    private String updatedBy;
 }

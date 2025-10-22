@@ -9,10 +9,13 @@ import com.hmkeyewear.blog_service.dto.BlogResponseDto;
 import com.hmkeyewear.blog_service.mapper.BlogMapper;
 import com.hmkeyewear.blog_service.model.Blog;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -25,7 +28,7 @@ public class BlogService {
     private static final String BLOG_COUNTER_DOC = "blogCounter";
 
     // GENERATE blogId
-    private String generateProductId(Firestore db) throws ExecutionException, InterruptedException {
+    private String generatBlogId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(BLOG_COUNTER_DOC);
 
         ApiFuture<String> future = db.runTransaction(transaction -> {
@@ -37,21 +40,22 @@ public class BlogService {
             }
 
             long newId = lastId + 1;
-            transaction.update(counterRef, "lastId", newId);
+            transaction.set(counterRef, Map.of("lastId", newId), SetOptions.merge());
 
-            // format: PROD0001, PROD0002
-            return String.format("BLOG%03d", newId);
+            // Format đúng: POST0001, POST0012, POST0123
+            return String.format("BLOG%04d", newId);
         });
 
         return future.get();
     }
 
     // CREATE BLOG
-    public BlogResponseDto createBlog(String createdBy, BlogRequestDto blogRequestDto) throws ExecutionException, InterruptedException {
+    public BlogResponseDto createBlog(String createdBy, BlogRequestDto blogRequestDto)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
         Blog blog = blogMapper.toBlog(blogRequestDto);
-        blog.setBlogId(generateProductId(db));
+        blog.setBlogId(generatBlogId(db));
         blog.setCreatedAt(Timestamp.now());
         blog.setCreatedBy(createdBy);
 
@@ -60,6 +64,22 @@ public class BlogService {
         result.get();
 
         return blogMapper.toBlogResponseDto(blog);
+    }
+
+    // Get All Blogs (kể cả inactive)
+    public List<BlogResponseDto> getAllBlogs() throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+
+        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME).get();
+        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+
+        List<BlogResponseDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : documents) {
+            Blog blog = doc.toObject(Blog.class);
+            result.add(blogMapper.toBlogResponseDto(blog));
+        }
+
+        return result;
     }
 
     // Get blog by ID
@@ -76,7 +96,10 @@ public class BlogService {
     }
 
     // UPDATE Blog
-    public BlogResponseDto updateBlog(String blogId, BlogRequestDto blogRequestDto) throws ExecutionException, InterruptedException {
+    // UPDATE Blog
+    public BlogResponseDto updateBlog(String blogId, BlogRequestDto blogRequestDto, String updatedBy)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(blogId);
 
@@ -87,10 +110,15 @@ public class BlogService {
 
         Blog existingBlog = snapshot.toObject(Blog.class);
         assert existingBlog != null;
+
         existingBlog.setTitle(blogRequestDto.getTitle());
         existingBlog.setContent(blogRequestDto.getContent());
         existingBlog.setThumbnail(blogRequestDto.getThumbnail());
         existingBlog.setStatus(blogRequestDto.getStatus());
+
+        // Set updated info
+        existingBlog.setUpdatedBy(updatedBy);
+        existingBlog.setUpdatedAt(Timestamp.now());
 
         ApiFuture<WriteResult> result = docRef.set(existingBlog);
         result.get();
@@ -114,7 +142,7 @@ public class BlogService {
 
         // query tất cả document có status = "active"
         ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
-                .whereEqualTo("status", "active")
+                .whereEqualTo("status", "ACTIVE")
                 .get();
 
         List<QueryDocumentSnapshot> documents = query.get().getDocuments();

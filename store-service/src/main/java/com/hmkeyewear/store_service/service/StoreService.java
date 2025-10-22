@@ -28,7 +28,7 @@ public class StoreService {
     private static final String COUNTER_COLLECTION = "counters";
     private static final String STORE_COUNTER_DOC = "storeCounter";
 
-    // Auto-generate storeId
+    // Tự động sinh mã STORE0001, STORE0002...
     private String generateStoreId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(STORE_COUNTER_DOC);
 
@@ -43,7 +43,7 @@ public class StoreService {
         return future.get();
     }
 
-    // CREATE store
+    // CREATE
     public StoreResponseDto createStore(StoreRequestDto dto, String createdBy)
             throws ExecutionException, InterruptedException {
 
@@ -59,17 +59,6 @@ public class StoreService {
         return storeMapper.toStoreResponseDto(store);
     }
 
-    // GET ONE
-    public StoreResponseDto getStoreById(String storeId) throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
-        DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(storeId).get().get();
-        if (snapshot.exists()) {
-            Store store = snapshot.toObject(Store.class);
-            return storeMapper.toStoreResponseDto(store);
-        }
-        return null;
-    }
-
     // GET ALL
     public List<StoreResponseDto> getAllStores() throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
@@ -80,6 +69,47 @@ public class StoreService {
             list.add(storeMapper.toStoreResponseDto(doc.toObject(Store.class)));
         }
         return list;
+    }
+
+    // GET ONE
+    public StoreResponseDto getStoreById(String storeId) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(storeId).get().get();
+
+        if (snapshot.exists()) {
+            Store store = snapshot.toObject(Store.class);
+            return storeMapper.toStoreResponseDto(store);
+        }
+        return null;
+    }
+
+    // UPDATE
+    public StoreResponseDto updateStore(String storeId, StoreRequestDto requestDto, String username)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document(storeId);
+        DocumentSnapshot snapshot = docRef.get().get();
+
+        if (!snapshot.exists()) {
+            throw new IllegalArgumentException("Chi nhánh không tồn tại");
+        }
+
+        Store existing = snapshot.toObject(Store.class);
+
+        // Cập nhật thông tin mới
+        existing.setStoreName(requestDto.getStoreName());
+        existing.setAddress(requestDto.getAddress());
+        existing.setProvince(requestDto.getProvince());
+        existing.setWard(requestDto.getWard());
+        existing.setStatus(requestDto.getStatus());
+
+        // Lưu dấu vết người cập nhật
+        existing.setUpdatedBy(username);
+        existing.setUpdatedAt(Timestamp.now());
+
+        docRef.set(existing, SetOptions.merge()).get();
+        return storeMapper.toStoreResponseDto(existing);
     }
 
     // DELETE
