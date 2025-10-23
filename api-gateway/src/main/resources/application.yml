@@ -28,6 +28,12 @@ spring:
                       predicates:
                         - Path=/blog/**
 
+                    # Banner Service
+                    - id: blog-service
+                      uri: lb://blog-service
+                      predicates:
+                        - Path=/banner/**
+
                     # Cart Service
                     - id: cart-service
                       uri: lb://cart-service

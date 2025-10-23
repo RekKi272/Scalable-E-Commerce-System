@@ -70,7 +70,8 @@ public class BannerController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<BannerResponseDto>> getAllActiveBanners() throws ExecutionException, InterruptedException {
+    public ResponseEntity<List<BannerResponseDto>> getAllActiveBanners()
+            throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(bannerService.getAllActiveBanners());
     }
 }
