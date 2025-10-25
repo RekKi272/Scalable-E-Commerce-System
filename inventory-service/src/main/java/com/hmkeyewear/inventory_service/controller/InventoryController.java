@@ -1,76 +1,156 @@
-package com.hmkeyewear.blog_service.controller;
+package com.hmkeyewear.inventory_service.controller;
 
-import com.hmkeyewear.blog_service.dto.BannerRequestDto;
-import com.hmkeyewear.blog_service.dto.BannerResponseDto;
-import com.hmkeyewear.blog_service.service.BannerService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hmkeyewear.inventory_service.dto.InventoryRequestDto;
+import com.hmkeyewear.inventory_service.dto.InventoryResponseDto;
+import com.hmkeyewear.inventory_service.dto.InventoryBatchRequestDto;
+import com.hmkeyewear.inventory_service.service.InventoryService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
 import java.util.concurrent.ExecutionException;
 
 @RestController
-@RequestMapping("/banner")
-public class BannerController {
+@RequestMapping("/inventory")
+public class InventoryController {
 
-    @Autowired
-    private BannerService bannerService;
+    private final InventoryService inventoryService;
 
-    @PostMapping("/create")
-    public ResponseEntity<BannerResponseDto> createBanner(
-            @RequestHeader("X-User-Name") String createdBy,
+
+    public InventoryController(InventoryService inventoryService) {
+        this.inventoryService = inventoryService;
+    }
+
+    // POST nhập hàng
+    @PostMapping("/import")
+    public ResponseEntity<?> importInventory(
             @RequestHeader("X-User-Role") String role,
-            @RequestBody BannerRequestDto dto) throws ExecutionException, InterruptedException {
+            @RequestHeader("X-User-Name") String username,
+            @RequestHeader("X-User-StoreId") String storeId,
+            @Valid @RequestBody InventoryRequestDto dto) {
 
-        if (!"ROLE_ADMIN".equals(role)) {
-            return ResponseEntity.status(403).build();
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
-        return ResponseEntity.ok(bannerService.createBanner(createdBy, dto));
+
+        try {
+            InventoryResponseDto response = inventoryService.updateInventoryWithType(dto, storeId, username, "IMPORT");
+            return ResponseEntity.ok(response);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
     }
 
-    @PutMapping("/update/{bannerId}")
-    public ResponseEntity<BannerResponseDto> updateBanner(
-            @PathVariable String bannerId,
-            @RequestHeader("X-User-Name") String updatedBy,
+    // POST bán hàng
+    @PostMapping("/sell")
+    public ResponseEntity<?> sellInventory(
+
             @RequestHeader("X-User-Role") String role,
-            @RequestBody BannerRequestDto dto) throws ExecutionException, InterruptedException {
+            @RequestHeader("X-User-Name") String username,
+            @RequestHeader("X-User-StoreId") String storeId,
+            @Valid @RequestBody InventoryRequestDto dto) {
 
-        if (!"ROLE_ADMIN".equals(role)) {
-            return ResponseEntity.status(403).build();
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
-        return ResponseEntity.ok(bannerService.updateBanner(bannerId, dto, updatedBy));
-    }
 
-    @DeleteMapping("/delete/{bannerId}")
-    public ResponseEntity<String> deleteBanner(
-            @PathVariable String bannerId,
-            @RequestHeader("X-User-Role") String role) throws ExecutionException, InterruptedException {
-
-        if (!"ROLE_ADMIN".equals(role)) {
-            return ResponseEntity.status(403).build();
+        try {
+            InventoryResponseDto response = inventoryService.updateInventoryWithType(dto, storeId, username, "SELL");
+            return ResponseEntity.ok(response);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        return ResponseEntity.ok(bannerService.deleteBanner(bannerId));
+
     }
 
-    @GetMapping("/get/{bannerId}")
-    public ResponseEntity<BannerResponseDto> getBannerById(
-            @PathVariable String bannerId,
-            @RequestHeader("X-User-Role") String role) throws ExecutionException, InterruptedException {
+    // POST nhập hàng batch
+    @PostMapping("/import-batch")
+    public ResponseEntity<?> importInventoryBatch(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @RequestHeader("X-User-StoreId") String storeId,
+            @Valid @RequestBody InventoryBatchRequestDto batchDto) {
 
-        if (!"ROLE_ADMIN".equals(role)) {
-            return ResponseEntity.status(403).build();
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
-        return ResponseEntity.ok(bannerService.getBannerById(bannerId));
+
+        try {
+            var responses = inventoryService.updateInventoryBatchWithType(batchDto.getItems(), storeId, username, "IMPORT");
+            return ResponseEntity.ok(responses);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
     }
 
-    @GetMapping("/getAll")
-    public ResponseEntity<List<BannerResponseDto>> getAllBanners() throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(bannerService.getAllBanners());
+    // POST bán hàng batch
+    @PostMapping("/sell-batch")
+    public ResponseEntity<?> sellInventoryBatch(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @RequestHeader("X-User-StoreId") String storeId,
+            @Valid @RequestBody InventoryBatchRequestDto batchDto) {
+
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
+        }
+
+        try {
+            var responses = inventoryService.updateInventoryBatchWithType(batchDto.getItems(), storeId, username, "SELL");
+            return ResponseEntity.ok(responses);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
     }
 
-    @GetMapping("/active")
-    public ResponseEntity<List<BannerResponseDto>> getAllActiveBanners() throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(bannerService.getAllActiveBanners());
+    // GET tất cả inventory của một cửa hàng (employee)
+    @GetMapping("/store")
+    public ResponseEntity<?> getInventoryByStore(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-StoreId") String storeId) {
+
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role) && !"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền xem kho");
+        }
+
+        try {
+            return ResponseEntity.ok(inventoryService.getByStore(storeId));
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi lấy dữ liệu kho: " + e.getMessage());
+        }
+    }
+
+    // GET tất cả inventory của tất cả cửa hàng (admin)
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllInventory(
+            @RequestHeader("X-User-Role") String role) {
+
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền xem toàn bộ kho");
+        }
+
+        try {
+            return ResponseEntity.ok(inventoryService.getAll());
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi lấy dữ liệu kho: " + e.getMessage());
+        }
     }
 }

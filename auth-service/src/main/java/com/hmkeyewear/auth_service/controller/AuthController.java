@@ -51,6 +51,7 @@ public class AuthController {
 
             // Gọi generateToken 3 tham số: email, role, storeId
             return authService.generateToken(
+                    customer.getCustomerId(),
                     loginRequestDto.getEmail(),
                     authService.getRoleFromEmail(loginRequestDto.getEmail()),
                     customer.getStoreId());

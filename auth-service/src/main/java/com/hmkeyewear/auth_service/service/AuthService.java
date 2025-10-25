@@ -49,8 +49,8 @@ public class AuthService {
         return customer.getRole();
     }
 
-    public String generateToken(String email, String role, String storeId) {
-        return jwtService.generateToken(email, role, storeId);
+    public String generateToken(String customerId, String email, String role, String storeId) {
+        return jwtService.generateToken(customerId, email, role, storeId);
     }
 
     public void validateToken(String token) {
@@ -91,7 +91,7 @@ public class AuthService {
         result.get();
 
         // Tạo JWT sau khi đăng ký
-        String token = jwtService.generateToken(customer.getEmail(), customer.getRole(), customer.getStoreId());
+        String token = jwtService.generateToken(customer.getCustomerId(), customer.getEmail(), customer.getRole(), customer.getStoreId());
 
         return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), customer.getRole(), token);
     }
@@ -117,7 +117,7 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = jwtService.generateToken(customer.getEmail(), customer.getRole(), customer.getStoreId());
+        String token = jwtService.generateToken(customer.getCustomerId(), customer.getEmail(), customer.getRole(), customer.getStoreId());
         return new AuthResponseDto(customer.getCustomerId(), customer.getEmail(), customer.getRole(), token);
     }
 
