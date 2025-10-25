@@ -1,15 +1,13 @@
-package com.hmkeyewear.cart_service.model;
+package com.hmkeyewear.cart_service.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CartItem {
+public class AddToCartRequestDto {
     private String productId;
     private String variantId;
     private String productName;

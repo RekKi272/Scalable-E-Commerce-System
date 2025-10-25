@@ -68,6 +68,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
             String role = jwtUtil.extractRole(token);
             String username = jwtUtil.extractUsername(token);
+            String customerId = jwtUtil.extractCustomerId(token);
             String storeId = jwtUtil.extractStoreId(token);
 
             // Debug
@@ -92,6 +93,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             // Pass role & username information down to microservice (via header)
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(r -> r.headers(headers -> {
+                        headers.add("X-User-Id", customerId);
                         headers.add("X-User-Name", username);
                         headers.add("X-User-Role", role);
                         headers.add("X-User-StoreId", storeId != null ? storeId : "UNKNOWN");
