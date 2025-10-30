@@ -33,12 +33,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/eureka"
     };
 
-    // Gateway-level authorization
-    private static final Map<String, String[]> ROLE_ACCESS = Map.of(
-            "/product/admin", new String[] { "ROLE_ADMIN" },
-            "/product/employer", new String[] { "ROLE_EMPLOYER", "ROLE_ADMIN" },
-            "/product/user", new String[] { "ROLE_USER", "ROLE_EMPLOYER", "ROLE_ADMIN" });
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
@@ -68,32 +62,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
             String role = jwtUtil.extractRole(token);
             String username = jwtUtil.extractUsername(token);
-            String customerId = jwtUtil.extractCustomerId(token);
+            String userId = jwtUtil.extractUserId(token);
             String storeId = jwtUtil.extractStoreId(token);
 
             // Debug
             System.out.println("[GATEWAY] User: " + username + " | Role: " + role + " | Path: " + path);
 
-            // Check if the role is allowed to access the route
-            for (Map.Entry<String, String[]> entry : ROLE_ACCESS.entrySet()) {
-                if (path.startsWith(entry.getKey())) {
-                    boolean allowed = false;
-                    for (String allowedRole : entry.getValue()) {
-                        if (allowedRole.equalsIgnoreCase(role)) {
-                            allowed = true;
-                            break;
-                        }
-                    }
-                    if (!allowed) {
-                        exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-                        return exchange.getResponse().setComplete();
-                    }
-                }
-            }
             // Pass role & username information down to microservice (via header)
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(r -> r.headers(headers -> {
-                        headers.add("X-User-Id", customerId);
+                        headers.add("X-User-Id", userId);
                         headers.add("X-User-Name", username);
                         headers.add("X-User-Role", role);
                         headers.add("X-User-StoreId", storeId != null ? storeId : "UNKNOWN");
