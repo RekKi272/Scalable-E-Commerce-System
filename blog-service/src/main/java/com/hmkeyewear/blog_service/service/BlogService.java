@@ -9,9 +9,7 @@ import com.hmkeyewear.blog_service.dto.BlogResponseDto;
 import com.hmkeyewear.blog_service.mapper.BlogMapper;
 import com.hmkeyewear.blog_service.model.Blog;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.ArrayList;
 import java.util.List;

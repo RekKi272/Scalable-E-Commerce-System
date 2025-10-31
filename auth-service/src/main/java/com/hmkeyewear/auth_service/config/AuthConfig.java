@@ -1,6 +1,5 @@
 package com.hmkeyewear.auth_service.config;
 
-import com.hmkeyewear.auth_service.service.CustomUserDetailService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

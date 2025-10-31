@@ -2,7 +2,6 @@ package com.hmkeyewear.product_service.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import java.util.List;
 
 @Getter
 @Setter

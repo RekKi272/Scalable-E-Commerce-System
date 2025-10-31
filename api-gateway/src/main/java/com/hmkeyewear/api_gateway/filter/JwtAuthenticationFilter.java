@@ -74,10 +74,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             // Pass headers to downstream service
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(r -> r.headers(headers -> {
-                        headers.add("X-User-Id", userId);
-                        headers.add("X-User-Name", username);
-                        headers.add("X-User-Role", role);
-                        headers.add("X-User-StoreId", storeId != null ? storeId : "UNKNOWN");
+                        headers.set("X-User-Id", userId);
+                        headers.set("X-User-Name", username);
+                        headers.set("X-User-Role", role);
+                        headers.set("X-User-StoreId", storeId != null ? storeId : "UNKNOWN");
                     }))
                     .build();
 

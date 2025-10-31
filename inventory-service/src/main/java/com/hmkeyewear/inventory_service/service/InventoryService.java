@@ -1,6 +1,5 @@
 package com.hmkeyewear.inventory_service.service;
 
-import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.inventory_service.dto.InventoryRequestDto;
@@ -26,7 +25,8 @@ public class InventoryService {
      * Cập nhật 1 sản phẩm, cộng dồn số lượng và kiểm tra không bán âm.
      * type: "IMPORT" hoặc "SELL" (truyền từ controller)
      */
-    public InventoryResponseDto updateInventoryWithType(InventoryRequestDto dto, String storeId, String username, String type)
+    public InventoryResponseDto updateInventoryWithType(InventoryRequestDto dto, String storeId, String username,
+            String type)
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
@@ -56,9 +56,8 @@ public class InventoryService {
                 long newSell = inv.getQuantitySell() + dto.getQuantity();
                 if (inv.getQuantityImport() - newSell < 0) {
                     throw new IllegalArgumentException(
-                        "Không đủ hàng để bán. Số lượng hiện tại: " +
-                        (inv.getQuantityImport() - inv.getQuantitySell())
-                    );
+                            "Không đủ hàng để bán. Số lượng hiện tại: " +
+                                    (inv.getQuantityImport() - inv.getQuantitySell()));
                 }
                 inv.setQuantitySell(newSell);
             } else {
@@ -76,10 +75,12 @@ public class InventoryService {
     }
 
     /**
-     * Cập nhật nhiều sản phẩm cùng lúc (batch), cộng dồn số lượng và kiểm tra không bán âm.
+     * Cập nhật nhiều sản phẩm cùng lúc (batch), cộng dồn số lượng và kiểm tra không
+     * bán âm.
      * type: "IMPORT" hoặc "SELL" (truyền từ controller)
      */
-    public List<InventoryResponseDto> updateInventoryBatchWithType(List<InventoryRequestDto> dtos, String storeId, String username, String type)
+    public List<InventoryResponseDto> updateInventoryBatchWithType(List<InventoryRequestDto> dtos, String storeId,
+            String username, String type)
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
@@ -115,10 +116,9 @@ public class InventoryService {
                 long newSell = inv.getQuantitySell() + dto.getQuantity();
                 if (inv.getQuantityImport() - newSell < 0) {
                     throw new IllegalArgumentException(
-                        "Không đủ hàng để bán sản phẩm " + dto.getProductId() +
-                        " biến thể " + dto.getVariantId() + ". Số lượng hiện tại: " +
-                        (inv.getQuantityImport() - inv.getQuantitySell())
-                    );
+                            "Không đủ hàng để bán sản phẩm " + dto.getProductId() +
+                                    " biến thể " + dto.getVariantId() + ". Số lượng hiện tại: " +
+                                    (inv.getQuantityImport() - inv.getQuantitySell()));
                 }
                 inv.setQuantitySell(newSell);
             } else {
@@ -135,7 +135,6 @@ public class InventoryService {
         batch.commit().get();
         return responses;
     }
-
 
     /**
      * Lấy tất cả inventory của 1 cửa hàng
