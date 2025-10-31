@@ -9,25 +9,25 @@ import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
 
-    private final Customer customer;
+    private final User user;
 
-    public CustomUserDetails(Customer customer) {
-        this.customer = customer;
+    public CustomUserDetails(User user) {
+        this.user = user;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(customer.getRole()));
+        return List.of(new SimpleGrantedAuthority(user.getRole()));
     }
 
     @Override
     public String getPassword() {
-        return customer.getPassword();
+        return user.getPassword();
     }
 
     @Override
     public String getUsername() {
-        return customer.getEmail();
+        return user.getEmail();
     }
 
     @Override
@@ -47,6 +47,6 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "ACTIVE".equalsIgnoreCase(customer.getStatus());
+        return "ACTIVE".equalsIgnoreCase(user.getStatus());
     }
 }

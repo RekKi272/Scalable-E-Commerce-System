@@ -12,24 +12,30 @@ import java.util.Date;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Customer {
-    private String customerId;
+public class User {
+    private String userId;
+
     private String firstName;
     private String lastName;
-    private String phone;
-    private String address;
-    private boolean sex;
-    private String email;
-    private String password;
+
+    private String gender;
     private Date birthday;
+
+    private String phone;
+    private String email;
+
+    private String addressProvince;
+    private String addressWard;
+    private String addressDetail;
+
+    private String role;
+    private String status;
     private String storeId;
+
+    private String password;
 
     private Timestamp createdAt;
     private String createdBy;
-
     private Timestamp updatedAt;
     private String updatedBy;
-
-    private String role; // e.g. ROLE_USER
-    private String status;
 }

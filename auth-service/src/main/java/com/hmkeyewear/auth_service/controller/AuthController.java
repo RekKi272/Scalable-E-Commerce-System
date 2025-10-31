@@ -2,7 +2,8 @@ package com.hmkeyewear.auth_service.controller;
 
 import com.hmkeyewear.auth_service.dto.AuthResponseDto;
 import com.hmkeyewear.auth_service.dto.LoginRequestDto;
-import com.hmkeyewear.auth_service.dto.RegisterRequestDto;
+import com.hmkeyewear.auth_service.dto.RegisterCustomerRequestDto;
+import com.hmkeyewear.auth_service.dto.RegisterStaffRequestDto;
 import com.hmkeyewear.auth_service.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,20 +24,28 @@ public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponseDto> register(@RequestBody RegisterRequestDto registerRequestDto)
+    @PostMapping("/register-staff")
+    public ResponseEntity<AuthResponseDto> registerStaff(
+            @RequestBody RegisterStaffRequestDto dto,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String createdBy)
             throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(authService.register(registerRequestDto));
+
+        if (!"ROLE_ADMIN".equals(role)) {
+            throw new RuntimeException("Only admin can register staff");
+        }
+
+        return ResponseEntity.ok(authService.registerStaff(dto, createdBy));
+    }
+
+    @PostMapping("/register-customer")
+    public ResponseEntity<AuthResponseDto> registerCustomer(@RequestBody RegisterCustomerRequestDto dto)
+            throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(authService.registerCustomer(dto));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDto> login(@RequestBody LoginRequestDto loginRequestDto)
-            throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(authService.login(loginRequestDto));
-    }
-
-    @PostMapping("/token")
-    public String getToken(@RequestBody LoginRequestDto loginRequestDto)
             throws ExecutionException, InterruptedException {
 
         Authentication authenticate = authenticationManager.authenticate(
@@ -44,20 +53,13 @@ public class AuthController {
                         loginRequestDto.getEmail(),
                         loginRequestDto.getPassword()));
 
-        if (authenticate.isAuthenticated()) {
-            // Lấy thông tin customer từ Firestore
-            var customer = authService.findByEmail(loginRequestDto.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            // Gọi generateToken 3 tham số: email, role, storeId
-            return authService.generateToken(
-                    customer.getCustomerId(),
-                    loginRequestDto.getEmail(),
-                    authService.getRoleFromEmail(loginRequestDto.getEmail()),
-                    customer.getStoreId());
-        } else {
-            throw new RuntimeException("invalid access");
+        if (!authenticate.isAuthenticated()) {
+            throw new RuntimeException("Invalid email or password");
         }
+
+        // reuse login() to get token
+        AuthResponseDto response = authService.login(loginRequestDto);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/validate")

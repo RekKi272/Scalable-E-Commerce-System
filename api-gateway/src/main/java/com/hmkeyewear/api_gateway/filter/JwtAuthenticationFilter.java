@@ -2,7 +2,6 @@ package com.hmkeyewear.api_gateway.filter;
 
 import com.hmkeyewear.api_gateway.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,19 +11,17 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.util.Map;
-
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
-    @Autowired
+    // Dùng constructor injection với @RequiredArgsConstructor, không @Autowired
     private final JwtUtil jwtUtil;
 
-    // Endpoint allows public no need token
+    // Các endpoint public không cần token
     private static final String[] OPEN_ENDPOINTS = {
             "/auth/login",
-            "/auth/register",
+            "/auth/register-customer",
             "/auth/token",
             "/auth/validate",
             "/banner/active",
@@ -37,16 +34,21 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
 
-        // Skip endpoint public
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())) {
+            return chain.filter(exchange);
+        }
+
+        // Skip public endpoints
         for (String open : OPEN_ENDPOINTS) {
             if (path.startsWith(open)) {
+                System.out.println("[GATEWAY] Public endpoint, skipping JWT filter: " + path);
                 return chain.filter(exchange);
             }
         }
 
-        // Take Token
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("[GATEWAY] Missing or invalid Authorization header");
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
@@ -56,19 +58,20 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         try {
             // Validate token
             if (!jwtUtil.validateToken(token)) {
+                System.out.println("[GATEWAY] Invalid JWT token");
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
 
+            // Extract info
             String role = jwtUtil.extractRole(token);
             String username = jwtUtil.extractUsername(token);
             String userId = jwtUtil.extractUserId(token);
             String storeId = jwtUtil.extractStoreId(token);
 
-            // Debug
             System.out.println("[GATEWAY] User: " + username + " | Role: " + role + " | Path: " + path);
 
-            // Pass role & username information down to microservice (via header)
+            // Pass headers to downstream service
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(r -> r.headers(headers -> {
                         headers.add("X-User-Id", userId);
@@ -81,6 +84,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return chain.filter(modifiedExchange);
 
         } catch (Exception e) {
+            System.out.println("[GATEWAY] Exception in JWT filter: " + e.getMessage());
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
@@ -88,6 +92,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return -1;
+        return -1; // Chạy trước các filter khác
     }
 }

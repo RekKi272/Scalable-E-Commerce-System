@@ -18,11 +18,6 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    // @PostConstruct
-    // public void printSecret() {
-    // System.out.println("🔑 [AUTH SERVICE] JWT_SECRET = " + secretKey);
-    // }
-
     private Claims extractAllClaimsFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
@@ -42,9 +37,9 @@ public class JwtService {
                 .parseClaimsJws(token);
     }
 
-    public String generateToken(String customerId, String userName, String role, String storeId) {
+    public String generateToken(String userId, String userName, String role, String storeId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("customerId", customerId);
+        claims.put("userId", userId);
         claims.put("role", role);
         claims.put("storeId", storeId);
         return createToken(claims, userName);
@@ -60,19 +55,15 @@ public class JwtService {
                 .compact();
     }
 
-    // Extract Username from token
     public String extractUsername(String token) {
         return extractAllClaimsFromToken(token).getSubject();
     }
 
-    // Extract role from token
     public String extractRole(String token) {
         return extractAllClaimsFromToken(token).get("role", String.class);
     }
 
-    // Extract UserId
-    public String extractCustomerId(String token) {
-        return extractAllClaimsFromToken(token).get("customerId", String.class);
+    public String extractUserId(String token) {
+        return extractAllClaimsFromToken(token).get("userId", String.class);
     }
-
 }

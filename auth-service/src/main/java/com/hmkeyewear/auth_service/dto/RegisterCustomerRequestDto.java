@@ -5,18 +5,25 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class RegisterRequestDto {
+public class RegisterCustomerRequestDto {
     @NotBlank
     private String firstName;
-    private String lastName;
-    private String phone;
-    private String address;
-    private boolean sex;
-    @Email
+
     @NotBlank
+    private String lastName;
+
+    @NotBlank
+    private String phone;
+
+    @Email
     private String email;
+
+    private String addressProvince;
+    private String addressWard;
+    private String addressDetail;
+
+    private String status = "ACTIVE";
+
     @NotBlank
     private String password;
-    private String role;
-    private String storeId;
 }
