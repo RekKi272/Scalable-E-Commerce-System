@@ -60,7 +60,7 @@ public class AuthService {
         user.setEmail(dto.getEmail());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setPhone(dto.getPhone());
-        user.setRole("ROLE_USER");
+        user.setRole("ROLE_CUSTOMER");
         user.setStatus("ACTIVE");
         user.setCreatedAt(Timestamp.now());
         user.setCreatedBy(user.getUserId());
