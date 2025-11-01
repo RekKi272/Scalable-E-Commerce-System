@@ -74,6 +74,7 @@ spring:
               '[/**]':
                           allowed-origins:
                             - http://localhost:8086
+                            - https://fe-hmk-eyewear.vercel.app
                           allowed-methods:
                             - GET
                             - POST
