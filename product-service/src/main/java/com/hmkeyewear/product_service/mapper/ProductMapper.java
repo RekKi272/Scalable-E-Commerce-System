@@ -1,5 +1,6 @@
 package com.hmkeyewear.product_service.mapper;
 
+import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
 import com.hmkeyewear.product_service.model.Product;
@@ -15,4 +16,6 @@ public interface ProductMapper {
     Product toProduct(ProductRequestDto productRequestDto);
 
     ProductResponseDto toProductResponseDto(Product product);
+
+    ProductInforResponseDto toProductInforResponseDto(Product product);
 }
