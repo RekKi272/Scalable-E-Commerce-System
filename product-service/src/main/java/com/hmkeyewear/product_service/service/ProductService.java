@@ -3,6 +3,7 @@ package com.hmkeyewear.product_service.service;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
 import com.hmkeyewear.product_service.feign.ProductInterface;
@@ -195,6 +196,26 @@ public class ProductService {
         productRef.set(updatedProduct).get();
 
         return productMapper.toProductResponseDto(updatedProduct);
+    }
+
+    // GET Active Product ONLY
+    public List<ProductInforResponseDto> getActiveProducts() throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        ApiFuture<QuerySnapshot> queryFuture =
+                db.collection(COLLECTION_NAME)
+                .whereEqualTo("status", "ACTIVE")
+                .get();
+
+        List<QueryDocumentSnapshot> documents = queryFuture.get().getDocuments();
+        List<ProductInforResponseDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : documents) {
+            Product product = doc.toObject(Product.class);
+            if (product != null) {
+                result.add(productMapper.toProductInforResponseDto(product));
+            }
+        }
+
+        return result;
     }
 
     // DELETE Product

@@ -1,5 +1,6 @@
 package com.hmkeyewear.product_service.controller;
 
+import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
 import com.hmkeyewear.product_service.service.ProductService;
@@ -48,6 +49,13 @@ public class ProductController {
     @GetMapping("/getAll")
     public ResponseEntity<List<ProductResponseDto>> getAllProducts() throws InterruptedException, ExecutionException {
         List<ProductResponseDto> response = productService.getAllProducts();
+        return ResponseEntity.ok(response);
+    }
+
+    // GET ACTIVE only
+    @GetMapping("/getActive")
+    public ResponseEntity<List<ProductInforResponseDto>> GetActiveProducts() throws InterruptedException, ExecutionException {
+        List<ProductInforResponseDto> response = productService.getActiveProducts();
         return ResponseEntity.ok(response);
     }
 
