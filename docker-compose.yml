@@ -93,6 +93,9 @@ services:
       - "8081:8081"
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-product.json
+      - ALGOLIA_APP_ID=${ALGOLIA_APP_ID}
+      - ALGOLIA_API_KEY=${ALGOLIA_API_KEY}
+      - ALGOLIA_API_WRITE_KEY=${ALGOLIA_API_WRITE_KEY}
     volumes:
       - ./secrets/firebase-product.json:/app/firebase-product.json
     depends_on:
