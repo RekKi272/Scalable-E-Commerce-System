@@ -12,6 +12,7 @@ import com.hmkeyewear.product_service.feign.ProductInterface;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
 import com.hmkeyewear.product_service.model.Customer;
 import com.hmkeyewear.product_service.model.Product;
+import com.hmkeyewear.product_service.model.ProductLite;
 import com.hmkeyewear.product_service.model.Variant;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,23 +52,69 @@ public class ProductService {
         return customer.getFirstName();
     }
 
+    // ------------------- UTIL: Remove Vietnamese Diacritics -------------------
+    private String removeVietnameseDiacritics(String str) {
+        if (str == null) return null;
+        String temp = java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD);
+        temp = temp.replaceAll("\\p{M}", ""); // loại bỏ dấu
+        return temp.replaceAll("đ", "d").replaceAll("Đ", "D");
+    }
+
+
     // ----------------------------- SYNC EXISTING DATA ----------------------------
     @PostConstruct
     public void syncAllProductsToAlgolia() {
         try {
             Firestore db = FirestoreClient.getFirestore();
-            List<QueryDocumentSnapshot> docs = db.collection(COLLECTION_NAME).get().get().getDocuments();
-            List<Product> products = new ArrayList<>();
+
+            // Lấy danh sách productId hiện có trong Algolia
+            SearchResponse<ProductLite> existing = searchClient.searchSingleIndex(
+                    ALGOLIA_INDEX_NAME,
+                    new SearchParamsObject().setQuery(""), // truy vấn rỗng để lấy toàn bộ
+                    ProductLite.class
+            );
+
+            List<String> existingIds = existing.getHits().stream()
+                    .map(ProductLite::getProductId)
+                    .toList();
+
+            // Lấy toàn bộ dữ liệu từ Firestore
+            List<QueryDocumentSnapshot> docs = db.collection(COLLECTION_NAME)
+                    .get()
+                    .get()
+                    .getDocuments();
+
+            if (docs.isEmpty()) {
+                System.out.println("Không có sản phẩm nào để đồng bộ lên Algolia.");
+                return;
+            }
+
+            // Tạo danh sách sản phẩm mới chưa có trong Algolia
+            List<ProductLite> newProducts = new ArrayList<>();
+
             for (QueryDocumentSnapshot doc : docs) {
                 Product product = doc.toObject(Product.class);
-                products.add(product);
+
+                String productId = product.getProductId();
+                if (existingIds.contains(productId)) continue; // đã tồn tại thì bỏ qua
+
+                ProductLite lite = new ProductLite();
+                lite.setProductId(productId);
+                lite.setProductName(removeVietnameseDiacritics(product.getProductName()));
+
+                newProducts.add(lite);
             }
-            if (!products.isEmpty()) {
-                searchClient.saveObjects(ALGOLIA_INDEX_NAME, products);
-                System.out.println("Synced " + products.size() + " products to Algolia.");
+
+            // Sync lên Algolia nếu có sản phẩm mới
+            if (!newProducts.isEmpty()) {
+                searchClient.saveObjects(ALGOLIA_INDEX_NAME, newProducts);
+                System.out.println("Đã đồng bộ " + newProducts.size() + " sản phẩm mới lên Algolia.");
+            } else {
+                System.out.println("Không có sản phẩm mới cần đồng bộ.");
             }
+
         } catch (Exception e) {
-            System.err.println("Error syncing products to Algolia: " + e.getMessage());
+            System.err.println("Lỗi khi đồng bộ dữ liệu lên Algolia: " + e.getMessage());
         }
     }
 
@@ -195,21 +242,40 @@ public class ProductService {
     public List<ProductInforResponseDto> searchProductByName(String keyword)
             throws ExecutionException, InterruptedException {
 
-        SearchForHits request = new SearchForHits()
-                .setIndexName(ALGOLIA_INDEX_NAME)
-                .setQuery(keyword)
-                .setHitsPerPage(5);
+        String normalizedKeyword = removeVietnameseDiacritics(keyword);
 
-        SearchMethodParams params = new SearchMethodParams()
-                .setRequests(List.of(request));
+        // Tìm kiếm trên Algolia (chỉ lấy productId)
+        SearchResponse<ProductLite> response = searchClient.searchSingleIndex(
+                ALGOLIA_INDEX_NAME,
+                new SearchParamsObject()
+                        .setQuery(normalizedKeyword)
+                        .setRestrictSearchableAttributes(List.of("productName"))
+                        .setAttributesToRetrieve(List.of("productId")), //chỉ lấy ID
+                ProductLite.class
+        );
 
-        SearchResponse<Product> response = searchClient.searchSingleIndex(ALGOLIA_INDEX_NAME, new SearchParamsObject().setQuery(keyword), Product.class);
+        // Lấy danh sách productId từ kết quả Algolia
+        List<String> productIds = response.getHits().stream()
+                .map(ProductLite::getProductId)
+                .toList();
 
-        List<Product> products = response.getHits();
+        // Lấy chi tiết sản phẩm từ Firestore dựa trên ID
+        Firestore firestore = FirestoreClient.getFirestore();
+        List<ProductInforResponseDto> result = new ArrayList<>();
 
-        return products.stream()
-                .map(productMapper::toProductInforResponseDto)
-                .collect(Collectors.toList());
+        for (String id : productIds) {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(id);
+            ApiFuture<DocumentSnapshot> future = docRef.get();
+            DocumentSnapshot doc = future.get();
+
+            if (doc.exists()) {
+                Product product = doc.toObject(Product.class);
+                ProductInforResponseDto dto = productMapper.toProductInforResponseDto(product);
+                result.add(dto);
+            }
+        }
+
+        return result;
     }
 
     // UPDATE Product
