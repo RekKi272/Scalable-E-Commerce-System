@@ -76,6 +76,12 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
+    // SEARCH Product by Name
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductInforResponseDto>> searchProductsByName(@RequestParam String keyword) throws InterruptedException, ExecutionException {
+        return ResponseEntity.ok(productService.searchProductByName(keyword));
+    }
+
     // DELETE Product
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteProduct(
