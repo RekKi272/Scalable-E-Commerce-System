@@ -1,5 +1,7 @@
 package com.hmkeyewear.product_service.service;
 
+import com.algolia.api.SearchClient;
+import com.algolia.model.search.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
@@ -11,6 +13,7 @@ import com.hmkeyewear.product_service.mapper.ProductMapper;
 import com.hmkeyewear.product_service.model.Customer;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.Variant;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -30,16 +34,43 @@ public class ProductService {
     @Autowired
     private ProductMapper productMapper;
 
+    @Autowired
+    private SearchClient searchClient;
+
+
+
     private static final String COLLECTION_NAME = "products";
     private static final String COUNTER_COLLECTION = "counters";
     private static final String PRODUCT_COUNTER_DOC = "productCounter";
     private static final String VARIANT_COUNTER_DOC = "variantCounter";
+    private static final String ALGOLIA_INDEX_NAME = "products";
 
     // Lấy tên khách hàng từ user-service
     public String getCustomer(String customerId) throws ExecutionException, InterruptedException {
         Customer customer = productInterface.getCustomer(customerId);
         return customer.getFirstName();
     }
+
+    // ----------------------------- SYNC EXISTING DATA ----------------------------
+    @PostConstruct
+    public void syncAllProductsToAlgolia() {
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> docs = db.collection(COLLECTION_NAME).get().get().getDocuments();
+            List<Product> products = new ArrayList<>();
+            for (QueryDocumentSnapshot doc : docs) {
+                Product product = doc.toObject(Product.class);
+                products.add(product);
+            }
+            if (!products.isEmpty()) {
+                searchClient.saveObjects(ALGOLIA_INDEX_NAME, products);
+                System.out.println("Synced " + products.size() + " products to Algolia.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error syncing products to Algolia: " + e.getMessage());
+        }
+    }
+
 
     private String generateProductId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(PRODUCT_COUNTER_DOC);
@@ -126,6 +157,9 @@ public class ProductService {
 
         db.collection(COLLECTION_NAME).document(product.getProductId()).set(product).get();
 
+        // --- Đồng bộ với Algolia ---
+        searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(product));
+
         return productMapper.toProductResponseDto(product);
     }
 
@@ -152,11 +186,30 @@ public class ProductService {
         List<ProductResponseDto> result = new ArrayList<>();
         for (QueryDocumentSnapshot doc : documents) {
             Product product = doc.toObject(Product.class);
-            if (product != null) {
-                result.add(productMapper.toProductResponseDto(product));
-            }
+            result.add(productMapper.toProductResponseDto(product));
         }
         return result;
+    }
+
+    // SEARCH PRODUCT NAME BY KEYWORD
+    public List<ProductInforResponseDto> searchProductByName(String keyword)
+            throws ExecutionException, InterruptedException {
+
+        SearchForHits request = new SearchForHits()
+                .setIndexName(ALGOLIA_INDEX_NAME)
+                .setQuery(keyword)
+                .setHitsPerPage(5);
+
+        SearchMethodParams params = new SearchMethodParams()
+                .setRequests(List.of(request));
+
+        SearchResponse<Product> response = searchClient.searchSingleIndex(ALGOLIA_INDEX_NAME, new SearchParamsObject().setQuery(keyword), Product.class);
+
+        List<Product> products = response.getHits();
+
+        return products.stream()
+                .map(productMapper::toProductInforResponseDto)
+                .collect(Collectors.toList());
     }
 
     // UPDATE Product
@@ -195,6 +248,9 @@ public class ProductService {
 
         productRef.set(updatedProduct).get();
 
+        // --- Đồng bộ Algolia ---
+        searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(updatedProduct));
+
         return productMapper.toProductResponseDto(updatedProduct);
     }
 
@@ -210,9 +266,7 @@ public class ProductService {
         List<ProductInforResponseDto> result = new ArrayList<>();
         for (QueryDocumentSnapshot doc : documents) {
             Product product = doc.toObject(Product.class);
-            if (product != null) {
-                result.add(productMapper.toProductInforResponseDto(product));
-            }
+            result.add(productMapper.toProductInforResponseDto(product));
         }
 
         return result;
@@ -222,6 +276,10 @@ public class ProductService {
     public String deleteProduct(String productId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         db.collection(COLLECTION_NAME).document(productId).delete().get();
+
+        // --- Xóa khỏi Algolia ---
+        searchClient.deleteObjects(ALGOLIA_INDEX_NAME, List.of(productId));
+
         return "Successfully deleted product with id " + productId;
     }
 }
