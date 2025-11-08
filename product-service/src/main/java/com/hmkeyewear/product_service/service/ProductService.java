@@ -278,6 +278,58 @@ public class ProductService {
         return result;
     }
 
+    // Filter Product
+    public List<ProductInforResponseDto> filterProducts(
+            String brandId,
+            String categoryId,
+            Double minPrice,
+            Double maxPrice)
+            throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Bắt đầu query collection "products"
+        Query query = db.collection(COLLECTION_NAME);
+
+        // Luôn lọc theo trạng thái ACTIVE
+        query = query.whereEqualTo("status", "ACTIVE");
+
+        // Lọc theo brand
+        if (brandId != null && !brandId.isEmpty()) {
+            query = query.whereEqualTo("brandId", brandId);
+        }
+
+        // Lọc theo category
+        if (categoryId != null && !categoryId.isEmpty()) {
+            query = query.whereEqualTo("categoryId", categoryId);
+        }
+
+        // Lọc theo giá bán (Firestore chỉ cho phép <= và >= trong 1 trường)
+        if (minPrice != null) {
+            query = query.whereGreaterThanOrEqualTo("sellingPrice", minPrice);
+        }
+        if (maxPrice != null) {
+            query = query.whereLessThanOrEqualTo("sellingPrice", maxPrice);
+        }
+
+        // Thực thi query
+        ApiFuture<QuerySnapshot> querySnapshotFuture = query.get();
+        QuerySnapshot querySnapshot = querySnapshotFuture.get();
+
+        // Chuyển thành danh sách Product
+        List<Product> products = new ArrayList<>();
+        for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+            Product product = document.toObject(Product.class);
+            if (product != null) {
+                products.add(product);
+            }
+        }
+
+        // Map sang DTO trả về
+        return products.stream()
+                .map(productMapper::toProductInforResponseDto)
+                .collect(Collectors.toList());
+    }
+
     // UPDATE Product
     public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String userId)
             throws ExecutionException, InterruptedException {
