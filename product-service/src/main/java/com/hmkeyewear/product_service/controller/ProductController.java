@@ -82,6 +82,17 @@ public class ProductController {
         return ResponseEntity.ok(productService.searchProductByName(keyword));
     }
 
+    // FILTER Product
+    @GetMapping("/filter")
+    public ResponseEntity<List<ProductInforResponseDto>> filterProducts(
+            @RequestParam(required = false) String brandId,
+            @RequestParam(required = false) String categoryId,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice
+    ) throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(productService.filterProducts(brandId, categoryId, minPrice, maxPrice));
+    }
+
     // DELETE Product
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteProduct(
