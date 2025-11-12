@@ -9,4 +9,5 @@ public class Variant {
     private String variantId;
     private String color;
     private String thumbnail;
+    private Long quantity;
 }

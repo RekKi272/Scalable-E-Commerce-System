@@ -38,8 +38,6 @@ public class ProductService {
     @Autowired
     private SearchClient searchClient;
 
-
-
     private static final String COLLECTION_NAME = "products";
     private static final String COUNTER_COLLECTION = "counters";
     private static final String PRODUCT_COUNTER_DOC = "productCounter";
@@ -62,7 +60,7 @@ public class ProductService {
 
 
     // ----------------------------- SYNC EXISTING DATA ----------------------------
-    @PostConstruct
+//    @PostConstruct
     public void syncAllProductsToAlgolia() {
         try {
             Firestore db = FirestoreClient.getFirestore();
@@ -205,7 +203,7 @@ public class ProductService {
         db.collection(COLLECTION_NAME).document(product.getProductId()).set(product).get();
 
         // --- Đồng bộ với Algolia ---
-        searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(product));
+//        searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(product));
 
         return productMapper.toProductResponseDto(product);
     }
@@ -367,7 +365,7 @@ public class ProductService {
         productRef.set(updatedProduct).get();
 
         // --- Đồng bộ Algolia ---
-        searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(updatedProduct));
+        //searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(updatedProduct));
 
         return productMapper.toProductResponseDto(updatedProduct);
     }
@@ -396,7 +394,7 @@ public class ProductService {
         db.collection(COLLECTION_NAME).document(productId).delete().get();
 
         // --- Xóa khỏi Algolia ---
-        searchClient.deleteObjects(ALGOLIA_INDEX_NAME, List.of(productId));
+        //searchClient.deleteObjects(ALGOLIA_INDEX_NAME, List.of(productId));
 
         return "Successfully deleted product with id " + productId;
     }
