@@ -10,11 +10,11 @@ import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
 import com.hmkeyewear.product_service.feign.ProductInterface;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
+import com.hmkeyewear.product_service.messaging.ProductEventProducer;
 import com.hmkeyewear.product_service.model.Customer;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.ProductLite;
 import com.hmkeyewear.product_service.model.Variant;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,20 +29,27 @@ import java.util.stream.Collectors;
 @Service
 public class ProductService {
 
-    @Autowired
-    private ProductInterface productInterface;
-
-    @Autowired
-    private ProductMapper productMapper;
-
-    @Autowired
-    private SearchClient searchClient;
+    private final ProductInterface productInterface;
+    private final ProductMapper productMapper;
+    private final SearchClient searchClient;
+    private final ProductEventProducer productEventProducer;
 
     private static final String COLLECTION_NAME = "products";
     private static final String COUNTER_COLLECTION = "counters";
     private static final String PRODUCT_COUNTER_DOC = "productCounter";
     private static final String VARIANT_COUNTER_DOC = "variantCounter";
     private static final String ALGOLIA_INDEX_NAME = "products";
+
+    // Constructor
+    public ProductService(ProductInterface productInterface,
+                          ProductMapper productMapper,
+                          SearchClient searchClient,
+                          ProductEventProducer productEventProducer) {
+        this.productInterface = productInterface;
+        this.productMapper = productMapper;
+        this.searchClient = searchClient;
+        this.productEventProducer = productEventProducer;
+    }
 
     // Lấy tên khách hàng từ user-service
     public String getCustomer(String customerId) throws ExecutionException, InterruptedException {
@@ -204,6 +211,9 @@ public class ProductService {
 
         // --- Đồng bộ với Algolia ---
 //        searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(product));
+
+        // --- Send message to RabbitMQ ---
+        productEventProducer.sendMessage(product);
 
         return productMapper.toProductResponseDto(product);
     }
@@ -367,6 +377,9 @@ public class ProductService {
         // --- Đồng bộ Algolia ---
         //searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(updatedProduct));
 
+        // --- Send message to RabbitMQ ---
+        productEventProducer.sendMessage(updatedProduct);
+
         return productMapper.toProductResponseDto(updatedProduct);
     }
 
@@ -395,6 +408,9 @@ public class ProductService {
 
         // --- Xóa khỏi Algolia ---
         //searchClient.deleteObjects(ALGOLIA_INDEX_NAME, List.of(productId));
+
+        // --- Send message to RabbitMQ ---
+        productEventProducer.sendMessage(productId);
 
         return "Successfully deleted product with id " + productId;
     }

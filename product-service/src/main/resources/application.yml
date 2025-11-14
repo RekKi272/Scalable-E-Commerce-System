@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: product-service
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    stream:
+      username: guest
+      password: guest
 
 eureka:
   client:
@@ -19,3 +25,17 @@ algolia:
   api-key: ${ALGOLIA_API_KEY}
   api-write-key: ${ALGOLIA_API_WRITE_KEY}
   index-name: products
+
+app:
+  rabbitmq:
+    exchange: main_exchange
+    # Queue và routing key riêng cho từng service
+    product:
+      queue: product_queue
+      routing-key: product_routing_key
+    brand:
+      queue: brand_queue
+      routing-key: brand_routing_key
+    category:
+      queue: category_queue
+      routing-key: category_routing_key

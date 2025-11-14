@@ -39,6 +39,13 @@ services:
       service-registry:
         condition: service_healthy
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
   blog-service:
     build:
       context: ./blog-service
@@ -53,6 +60,8 @@ services:
     depends_on:
       service-registry:
         condition: service_healthy
+      rabbitmq:
+        condition: service_started
 
   cart-service:
     build:

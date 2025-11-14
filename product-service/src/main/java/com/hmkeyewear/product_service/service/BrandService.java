@@ -6,6 +6,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.product_service.dto.BrandRequestDto;
 import com.hmkeyewear.product_service.dto.BrandResponseDto;
 import com.hmkeyewear.product_service.mapper.BrandMapper;
+import com.hmkeyewear.product_service.messaging.BrandEventProducer;
 import com.hmkeyewear.product_service.model.Brand;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,17 +14,25 @@ import org.springframework.stereotype.Service;
 import com.google.cloud.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Service
 public class BrandService {
 
-    @Autowired
-    BrandMapper brandMapper;
+    private final BrandMapper brandMapper;
+
+    private final BrandEventProducer brandEventProducer;
 
     private static final String COLLECTION_NAME = "brands";
     private static final String COUNTER_COLLECTION = "counters";
     private static final String BRAND_COUNTER_DOC = "brandCounter";
+
+    // Constructor
+    public BrandService(BrandMapper brandMapper, BrandEventProducer brandEventProducer) {
+        this.brandMapper = brandMapper;
+        this.brandEventProducer = brandEventProducer;
+    }
 
     // Generate BrandId
     private String generateBrandId(Firestore db) throws ExecutionException, InterruptedException {
@@ -32,16 +41,19 @@ public class BrandService {
         ApiFuture<String> future = db.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(counterRef).get();
 
-            long lastId = 0;
-            if (snapshot.exists() && snapshot.contains("lastId")) {
-                lastId = snapshot.getLong("lastId");
-            }
+            Long lastIdObj = (snapshot.exists() && snapshot.contains("lastId")) ? snapshot.getLong("lastId") : null;
+            long lastId = (lastIdObj != null) ? lastIdObj : 0;
 
             long newId = lastId + 1;
-            transaction.update(counterRef, "lastId", newId);
+            // dùng set với merge để tạo document nếu chưa tồn tại
+            transaction.set(counterRef, Map.of("lastId", newId), SetOptions.merge());
 
-            // format BRAND001, BRAND002...
-            return String.format("BRAND%03d", newId);
+            // --- fix lỗi dữ chuỗi ---
+            String formattedId = String.format("%03d", newId);
+            if (formattedId.length() > 3)
+                formattedId = String.valueOf(newId); // giữ nguyên nếu vượt 999
+
+            return "BRAND" + formattedId;
         });
 
         return future.get();
@@ -65,6 +77,10 @@ public class BrandService {
                 .set(brand);
 
         future.get();
+
+        // --- Send message to RabbitMQ ---
+        brandEventProducer.sendMessage(brand);
+
         return brandMapper.toBrandResponseDto(brand);
     }
 
@@ -109,6 +125,11 @@ public class BrandService {
         }
 
         Brand existingBrand = document.toObject(Brand.class);
+
+        if (existingBrand == null) {
+            throw new RuntimeException("Brand data is null for ID " + brandId);
+        }
+
         Brand updatedBrand = brandMapper.toBrand(dto);
 
         updatedBrand.setBrandId(brandId);
@@ -117,6 +138,9 @@ public class BrandService {
 
         ApiFuture<WriteResult> writeResult = brandRef.set(updatedBrand);
         writeResult.get();
+
+        // --- Send message to RabbitMQ ---
+        brandEventProducer.sendMessage(updatedBrand);
 
         return brandMapper.toBrandResponseDto(updatedBrand);
     }
@@ -128,6 +152,9 @@ public class BrandService {
                 .document(brandId)
                 .delete();
         future.get();
+
+        // --- Send message to RabbitMQ ---
+        brandEventProducer.sendMessage(brandId);
         return "Successfully deleted brand with id " + brandId;
     }
 }

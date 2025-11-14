@@ -21,6 +21,7 @@ public class ProductController {
         this.productService = productService;
     }
 
+
     // CREATE Product
     @PostMapping("/create")
     public ResponseEntity<?> createProduct(
@@ -34,6 +35,7 @@ public class ProductController {
         }
 
         ProductResponseDto response = productService.createProduct(productRequestDto, userId);
+
         return ResponseEntity.ok(response);
     }
 
@@ -73,6 +75,7 @@ public class ProductController {
         }
 
         ProductResponseDto response = productService.updateProduct(productId, productRequestDto, userId);
+
         return ResponseEntity.ok(response);
     }
 
@@ -97,12 +100,12 @@ public class ProductController {
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteProduct(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
             @RequestParam String productId)
             throws InterruptedException, ExecutionException {
         if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền xóa sản phẩm");
         }
+
         return ResponseEntity.ok(productService.deleteProduct(productId));
     }
 }
