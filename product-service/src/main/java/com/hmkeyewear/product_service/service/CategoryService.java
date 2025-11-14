@@ -6,6 +6,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.product_service.dto.CategoryRequestDto;
 import com.hmkeyewear.product_service.dto.CategoryResponseDto;
 import com.hmkeyewear.product_service.mapper.CategoryMapper;
+import com.hmkeyewear.product_service.messaging.CategoryEventProducer;
 import com.hmkeyewear.product_service.model.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,36 +14,47 @@ import org.springframework.stereotype.Service;
 import com.google.cloud.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Service
 public class CategoryService {
 
-    @Autowired
-    private CategoryMapper categoryMapper;
+    private final CategoryMapper categoryMapper;
+
+    private final CategoryEventProducer categoryEventProducer;
 
     private static final String COLLECTION_NAME = "categories";
     private static final String COUNTER_COLLECTION_NAME = "counters";
     private static final String CATEGORY_COUNTER_DOC = "categoryCounter";
+
+    // Constructor
+    public CategoryService(CategoryMapper categoryMapper, CategoryEventProducer categoryEventProducer) {
+        this.categoryMapper = categoryMapper;
+        this.categoryEventProducer = categoryEventProducer;
+    }
 
     // Generate CategoryId
     private String generateCategoryId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION_NAME).document(CATEGORY_COUNTER_DOC);
 
         ApiFuture<String> future = db.runTransaction(transaction -> {
-           DocumentSnapshot snapshot = transaction.get(counterRef).get();
+            DocumentSnapshot snapshot = transaction.get(counterRef).get();
 
-           long lastId = 0;
-           if (snapshot.exists() && snapshot.contains("lastId")) {
-               lastId = snapshot.getLong("lastId");
-           }
+            Long lastIdObj = (snapshot.exists() && snapshot.contains("lastId")) ? snapshot.getLong("lastId") : null;
+            long lastId = (lastIdObj != null) ? lastIdObj : 0;
 
-           long newId = lastId + 1;
-           transaction.update(counterRef, "lastId", newId);
+            long newId = lastId + 1;
+            // set với merge để tạo document nếu chưa tồn tại
+            transaction.set(counterRef, Map.of("lastId", newId), SetOptions.merge());
 
-           return String.format("CAT%03d", newId);
+            // --- fix lỗi dữ chuỗi ---
+            String formattedId = String.format("%03d", newId);
+            if (formattedId.length() > 3)
+                formattedId = String.valueOf(newId); // giữ nguyên nếu vượt 999
+
+            return "CAT" + formattedId;
         });
-
         return future.get();
     }
 
@@ -61,6 +73,9 @@ public class CategoryService {
         ApiFuture<WriteResult> future = db.collection(COLLECTION_NAME)
                 .document(category.getCategoryId())
                 .set(category);
+
+        // --- Send message to RabbitMQ ---
+        categoryEventProducer.sendMessage(category);
 
         return categoryMapper.toCategoryResponseDto(category);
     }
@@ -105,6 +120,11 @@ public class CategoryService {
         }
 
         Category existingCategory = document.toObject(Category.class);
+
+        if (existingCategory == null) {
+            throw new RuntimeException("Category data is null for ID " + categoryId);
+        }
+
         Category updatedCategory = categoryMapper.toCategory(dto);
 
         updatedCategory.setCategoryId(categoryId);
@@ -114,6 +134,9 @@ public class CategoryService {
 
         ApiFuture<WriteResult> writeResult = categoryRef.set(updatedCategory);
         writeResult.get();
+
+        // --- Send message to RabbitMQ ---
+        categoryEventProducer.sendMessage(updatedCategory);
 
         return categoryMapper.toCategoryResponseDto(updatedCategory);
     }
@@ -125,6 +148,9 @@ public class CategoryService {
                 .document(categoryId)
                 .delete();
         future.get();
+
+        // --- Send message to RabbitMQ ---
+        categoryEventProducer.sendMessage(categoryId);
         return "Successfully deleted category with id " + categoryId;
     }
 }
