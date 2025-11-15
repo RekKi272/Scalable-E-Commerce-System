@@ -7,6 +7,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.blog_service.dto.BlogRequestDto;
 import com.hmkeyewear.blog_service.dto.BlogResponseDto;
 import com.hmkeyewear.blog_service.mapper.BlogMapper;
+import com.hmkeyewear.blog_service.messaging.BlogEventProducer;
 import com.hmkeyewear.blog_service.model.Blog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,8 +19,16 @@ import java.util.concurrent.ExecutionException;
 
 @Service
 public class BlogService {
-    @Autowired
-    private BlogMapper blogMapper;
+
+    private final BlogMapper blogMapper;
+
+    private final BlogEventProducer blogEventProducer;
+
+    // Constructor
+    public BlogService(BlogMapper blogMapper, BlogEventProducer blogEventProducer) {
+        this.blogMapper = blogMapper;
+        this.blogEventProducer = blogEventProducer;
+    }
 
     private static final String COLLECTION_NAME = "blogs";
     private static final String COUNTER_COLLECTION = "counters";
@@ -61,6 +70,9 @@ public class BlogService {
         ApiFuture<WriteResult> result = docRef.set(blog);
         result.get();
 
+        // --- Send message to RabbitMQ ---
+        blogEventProducer.sendMessage(blog);
+
         return blogMapper.toBlogResponseDto(blog);
     }
 
@@ -94,7 +106,6 @@ public class BlogService {
     }
 
     // UPDATE Blog
-    // UPDATE Blog
     public BlogResponseDto updateBlog(String blogId, BlogRequestDto blogRequestDto, String updatedBy)
             throws ExecutionException, InterruptedException {
 
@@ -121,6 +132,9 @@ public class BlogService {
         ApiFuture<WriteResult> result = docRef.set(existingBlog);
         result.get();
 
+        // --- Send message to RabbitMQ ---
+        blogEventProducer.sendMessage(existingBlog);
+
         return blogMapper.toBlogResponseDto(existingBlog);
     }
 
@@ -130,6 +144,9 @@ public class BlogService {
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(blogId);
         ApiFuture<WriteResult> result = docRef.delete();
         result.get();
+
+        // --- Send message to RabbitMQ ---
+        blogEventProducer.sendMessage(blogId);
 
         return "Blog deleted successfully" + blogId;
     }

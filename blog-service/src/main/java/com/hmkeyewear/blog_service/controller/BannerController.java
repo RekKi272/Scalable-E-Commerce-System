@@ -14,8 +14,11 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/banner")
 public class BannerController {
 
-    @Autowired
-    private BannerService bannerService;
+    private final BannerService bannerService;
+
+    public BannerController(BannerService bannerService) {
+        this.bannerService = bannerService;
+    }
 
     @PostMapping("/create")
     public ResponseEntity<BannerResponseDto> createBanner(

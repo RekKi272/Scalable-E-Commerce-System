@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: blog-service
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    stream:
+      username: guest
+      password: guest
 
 eureka:
   client:
@@ -13,3 +19,14 @@ eureka:
 firebase:
   credentials:
     path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-blog.json}
+
+app:
+  rabbitmq:
+    exchange: main_exchange
+    # Queue và routing key riêng cho từng service
+    blog:
+      queue: blog_queue
+      routing-key: blog_routing_key
+    banner:
+      queue: banner_queue
+      routing-key: banner_routing_key

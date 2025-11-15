@@ -13,8 +13,12 @@ import java.util.concurrent.ExecutionException;
 @RestController
 @RequestMapping("/blog")
 public class BlogController {
-    @Autowired
-    private BlogService blogService;
+
+    private final BlogService blogService;
+
+    public BlogController(BlogService blogService) {
+        this.blogService = blogService;
+    }
 
     @PostMapping("/create")
     public ResponseEntity<BlogResponseDto> createBlog(

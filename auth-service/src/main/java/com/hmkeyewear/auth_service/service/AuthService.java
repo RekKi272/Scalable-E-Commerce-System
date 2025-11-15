@@ -8,6 +8,7 @@ import com.hmkeyewear.auth_service.dto.LoginRequestDto;
 import com.hmkeyewear.auth_service.dto.RegisterCustomerRequestDto;
 import com.hmkeyewear.auth_service.dto.AuthResponseDto;
 import com.hmkeyewear.auth_service.dto.RegisterStaffRequestDto;
+import com.hmkeyewear.auth_service.messaging.UserEventProducer;
 import com.hmkeyewear.auth_service.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,11 +24,13 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserEventProducer userEventProducer;
 
     @Autowired
-    public AuthService(PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(PasswordEncoder passwordEncoder, JwtService jwtService, UserEventProducer userEventProducer) {
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.userEventProducer = userEventProducer;
     }
 
     public String generateToken(String userId, String email, String role, String storeId) {
@@ -66,6 +69,9 @@ public class AuthService {
         user.setCreatedBy(user.getUserId());
 
         docRef.set(user).get();
+
+        // --- Send message to RabbitMQ ---
+        userEventProducer.sendMessage(user);
 
         String token = jwtService.generateToken(
                 user.getUserId(),
@@ -117,6 +123,9 @@ public class AuthService {
         user.setCreatedBy(creatBy);
 
         docRef.set(user).get();
+
+        // --- Send message to RabbitMQ ---
+        userEventProducer.sendMessage(user);
 
         String token = jwtService.generateToken(user.getUserId(), user.getEmail(), user.getRole(), user.getStoreId());
 

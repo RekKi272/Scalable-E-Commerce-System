@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: order-service
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    stream:
+      username: guest
+      password: guest
 
 eureka:
   client:
@@ -13,3 +19,11 @@ eureka:
 firebase:
   credentials:
     path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-order.json}
+
+app:
+  rabbitmq:
+    exchange: main_exchange
+    # Queue và routing key riêng cho từng service
+    order:
+      queue: order_queue
+      routing-key: order_routing_key

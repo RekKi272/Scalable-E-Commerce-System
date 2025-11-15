@@ -10,6 +10,7 @@ import com.hmkeyewear.cart_service.dto.AddToCartRequestDto;
 import com.hmkeyewear.cart_service.dto.CartRequestDto;
 import com.hmkeyewear.cart_service.dto.CartResponseDto;
 import com.hmkeyewear.cart_service.mapper.CartMapper;
+import com.hmkeyewear.cart_service.messaging.CartEventProducer;
 import com.hmkeyewear.cart_service.model.Cart;
 import com.hmkeyewear.cart_service.model.CartItem;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +22,16 @@ import java.util.concurrent.ExecutionException;
 
 @Service
 public class CartService {
-    @Autowired
-    CartMapper cartMapper;
+
+    private final CartMapper cartMapper;
+
+    private final CartEventProducer cartEventProducer;
+
+    // Constructor
+    public CartService(CartMapper cartMapper, CartEventProducer cartEventProducer) {
+        this.cartMapper = cartMapper;
+        this.cartEventProducer = cartEventProducer;
+    }
 
     private static final String COLLECTION_NAME = "carts";
 
@@ -85,6 +94,9 @@ public class CartService {
         ApiFuture<WriteResult> writeResult = docRef.set(cart);
         writeResult.get();
 
+        // --- Send message to RabbitMQ ---
+        cartEventProducer.sendMessage(cart);
+
         return cartMapper.toResponseDto(cart);
     }
 
@@ -104,6 +116,9 @@ public class CartService {
 
         ApiFuture<WriteResult> writeResult = docRef.set(cart);
         writeResult.get();
+
+        // --- Send message to RabbitMQ ---
+        cartEventProducer.sendMessage(cart);
 
         return cartMapper.toResponseDto(cart);
     }
@@ -141,6 +156,10 @@ public class CartService {
 
         ApiFuture<WriteResult> writeResult = docRef.set(cart);
         writeResult.get();
+
+        // --- Send message to RabbitMQ ---
+        cartEventProducer.sendMessage(cart);
+
         return cartMapper.toResponseDto(cart);
     }
 
@@ -197,6 +216,10 @@ public class CartService {
         cart.setTotal(total);
 
         docRef.set(cart).get();
+
+        // --- Send message to RabbitMQ ---
+        cartEventProducer.sendMessage(cart);
+
         return cartMapper.toResponseDto(cart);
     }
 
@@ -207,6 +230,10 @@ public class CartService {
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(customerId);
         ApiFuture<WriteResult> writeResult = docRef.delete();
         writeResult.get();
+
+        // --- Send message to RabbitMQ ---
+        cartEventProducer.sendMessage(customerId);
+
         return "Cart deleted successfully";
     }
 
