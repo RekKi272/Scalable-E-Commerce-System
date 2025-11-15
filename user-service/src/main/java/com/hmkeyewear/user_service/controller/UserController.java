@@ -15,9 +15,11 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/user")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
     /** ==================== COMMON UTILS ==================== */
 
     private boolean isAdmin(String role) {

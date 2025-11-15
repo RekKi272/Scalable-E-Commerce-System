@@ -13,29 +13,70 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/order")
 public class OrderController {
 
-    @Autowired
-    private OrderService orderService;
+
+    private final OrderService orderService;
+
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
 
     @PostMapping("/create")
-    public ResponseEntity<OrderResponseDto> createOrder(@RequestBody OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
+    public ResponseEntity<?> createOrder(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody OrderRequestDto orderRequestDto)
+            throws ExecutionException, InterruptedException {
+        if (role == null || userId == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập để tạo đơn hàng");
+        }
+
         OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto);
+
         return ResponseEntity.ok(orderResponseDto);
     }
 
     @GetMapping("/get")
-    public ResponseEntity<OrderResponseDto> getOrder(@RequestParam String orderId) throws ExecutionException, InterruptedException {
+    public ResponseEntity<?> getOrder(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam String orderId)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null || userId == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập để xem đơn ");
+        }
+
         OrderResponseDto orderResponseDto = orderService.getOrder(orderId);
         return ResponseEntity.ok(orderResponseDto);
     }
 
     @PutMapping("/update/{orderId}")
-    public ResponseEntity<OrderResponseDto> updateOrder(@PathVariable String orderId, @RequestBody OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
+    public ResponseEntity<?> updateOrder(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String orderId,
+            @RequestBody OrderRequestDto orderRequestDto)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null || userId == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập để sửa đơn ");
+        }
+
         OrderResponseDto orderResponseDto = orderService.updateOrder(orderId, orderRequestDto);
         return ResponseEntity.ok(orderResponseDto);
     }
 
     @DeleteMapping("/delete")
-    public String deleteOrder(@RequestParam String orderId) throws ExecutionException, InterruptedException {
-        return  orderService.deleteOrder(orderId);
+    public ResponseEntity<?> deleteOrder(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam String orderId)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null || userId == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
+        }
+
+        return  ResponseEntity.ok(orderService.deleteOrder(orderId));
     }
 }

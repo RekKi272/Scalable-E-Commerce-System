@@ -7,6 +7,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.user_service.dto.UserRequestDto;
 import com.hmkeyewear.user_service.dto.UserResponseDto;
 import com.hmkeyewear.user_service.mapper.UserMapper;
+import com.hmkeyewear.user_service.messaging.UserEventProducer;
 import com.hmkeyewear.user_service.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,8 +20,14 @@ public class UserService {
 
     private static final String COLLECTION_NAME = "users";
 
-    @Autowired
-    private UserMapper userMapper;
+    private final UserMapper userMapper;
+
+    private final UserEventProducer userEventProducer;
+
+    public UserService(UserMapper userMapper, UserEventProducer userEventProducer) {
+        this.userMapper = userMapper;
+        this.userEventProducer = userEventProducer;
+    }
 
     /** ==================== USER SELF ==================== */
 
@@ -77,6 +84,9 @@ public class UserService {
         existing.setUpdatedBy(userId);
 
         docRef.set(existing, SetOptions.merge()).get();
+
+        // --- Send message to RabbitMQ ---
+        userEventProducer.sendMessage(existing);
 
         return userMapper.toResponseDto(existing);
     }
@@ -162,6 +172,9 @@ public class UserService {
         existing.setUpdatedBy(updatedBy);
 
         docRef.set(existing, SetOptions.merge()).get();
+
+        // --- Send message to RabbitMQ ---
+        userEventProducer.sendMessage(existing);
 
         return userMapper.toResponseDto(existing);
     }

@@ -9,6 +9,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
+import com.hmkeyewear.order_service.messaging.OrderEventProducer;
 import com.hmkeyewear.order_service.model.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,10 +21,16 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class OrderService {
 
-    @Autowired
-    OrderMapper orderMapper;
+    private final OrderMapper orderMapper;
+    private final OrderEventProducer orderEventProducer;
 
     private static final String COLLECTION_NAME = "orders";
+
+    // Constructor
+    public OrderService(OrderMapper orderMapper, OrderEventProducer orderEventProducer) {
+        this.orderMapper = orderMapper;
+        this.orderEventProducer = orderEventProducer;
+    }
 
     // CREATE Order
     public OrderResponseDto createOrder(OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
@@ -45,6 +52,9 @@ public class OrderService {
 
         ApiFuture<WriteResult> result = docRef.set(order);
         result.get();
+
+        // --- Send message to RabbitMQ ---
+        orderEventProducer.sendMessage(order);
 
         return orderMapper.toOrderResponseDto(order);
     }
@@ -85,6 +95,9 @@ public class OrderService {
         ApiFuture<WriteResult> result = docRef.set(order);
         result.get();
 
+        // --- Send message to RabbitMQ ---
+        orderEventProducer.sendMessage(order);
+
         return orderMapper.toOrderResponseDto(order);
     }
 
@@ -92,6 +105,10 @@ public class OrderService {
     public String deleteOrder(String orderId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         ApiFuture<WriteResult> result = db.collection(COLLECTION_NAME).document(orderId).delete();
+
+        // --- Send message to RabbitMQ ---
+        orderEventProducer.sendMessage(orderId);
+
         return "Order " + orderId + " deleted at " + result.get().getUpdateTime();
     }
 }

@@ -1,9 +1,9 @@
 server:
-  port: 8083
+  port: 8085
 
 spring:
   application:
-    name: cart-service
+    name: user-service
   rabbitmq:
     host: rabbitmq
     port: 5672
@@ -18,12 +18,12 @@ eureka:
 
 firebase:
   credentials:
-    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-cart.json}
+    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-user.json}
 
 app:
   rabbitmq:
     exchange: main_exchange
-    cart:
-      queue: cart_queue
-      routing-key: cart_routing_key
-
+    # Queue và routing key riêng cho từng service
+    user:
+      queue: user_queue
+      routing-key: user_routing_key

@@ -7,6 +7,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.blog_service.dto.BannerRequestDto;
 import com.hmkeyewear.blog_service.dto.BannerResponseDto;
 import com.hmkeyewear.blog_service.mapper.BannerMapper;
+import com.hmkeyewear.blog_service.messaging.BannerEventProducer;
 import com.hmkeyewear.blog_service.model.Banner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,8 +18,15 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class BannerService {
 
-    @Autowired
-    private BannerMapper bannerMapper;
+    private final BannerMapper bannerMapper;
+
+    private final BannerEventProducer bannerEventProducer;
+
+    // Constructor
+    public BannerService(BannerMapper bannerMapper, BannerEventProducer bannerEventProducer) {
+        this.bannerMapper = bannerMapper;
+        this.bannerEventProducer = bannerEventProducer;
+    }
 
     private static final String COLLECTION_NAME = "banners";
     private static final String COUNTER_COLLECTION = "counters";
@@ -48,6 +56,9 @@ public class BannerService {
         banner.setCreatedBy(createdBy);
 
         db.collection(COLLECTION_NAME).document(banner.getBannerId()).set(banner).get();
+
+        // --- Send message to RabbitMQ ---
+        bannerEventProducer.sendMessage(banner);
 
         return bannerMapper.toBannerResponseDto(banner);
     }
@@ -107,16 +118,24 @@ public class BannerService {
         banner.setUpdatedAt(Timestamp.now());
 
         docRef.set(banner).get();
+
+        // --- Send message to RabbitMQ ---
+        bannerEventProducer.sendMessage(banner);
+
         return bannerMapper.toBannerResponseDto(banner);
     }
 
     public String deleteBanner(String bannerId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         db.collection(COLLECTION_NAME).document(bannerId).delete().get();
+
+        // --- Send message to RabbitMQ ---
+        bannerEventProducer.sendMessage(bannerId);
+
         return "Banner deleted successfully: " + bannerId;
     }
 
-    // ✅ Chỉ trả về list banner active, không sort — FE tự sort
+    // Chỉ trả về list banner active, không sort — FE tự sort
     public List<BannerResponseDto> getAllActiveBanners() throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME)

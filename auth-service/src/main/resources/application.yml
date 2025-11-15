@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: auth-service
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    stream:
+      username: guest
+      password: guest
 
 eureka:
   client:
@@ -16,3 +22,11 @@ firebase:
 
 jwt:
   secret: ${JWT_SECRET:defaultFallbackSecretKey1234567890}
+
+app:
+  rabbitmq:
+    exchange: main_exchange
+    # Queue và routing key riêng cho từng service
+    user:
+      queue: user_queue
+      routing_key: user_routing_key
