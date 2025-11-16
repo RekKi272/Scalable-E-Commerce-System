@@ -1,0 +1,16 @@
+server:
+  port: 8087
+
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+  application:
+    name: file-service
+
+logging:
+  level:
+    root: INFO
+    com.hmkeyewear.file_service: DEBUG

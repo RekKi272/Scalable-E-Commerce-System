@@ -1,0 +1,9 @@
+com\hmkeyewear\file_service\config\WebClientConfig.class
+com\hmkeyewear\file_service\config\SupabaseSecrets.class
+com\hmkeyewear\file_service\dto\FileMetadataRequestDto.class
+com\hmkeyewear\file_service\dto\FileMetadataResponseDto.class
+com\hmkeyewear\file_service\controller\FileController.class
+com\hmkeyewear\file_service\config\SupabaseConfig.class
+com\hmkeyewear\file_service\model\FileMetadata.class
+com\hmkeyewear\file_service\StoreServiceApplication.class
+com\hmkeyewear\file_service\service\SupabaseStorageService.class
