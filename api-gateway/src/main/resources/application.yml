@@ -69,6 +69,12 @@ spring:
                       uri: lb://inventory-service
                       predicates:
                         - Path=/inventory/**
+
+                    # File Service
+                    - id: file-service
+                      uri: lb://file-service
+                      predicates:
+                        - Path=/file/**
           globalcors:
             cors-configurations:
               '[/**]':

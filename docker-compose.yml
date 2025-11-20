@@ -161,3 +161,18 @@ services:
     depends_on:
       service-registry:
         condition: service_healthy
+
+  file-service:
+    build:
+      context: ./file-service
+      dockerfile: Dockerfile
+    container_name: file-service
+    ports:
+      - "8090:8090"
+    environment:
+      - SUPABASE_SECRETS_PATH=/app/supabase-secrets.json
+    volumes:
+      - ./secrets/supabase-secrets.json:/app/supabase-secrets.json
+    depends_on:
+      service-registry:
+        condition: service_healthy

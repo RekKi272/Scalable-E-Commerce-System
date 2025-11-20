@@ -1,9 +1,8 @@
-D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\config\SupabaseConfig.java
-D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\config\WebClientConfig.java
-D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\service\SupabaseStorageService.java
-D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\config\SupabaseSecrets.java
+D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\messaging\FileEventProducer.java
 D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\model\FileMetadata.java
-D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\StoreServiceApplication.java
-D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\dto\FileMetadataRequestDto.java
-D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\dto\FileMetadataResponseDto.java
+D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\config\RabbitMQConfig.java
+D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\FileServiceApplication.java
+D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\messaging\FileEventConsumer.java
+D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\dto\FileResponseDto.java
 D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\controller\FileController.java
+D:\KLTN\Scalable-E-Commerce-System\file-service\src\main\java\com\hmkeyewear\file_service\service\FileService.java
