@@ -13,6 +13,8 @@ public interface ProductMapper {
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
     Product toProduct(ProductRequestDto productRequestDto);
 
     ProductResponseDto toProductResponseDto(Product product);
