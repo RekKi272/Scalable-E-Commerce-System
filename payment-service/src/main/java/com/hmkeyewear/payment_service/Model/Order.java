@@ -1,4 +1,4 @@
-package com.hmkeyewear.order_service.model;
+package com.hmkeyewear.payment_service.Model;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -10,11 +10,11 @@ import java.util.List;
 @Setter
 public class Order {
     private String orderId;
-    private String userId;
+    private String customerId;
     private double summary;
     private String status;
     private double shipFee;
-    private String discountId; // Optional
+    private String discountId;
     private Timestamp createdAt;
     private String createdBy;
     private Timestamp updatedAt;

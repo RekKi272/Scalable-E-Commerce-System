@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 public class Cart {
-    private String customerId;
+    private String userId;
     private List<CartItem> items = new ArrayList<CartItem>();
     private double total;
 }

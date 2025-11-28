@@ -2,6 +2,7 @@ package com.hmkeyewear.order_service.mapper;
 
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
+import com.hmkeyewear.order_service.dto.OrderSaveRequestDto;
 import com.hmkeyewear.order_service.model.Order;
 import org.mapstruct.Mapper;
 
@@ -13,4 +14,7 @@ public interface OrderMapper {
 
     // Order -> ResponseDto
     OrderResponseDto toOrderResponseDto(Order order);
+
+    // OrderSaveRequestDto -> OrderRequestDto
+    OrderRequestDto toOrderRequestDto(OrderSaveRequestDto orderSaveRequestDto);
 }

@@ -1,5 +1,7 @@
-package com.hmkeyewear.order_service.config;
+package com.hmkeyewear.payment_service.config;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -18,43 +20,41 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.exchange}")
     private String exchangeName;
 
+    @Value("${app.rabbitmq.payment-request.queue}")
+    private String paymentRequestQueue;
+
+    @Value("${app.rabbitmq.payment-request.routing-key}")
+    private String paymentRequestRoutingKey;
+
     @Value("${app.rabbitmq.order.queue}")
-    private String orderQueueName;
+    private String orderQueue;
 
     @Value("${app.rabbitmq.order.routing-key}")
     private String orderRoutingKey;
 
-    // Order checkout request
-    @Value("${app.rabbitmq.order-checkout.queue}")
-    private String orderCheckoutQueueName;
-    @Value("${app.rabbitmq.order-checkout.routing-key}")
-    private String orderCheckoutRoutingKey;
-
-    // Order save request handler
-    @Value("${app.rabbitmq.order-save-listener.queue}")
-    private String orderSaveListenerQueueName;
-    @Value("${app.rabbitmq.order-save-listener.routing-key}")
-    private String orderSaveListenerRoutingKey;
+    // ---- Queues ----
+    @Bean
+    public Queue paymentRequestQueue() {
+        return new Queue(paymentRequestQueue);
+    }
 
     @Bean
     public Queue orderQueue() {
-        return new Queue(orderQueueName, true, false, false);
-    }
-
-
-    @Bean
-    public Queue orderCheckoutQueue() {
-        return new Queue(orderCheckoutQueueName, true, false, false);
-    }
-
-    @Bean
-    public Queue orderSaveListenerQueue() {
-        return new Queue(orderSaveListenerQueueName, true, false, false);
+        return new Queue(orderQueue);
     }
 
     @Bean
     public TopicExchange exchange() {
         return new TopicExchange(exchangeName);
+    }
+
+    // ---- Bindings ----
+    @Bean
+    public Binding paymentRequestBinding() {
+        return BindingBuilder
+                .bind(paymentRequestQueue())
+                .to(exchange())
+                .with(paymentRequestRoutingKey);
     }
 
     @Bean
@@ -65,23 +65,7 @@ public class RabbitMQConfig {
                 .with(orderRoutingKey);
     }
 
-
-    @Bean
-    public Binding orderCheckoutBinding() {
-        return BindingBuilder
-                .bind(orderCheckoutQueue())
-                .to(exchange())
-                .with(orderCheckoutRoutingKey);
-    }
-
-    @Bean
-    public Binding orderSaveListenerBinding() {
-        return BindingBuilder
-                .bind(orderSaveListenerQueue())
-                .to(exchange())
-                .with(orderSaveListenerRoutingKey);
-    }
-
+    // ---- Message Converter & RabbitTemplate ----
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
@@ -91,7 +75,6 @@ public class RabbitMQConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(messageConverter());
-        rabbitTemplate.setReplyTimeout(10_000); // 10s
         return rabbitTemplate;
     }
 }

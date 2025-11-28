@@ -1,9 +1,9 @@
 server:
-  port: 8082
+  port: 8089
 
 spring:
   application:
-    name: order-service
+    name: payment-service
   rabbitmq:
     host: rabbitmq
     port: 5672
@@ -16,25 +16,23 @@ eureka:
     serviceUrl:
       defaultZone: http://service-registry:8761/eureka/
 
-firebase:
-  credentials:
-    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-order.json}
-
 app:
   rabbitmq:
     exchange: main_exchange
     # Queue và routing key riêng cho từng service
     order:
-      queue: order_queue
-      routing-key: order_routing_key
-    order-save-listener:
       queue: order_save_request_queue
       routing-key: order_save_request_routing_key
+    payment-request:
+      queue: payment_request_queue
+      routing-key: payment_request_routing_key
 
-    discount:
-      queue: discount_queue
-      routing-key: discount_routing_key
-
-    order-checkout:
-      queue: order_checkout_request_queue
-      routing-key: order_checkout_request_routing_key
+payment:
+  vnpay:
+    url: ${VNP_URL}
+    tmn-code: ${VNP_TMN_CODE}
+    secret-key: ${VNP_SECRET_KEY}
+    return-url: ${VNP_RETURN_URL}
+    version: ${VNP_VERSION}
+    command: ${VNP_COMMAND}
+    order-type: ${VNP_ORDER_TYPE}

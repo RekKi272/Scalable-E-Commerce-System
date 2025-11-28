@@ -16,8 +16,10 @@
         <module>cart-service</module>
         <module>order-service</module>
         <module>product-service</module>
+        <module>payment-service</module>
         <module>user-service</module>
         <module>inventory-service</module>
         <module>store-service</module>
+        <module>file-service</module>
     </modules>
 </project>

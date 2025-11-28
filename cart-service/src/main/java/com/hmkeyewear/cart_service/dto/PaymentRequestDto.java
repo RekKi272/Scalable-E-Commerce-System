@@ -9,8 +9,11 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CartDto {
-    private String customerId;
+public class PaymentRequestDto {
+    private String userId;
     private List<CartItemDto> items;
     private double total;
+    private String bankCode; // Optional
+    private String returnUrl;
+    private String ipAddress;
 }

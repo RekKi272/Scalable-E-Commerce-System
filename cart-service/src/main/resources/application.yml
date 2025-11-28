@@ -27,3 +27,10 @@ app:
       queue: cart_queue
       routing-key: cart_routing_key
 
+    payment-request:
+      queue: payment_request_queue
+      routing-key: payment_request_routing_key
+
+    order-checkout:
+      queue: order_checkout_request_queue
+      routing-key: order_checkout_request_routing_key
