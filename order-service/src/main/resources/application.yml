@@ -31,10 +31,10 @@ app:
       queue: order_save_request_queue
       routing-key: order_save_request_routing_key
 
-    discount:
-      queue: discount_queue
-      routing-key: discount_routing_key
-
     order-checkout:
       queue: order_checkout_request_queue
       routing-key: order_checkout_request_routing_key
+
+    stock-update-request:
+      queue: stock_update_queue
+      routing-key: stock_update_routing_key

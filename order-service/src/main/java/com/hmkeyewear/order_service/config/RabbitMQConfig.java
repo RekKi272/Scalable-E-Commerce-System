@@ -36,6 +36,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.order-save-listener.routing-key}")
     private String orderSaveListenerRoutingKey;
 
+    // Update stock in product
+    @Value("${app.rabbitmq.stock-update-request.queue}")
+    private String stockUpdateRequestQueueName;
+    @Value("${app.rabbitmq.stock-update-request.routing-key}")
+    private String stockUpdateRequestRoutingKey;
+
     @Bean
     public Queue orderQueue() {
         return new Queue(orderQueueName, true, false, false);
@@ -50,6 +56,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue orderSaveListenerQueue() {
         return new Queue(orderSaveListenerQueueName, true, false, false);
+    }
+
+    @Bean
+    public Queue stockUpdateRequestQueue() {
+        return new Queue(stockUpdateRequestQueueName, true, false, false);
     }
 
     @Bean
@@ -80,6 +91,14 @@ public class RabbitMQConfig {
                 .bind(orderSaveListenerQueue())
                 .to(exchange())
                 .with(orderSaveListenerRoutingKey);
+    }
+
+    @Bean
+    public Binding stockUpdateRequestBinding() {
+        return BindingBuilder
+                .bind(stockUpdateRequestQueue())
+                .to(exchange())
+                .with(stockUpdateRequestRoutingKey);
     }
 
     @Bean

@@ -11,6 +11,7 @@ import com.hmkeyewear.order_service.dto.OrderResponseDto;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
 
 import com.hmkeyewear.order_service.messaging.OrderEventProducer;
+import com.hmkeyewear.order_service.messaging.StockUpdateRequestProducer;
 import com.hmkeyewear.order_service.model.Order;
 import org.springframework.stereotype.Service;
 
@@ -23,13 +24,15 @@ public class OrderService {
 
     private final OrderMapper orderMapper;
     private final OrderEventProducer orderEventProducer;
+    private final StockUpdateRequestProducer stockUpdateRequestProducer;
 
     private static final String COLLECTION_NAME = "orders";
 
     // Constructor
-    public OrderService(OrderMapper orderMapper, OrderEventProducer orderEventProducer) {
+    public OrderService(OrderMapper orderMapper, OrderEventProducer orderEventProducer, StockUpdateRequestProducer stockUpdateRequestProducer) {
         this.orderMapper = orderMapper;
         this.orderEventProducer = orderEventProducer;
+        this.stockUpdateRequestProducer = stockUpdateRequestProducer;
     }
 
     // CREATE Order
@@ -81,6 +84,8 @@ public class OrderService {
 
         // --- Send message to RabbitMQ ---
         orderEventProducer.sendMessage(order);
+        // --- Send message to update product stock---
+        stockUpdateRequestProducer.sendMessage(order.getDetails());
 
         orderMapper.toOrderResponseDto(order);
     }

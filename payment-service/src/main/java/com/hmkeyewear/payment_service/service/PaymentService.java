@@ -2,8 +2,10 @@ package com.hmkeyewear.payment_service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hmkeyewear.payment_service.config.VNPayConfig;
+import com.hmkeyewear.payment_service.dto.OrderSaveRequestDto;
 import com.hmkeyewear.payment_service.dto.PaymentRequestDto;
 import com.hmkeyewear.payment_service.dto.VNPayResponseDto;
+import com.hmkeyewear.payment_service.messaging.OrderSaveRequestProducer;
 import com.hmkeyewear.payment_service.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +18,12 @@ import java.util.Map;
 public class PaymentService {
     private final VNPayConfig vnPayConfig;
     private final ObjectMapper objectMapper;
+    private final OrderSaveRequestProducer orderSaveRequestProducer;
 
-    public PaymentService(VNPayConfig vnPayConfig, ObjectMapper objectMapper) {
+    public PaymentService(VNPayConfig vnPayConfig, ObjectMapper objectMapper, OrderSaveRequestProducer orderSaveRequestProducer) {
         this.vnPayConfig = vnPayConfig;
         this.objectMapper = objectMapper;
+        this.orderSaveRequestProducer = orderSaveRequestProducer;
     }
 
     public VNPayResponseDto createVnPayment(HttpServletRequest request) {
@@ -100,8 +104,15 @@ public class PaymentService {
             PaymentRequestDto originalCart =
                     objectMapper.readValue(cartJson, PaymentRequestDto.class);
 
-            // TODO: gửi originalCart sang order-service tại đây
-            // orderEventProducer.sendOrderCreateEvent(originalCart);
+            // Map to OrderSaveRequestDto
+            OrderSaveRequestDto toOrderSaveRequest = new OrderSaveRequestDto();
+            toOrderSaveRequest.setUserId(originalCart.getUserId());
+            toOrderSaveRequest.setItems(originalCart.getItems());
+            toOrderSaveRequest.setSummary(originalCart.getTotal());
+            toOrderSaveRequest.setDiscountId(originalCart.getDiscountId());
+
+            // Send Save Order request to order-service
+            orderSaveRequestProducer.sendSaveRequest(toOrderSaveRequest);
 
             return ResponseEntity.ok("Payment success");
 

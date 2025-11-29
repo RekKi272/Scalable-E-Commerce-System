@@ -331,7 +331,7 @@ public class CartService {
         double newTotal = Math.max(totalBefore - discountAmount, 0.0);
 
         // --- Cập nhật cart ---
-//        cart.setDiscountCode(discount.getDiscountId());
+        cart.setDiscountId(discount.getDiscountId());
 //        cart.setDiscountAmount(discountAmount);
         cart.setTotal(newTotal);
 

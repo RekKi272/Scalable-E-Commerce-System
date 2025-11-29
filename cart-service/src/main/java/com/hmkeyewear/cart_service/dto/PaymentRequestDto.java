@@ -13,6 +13,7 @@ public class PaymentRequestDto {
     private String userId;
     private List<CartItemDto> items;
     private double total;
+    private String discountId; // Optional
     private String bankCode; // Optional
     private String returnUrl;
     private String ipAddress;

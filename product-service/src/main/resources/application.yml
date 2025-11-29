@@ -39,3 +39,6 @@ app:
     category:
       queue: category_queue
       routing-key: category_routing_key
+    stock-update-request:
+      queue: stock_update_queue
+      routing-key: stock_update_routing_key

@@ -11,5 +11,6 @@ import java.util.List;
 public class Cart {
     private String userId;
     private List<CartItem> items = new ArrayList<CartItem>();
+    private String discountId;
     private double total;
 }

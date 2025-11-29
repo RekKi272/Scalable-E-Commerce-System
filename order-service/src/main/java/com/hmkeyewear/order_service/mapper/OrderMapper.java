@@ -1,9 +1,11 @@
 package com.hmkeyewear.order_service.mapper;
 
+import com.hmkeyewear.order_service.dto.OrderDetailRequestDto;
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
 import com.hmkeyewear.order_service.dto.OrderSaveRequestDto;
 import com.hmkeyewear.order_service.model.Order;
+import com.hmkeyewear.order_service.model.OrderDetail;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -17,4 +19,7 @@ public interface OrderMapper {
 
     // OrderSaveRequestDto -> OrderRequestDto
     OrderRequestDto toOrderRequestDto(OrderSaveRequestDto orderSaveRequestDto);
+
+    // OrderDetails -> OrderDetailRequestDto
+    OrderDetailRequestDto toOrderDetailRequestDto(OrderDetail orderDetail);
 }

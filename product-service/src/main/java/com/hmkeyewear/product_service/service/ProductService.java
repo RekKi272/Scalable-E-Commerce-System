@@ -5,6 +5,7 @@ import com.algolia.model.search.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.product_service.dto.OrderDetailRequestDto;
 import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
@@ -217,6 +218,72 @@ public class ProductService {
 
         return productMapper.toProductResponseDto(product);
     }
+
+    // Update Product stock
+    public void updateStock(List<OrderDetailRequestDto> items) {
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Gom các items theo productId
+        Map<String, List<OrderDetailRequestDto>> grouped =
+                items.stream().collect(Collectors.groupingBy(OrderDetailRequestDto::getProductId));
+
+        // Mỗi product sẽ chạy 1 transaction
+        for (String productId : grouped.keySet()) {
+
+            db.runTransaction(transaction -> {
+                DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
+                DocumentSnapshot snapshot = transaction.get(productRef).get();
+
+                if (!snapshot.exists()) {
+                    throw new RuntimeException("Product not found: " + productId);
+                }
+
+                Product product = snapshot.toObject(Product.class);
+                if (product == null) {
+                    throw new RuntimeException("Product data null for: " + productId);
+                }
+
+                List<Variant> variants = product.getVariants();
+                if (variants == null) {
+                    throw new RuntimeException("Product has no variants: " + productId);
+                }
+
+                // Lấy danh sách order items thuộc product này
+                List<OrderDetailRequestDto> productDetails = grouped.get(productId);
+
+                // Cập nhật tồn kho cho từng order detail
+                for (OrderDetailRequestDto detail : productDetails) {
+                    Variant variant = variants.stream()
+                            .filter(v -> v.getVariantId().equals(detail.getVariantId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (variant == null) {
+                        throw new RuntimeException("Variant " + detail.getVariantId() + " not found in product " + productId);
+                    }
+
+                    // Kiểm tra tồn kho
+                    long remaining = variant.getQuantity() - detail.getQuantity();
+                    if (remaining < 0) {
+                        throw new RuntimeException(
+                                "Không đủ hàng cho variant " + variant.getVariantId() +
+                                        " (còn: " + variant.getQuantity() +
+                                        ", yêu cầu: " + detail.getQuantity() + ")"
+                        );
+                    }
+
+                    // Cập nhật tồn kho
+                    variant.setQuantity(remaining);
+                }
+
+                // Lưu lại danh sách variants mới
+                transaction.update(productRef, "variants", variants);
+
+                return null;
+            });
+        }
+    }
+
 
     // GET Product by Id
     public ProductResponseDto getProductById(String productId) throws ExecutionException, InterruptedException {
