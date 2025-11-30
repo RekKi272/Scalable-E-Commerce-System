@@ -3,6 +3,7 @@ package com.hmkeyewear.product_service.controller;
 import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
+import com.hmkeyewear.product_service.dto.BatchRequestDto;
 import com.hmkeyewear.product_service.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,6 @@ public class ProductController {
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
-
 
     // CREATE Product
     @PostMapping("/create")
@@ -56,7 +56,8 @@ public class ProductController {
 
     // GET ACTIVE only
     @GetMapping("/getActive")
-    public ResponseEntity<List<ProductInforResponseDto>> GetActiveProducts() throws InterruptedException, ExecutionException {
+    public ResponseEntity<List<ProductInforResponseDto>> GetActiveProducts()
+            throws InterruptedException, ExecutionException {
         List<ProductInforResponseDto> response = productService.getActiveProducts();
         return ResponseEntity.ok(response);
     }
@@ -81,7 +82,8 @@ public class ProductController {
 
     // SEARCH Product by Name
     @GetMapping("/search")
-    public ResponseEntity<List<ProductInforResponseDto>> searchProductsByName(@RequestParam String keyword) throws InterruptedException, ExecutionException {
+    public ResponseEntity<List<ProductInforResponseDto>> searchProductsByName(@RequestParam String keyword)
+            throws InterruptedException, ExecutionException {
         return ResponseEntity.ok(productService.searchProductByName(keyword));
     }
 
@@ -91,8 +93,7 @@ public class ProductController {
             @RequestParam(required = false) String brandId,
             @RequestParam(required = false) String categoryId,
             @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice
-    ) throws ExecutionException, InterruptedException {
+            @RequestParam(required = false) Double maxPrice) throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(productService.filterProducts(brandId, categoryId, minPrice, maxPrice));
     }
 
@@ -107,5 +108,68 @@ public class ProductController {
         }
 
         return ResponseEntity.ok(productService.deleteProduct(productId));
+    }
+
+    // POST nhập hàng batch
+    @PostMapping("/import")
+    public ResponseEntity<?> importInventoryBatch(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @Valid @RequestBody BatchRequestDto batchDto) {
+
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
+        }
+
+        try {
+            var responses = productService.updateInventoryBatchWithType(batchDto.getItems(), username, "IMPORT");
+            return ResponseEntity.ok(responses);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    }
+
+    // POST bán hàng batch
+    @PostMapping("/sell")
+    public ResponseEntity<?> sellInventoryBatch(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String username,
+            @Valid @RequestBody BatchRequestDto batchDto) {
+
+        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
+        }
+
+        try {
+            var responses = productService.updateInventoryBatchWithType(batchDto.getItems(), username, "SELL");
+            return ResponseEntity.ok(responses);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    }
+
+    // POST bán hàng batch (online không cần xác thực)
+    @PostMapping("/sell-online")
+    public ResponseEntity<?> sellInventoryBatch(
+            @Valid @RequestBody BatchRequestDto batchDto) {
+
+        try {
+            var responses = productService.updateInventoryBatchWithType(batchDto.getItems(), "ONLINE", "SELL");
+            return ResponseEntity.ok(responses);
+        } catch (ExecutionException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
     }
 }

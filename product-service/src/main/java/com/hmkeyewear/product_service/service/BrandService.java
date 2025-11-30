@@ -8,7 +8,6 @@ import com.hmkeyewear.product_service.dto.BrandResponseDto;
 import com.hmkeyewear.product_service.mapper.BrandMapper;
 import com.hmkeyewear.product_service.messaging.BrandEventProducer;
 import com.hmkeyewear.product_service.model.Brand;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;

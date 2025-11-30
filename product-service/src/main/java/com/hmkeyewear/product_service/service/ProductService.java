@@ -8,6 +8,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
+import com.hmkeyewear.product_service.dto.ItemRequestDto;
 import com.hmkeyewear.product_service.feign.ProductInterface;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
 import com.hmkeyewear.product_service.messaging.ProductEventProducer;
@@ -15,7 +16,6 @@ import com.hmkeyewear.product_service.model.Customer;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.ProductLite;
 import com.hmkeyewear.product_service.model.Variant;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
@@ -42,9 +42,9 @@ public class ProductService {
 
     // Constructor
     public ProductService(ProductInterface productInterface,
-                          ProductMapper productMapper,
-                          SearchClient searchClient,
-                          ProductEventProducer productEventProducer) {
+            ProductMapper productMapper,
+            SearchClient searchClient,
+            ProductEventProducer productEventProducer) {
         this.productInterface = productInterface;
         this.productMapper = productMapper;
         this.searchClient = searchClient;
@@ -59,15 +59,15 @@ public class ProductService {
 
     // ------------------- UTIL: Remove Vietnamese Diacritics -------------------
     private String removeVietnameseDiacritics(String str) {
-        if (str == null) return null;
+        if (str == null)
+            return null;
         String temp = java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD);
         temp = temp.replaceAll("\\p{M}", ""); // loại bỏ dấu
         return temp.replaceAll("đ", "d").replaceAll("Đ", "D");
     }
 
-
     // ----------------------------- SYNC EXISTING DATA ----------------------------
-//    @PostConstruct
+    // @PostConstruct
     public void syncAllProductsToAlgolia() {
         try {
             Firestore db = FirestoreClient.getFirestore();
@@ -76,8 +76,7 @@ public class ProductService {
             SearchResponse<ProductLite> existing = searchClient.searchSingleIndex(
                     ALGOLIA_INDEX_NAME,
                     new SearchParamsObject().setQuery(""), // truy vấn rỗng để lấy toàn bộ
-                    ProductLite.class
-            );
+                    ProductLite.class);
 
             List<String> existingIds = existing.getHits().stream()
                     .map(ProductLite::getProductId)
@@ -101,7 +100,8 @@ public class ProductService {
                 Product product = doc.toObject(Product.class);
 
                 String productId = product.getProductId();
-                if (existingIds.contains(productId)) continue; // đã tồn tại thì bỏ qua
+                if (existingIds.contains(productId))
+                    continue; // đã tồn tại thì bỏ qua
 
                 ProductLite lite = new ProductLite();
                 lite.setProductId(productId);
@@ -122,7 +122,6 @@ public class ProductService {
             System.err.println("Lỗi khi đồng bộ dữ liệu lên Algolia: " + e.getMessage());
         }
     }
-
 
     private String generateProductId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(PRODUCT_COUNTER_DOC);
@@ -198,6 +197,7 @@ public class ProductService {
             List<Variant> variantsWithId = new ArrayList<>();
             for (Variant v : dto.getVariants()) {
                 v.setVariantId(generateVariantId(db, newProductId));
+                v.setQuantity(0L);
                 variantsWithId.add(v);
             }
             product.setVariants(variantsWithId);
@@ -210,7 +210,7 @@ public class ProductService {
         db.collection(COLLECTION_NAME).document(product.getProductId()).set(product).get();
 
         // --- Đồng bộ với Algolia ---
-//        searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(product));
+        // searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(product));
 
         // --- Send message to RabbitMQ ---
         productEventProducer.sendMessage(product);
@@ -258,9 +258,8 @@ public class ProductService {
                 new SearchParamsObject()
                         .setQuery(normalizedKeyword)
                         .setRestrictSearchableAttributes(List.of("productName"))
-                        .setAttributesToRetrieve(List.of("productId")), //chỉ lấy ID
-                ProductLite.class
-        );
+                        .setAttributesToRetrieve(List.of("productId")), // chỉ lấy ID
+                ProductLite.class);
 
         // Lấy danh sách productId từ kết quả Algolia
         List<String> productIds = response.getHits().stream()
@@ -375,7 +374,7 @@ public class ProductService {
         productRef.set(updatedProduct).get();
 
         // --- Đồng bộ Algolia ---
-        //searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(updatedProduct));
+        // searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(updatedProduct));
 
         // --- Send message to RabbitMQ ---
         productEventProducer.sendMessage(updatedProduct);
@@ -386,8 +385,7 @@ public class ProductService {
     // GET Active Product ONLY
     public List<ProductInforResponseDto> getActiveProducts() throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> queryFuture =
-                db.collection(COLLECTION_NAME)
+        ApiFuture<QuerySnapshot> queryFuture = db.collection(COLLECTION_NAME)
                 .whereEqualTo("status", "ACTIVE")
                 .get();
 
@@ -407,11 +405,89 @@ public class ProductService {
         db.collection(COLLECTION_NAME).document(productId).delete().get();
 
         // --- Xóa khỏi Algolia ---
-        //searchClient.deleteObjects(ALGOLIA_INDEX_NAME, List.of(productId));
+        // searchClient.deleteObjects(ALGOLIA_INDEX_NAME, List.of(productId));
 
         // --- Send message to RabbitMQ ---
         productEventProducer.sendMessage(productId);
 
         return "Successfully deleted product with id " + productId;
+    }
+
+    /**
+     * Cập nhật nhiều sản phẩm cùng lúc (batch), cộng dồn số lượng và kiểm tra không
+     * bán âm.
+     * type: "IMPORT" hoặc "SELL" (truyền từ controller)
+     */
+    public List<String> updateInventoryBatchWithType(List<ItemRequestDto> items, String username, String type)
+            throws ExecutionException, InterruptedException {
+
+        if (!List.of("IMPORT", "SELL").contains(type.toUpperCase())) {
+            throw new IllegalArgumentException("Type must be either IMPORT or SELL");
+        }
+
+        Firestore db = FirestoreClient.getFirestore();
+        List<String> results = new ArrayList<>();
+
+        for (ItemRequestDto item : items) {
+            try {
+                DocumentReference productRef = db.collection(COLLECTION_NAME).document(item.getProductId());
+
+                // Transaction để đảm bảo cập nhật atomic
+                db.runTransaction(transaction -> {
+                    DocumentSnapshot snapshot = transaction.get(productRef).get();
+                    if (!snapshot.exists()) {
+                        results.add("ERROR: Product " + item.getProductId() + " not found");
+                        return null; // Không throw exception để tiếp tục batch
+                    }
+
+                    Product product = snapshot.toObject(Product.class);
+                    if (product == null || product.getVariants() == null) {
+                        results.add("ERROR: Product " + item.getProductId() + " data invalid");
+                        return null;
+                    }
+
+                    // Tìm variant cần cập nhật
+                    Variant variant = product.getVariants().stream()
+                            .filter(v -> v.getVariantId().equals(item.getVariantId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (variant == null) {
+                        results.add("ERROR: Variant " + item.getVariantId() + " not found in product "
+                                + item.getProductId());
+                        return null;
+                    }
+
+                    Long currentQty = variant.getQuantity() != null ? variant.getQuantity() : 0L;
+                    Long quantity = item.getQuantity();
+
+                    if ("IMPORT".equalsIgnoreCase(type)) {
+                        variant.setQuantity(currentQty + quantity);
+                    } else { // SELL
+                        if (currentQty < quantity) {
+                            results.add("ERROR: Not enough stock for product " + item.getProductId() +
+                                    " variant " + item.getVariantId() + ". Available: " + currentQty);
+                            return null;
+                        }
+                        variant.setQuantity(currentQty - quantity);
+                    }
+
+                    product.setUpdatedAt(Timestamp.now());
+                    product.setUpdatedBy(username);
+
+                    transaction.set(productRef, product, SetOptions.merge());
+                    results.add("SUCCESS: " + type + " " + quantity + " units for product " +
+                            item.getProductId() + " variant " + item.getVariantId());
+
+                    return null;
+                }).get(); // get() để đợi transaction hoàn tất
+
+            } catch (Exception e) {
+                results.add("ERROR: Exception for product " + item.getProductId() +
+                        " variant " + item.getVariantId() + " - " + e.getMessage());
+            }
+        }
+
+        return results;
     }
 }
