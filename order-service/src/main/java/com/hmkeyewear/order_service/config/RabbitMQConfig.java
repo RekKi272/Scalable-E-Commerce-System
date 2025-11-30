@@ -24,9 +24,43 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.order.routing-key}")
     private String orderRoutingKey;
 
+    // Order checkout request
+    @Value("${app.rabbitmq.order-checkout.queue}")
+    private String orderCheckoutQueueName;
+    @Value("${app.rabbitmq.order-checkout.routing-key}")
+    private String orderCheckoutRoutingKey;
+
+    // Order save request handler
+    @Value("${app.rabbitmq.order-save-listener.queue}")
+    private String orderSaveListenerQueueName;
+    @Value("${app.rabbitmq.order-save-listener.routing-key}")
+    private String orderSaveListenerRoutingKey;
+
+    // Update stock in product
+    @Value("${app.rabbitmq.stock-update-request.queue}")
+    private String stockUpdateRequestQueueName;
+    @Value("${app.rabbitmq.stock-update-request.routing-key}")
+    private String stockUpdateRequestRoutingKey;
+
     @Bean
     public Queue orderQueue() {
         return new Queue(orderQueueName, true, false, false);
+    }
+
+
+    @Bean
+    public Queue orderCheckoutQueue() {
+        return new Queue(orderCheckoutQueueName, true, false, false);
+    }
+
+    @Bean
+    public Queue orderSaveListenerQueue() {
+        return new Queue(orderSaveListenerQueueName, true, false, false);
+    }
+
+    @Bean
+    public Queue stockUpdateRequestQueue() {
+        return new Queue(stockUpdateRequestQueueName, true, false, false);
     }
 
     @Bean
@@ -42,6 +76,31 @@ public class RabbitMQConfig {
                 .with(orderRoutingKey);
     }
 
+
+    @Bean
+    public Binding orderCheckoutBinding() {
+        return BindingBuilder
+                .bind(orderCheckoutQueue())
+                .to(exchange())
+                .with(orderCheckoutRoutingKey);
+    }
+
+    @Bean
+    public Binding orderSaveListenerBinding() {
+        return BindingBuilder
+                .bind(orderSaveListenerQueue())
+                .to(exchange())
+                .with(orderSaveListenerRoutingKey);
+    }
+
+    @Bean
+    public Binding stockUpdateRequestBinding() {
+        return BindingBuilder
+                .bind(stockUpdateRequestQueue())
+                .to(exchange())
+                .with(stockUpdateRequestRoutingKey);
+    }
+
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
@@ -51,6 +110,7 @@ public class RabbitMQConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(messageConverter());
+        rabbitTemplate.setReplyTimeout(10_000); // 10s
         return rabbitTemplate;
     }
 }

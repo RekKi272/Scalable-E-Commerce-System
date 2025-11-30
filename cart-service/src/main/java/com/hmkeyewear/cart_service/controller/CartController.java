@@ -1,10 +1,10 @@
 package com.hmkeyewear.cart_service.controller;
 
-import com.hmkeyewear.cart_service.dto.CartRequestDto;
-import com.hmkeyewear.cart_service.dto.CartResponseDto;
-import com.hmkeyewear.cart_service.dto.AddToCartRequestDto;
+import com.hmkeyewear.cart_service.dto.*;
 import com.hmkeyewear.cart_service.service.CartService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
+import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,8 +14,12 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/cart")
 public class CartController {
 
-    @Autowired
-    private CartService cartService;
+    private final CartService cartService;
+
+
+    public CartController(CartService cartService) {
+        this.cartService = cartService;
+    }
 
 //    @PostMapping("/create")
 //    public ResponseEntity<CartResponseDto> createCart(@RequestBody CartRequestDto dto) throws ExecutionException, InterruptedException {
@@ -74,7 +78,7 @@ public class CartController {
         }
 
         // Gán customerId theo userId
-        dto.setCustomerId(userId);
+        dto.setUserId(userId);
 
         CartResponseDto updatedCart = cartService.updateCart(userId, dto);
         return ResponseEntity.ok(updatedCart);
@@ -103,8 +107,8 @@ public class CartController {
      * PATCH /carts/updateQuantity?productId=prd_001&quantity=5
      */
     @PatchMapping("/updateQuantity")
-    public ResponseEntity<CartResponseDto> updateItemQuantity(
-            @RequestHeader("X-User-Id") String customerId,
+    public ResponseEntity<?> updateItemQuantity(
+            @RequestHeader("X-User-Id") String userId,
             @RequestParam String productId,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) Integer quantity)
@@ -114,7 +118,53 @@ public class CartController {
             return ResponseEntity.badRequest().build();
         }
 
-        CartResponseDto updatedCart = cartService.updateItemQuantity(customerId, productId, action, quantity);
+        if (userId == null || userId.isEmpty()) {
+            return ResponseEntity.status(401).body("Bạn cần đăng nhập để xóa giỏ hàng");
+        }
+
+        CartResponseDto updatedCart = cartService.updateItemQuantity(userId, productId, action, quantity);
         return ResponseEntity.ok(updatedCart);
     }
+
+    @PostMapping("/checkout")
+    public ResponseEntity<?> checkout(
+            @RequestHeader("X-User-Id") String userId,
+            HttpServletRequest request,
+            @RequestBody(required = false) PaymentRequestDto checkoutRequest)
+            throws ExecutionException, InterruptedException {
+        if (userId == null || userId.isEmpty()) {
+            return ResponseEntity.status(401).body("Bạn cần đăng nhập để thanh toán");
+        }
+
+        if (checkoutRequest == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        checkoutRequest.setUserId(userId);
+        checkoutRequest.setIpAddress(request.getRemoteAddr());
+        // sent Request
+        VNPayResponseDto response = cartService.createPayment(checkoutRequest);
+
+        return ResponseEntity.ok(response); // FE redirect to response.getPaymentUrl
+    }
+
+    // APPLY Discount
+    @PostMapping("/applyDiscount")
+    public ResponseEntity<?> applyDiscount(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody String discountCode
+    ) throws ExecutionException, InterruptedException {
+
+        if (userId == null || userId.isEmpty()) {
+            return ResponseEntity.status(401).body("Bạn cần đăng nhập để áp dụng mã giảm giá");
+        }
+
+        try {
+            CartResponseDto updatedCart = cartService.applyDiscount(userId, discountCode);
+            return ResponseEntity.ok(updatedCart);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 }

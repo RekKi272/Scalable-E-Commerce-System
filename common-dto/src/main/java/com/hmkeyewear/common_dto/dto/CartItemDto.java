@@ -1,12 +1,12 @@
-package com.hmkeyewear.cart_service.dto;
+package com.hmkeyewear.common_dto.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Setter
+@Getter
 public class CartItemDto {
     private String productId;
     private String variantId;

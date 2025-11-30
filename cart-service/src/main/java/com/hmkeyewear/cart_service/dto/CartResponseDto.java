@@ -1,5 +1,6 @@
 package com.hmkeyewear.cart_service.dto;
 
+import com.hmkeyewear.common_dto.dto.CartItemDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,7 +11,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CartResponseDto {
-    private String customerId;
+    private String userId;
     private List<CartItemDto> items;
+    private String discountId;
     private double total;
 }

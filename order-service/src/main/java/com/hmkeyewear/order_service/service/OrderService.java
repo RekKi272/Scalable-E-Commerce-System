@@ -9,9 +9,10 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
+
 import com.hmkeyewear.order_service.messaging.OrderEventProducer;
+import com.hmkeyewear.order_service.messaging.StockUpdateRequestProducer;
 import com.hmkeyewear.order_service.model.Order;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
@@ -23,13 +24,15 @@ public class OrderService {
 
     private final OrderMapper orderMapper;
     private final OrderEventProducer orderEventProducer;
+    private final StockUpdateRequestProducer stockUpdateRequestProducer;
 
     private static final String COLLECTION_NAME = "orders";
 
     // Constructor
-    public OrderService(OrderMapper orderMapper, OrderEventProducer orderEventProducer) {
+    public OrderService(OrderMapper orderMapper, OrderEventProducer orderEventProducer, StockUpdateRequestProducer stockUpdateRequestProducer) {
         this.orderMapper = orderMapper;
         this.orderEventProducer = orderEventProducer;
+        this.stockUpdateRequestProducer = stockUpdateRequestProducer;
     }
 
     // CREATE Order
@@ -41,7 +44,7 @@ public class OrderService {
 
         Order order = new Order();
         order.setOrderId(docRef.getId());
-        order.setCustomerId(orderRequestDto.getCustomerId());
+        order.setUserId(orderRequestDto.getUserId());
         order.setSummary(orderRequestDto.getSummary());
         order.setStatus(orderRequestDto.getStatus());
         order.setShipFee(orderRequestDto.getShipFee());
@@ -57,6 +60,34 @@ public class OrderService {
         orderEventProducer.sendMessage(order);
 
         return orderMapper.toOrderResponseDto(order);
+    }
+
+    public void saveOrder(OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Create document with auto create ID
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document();
+
+        Order order = new Order();
+        order.setOrderId(docRef.getId());
+        order.setUserId(orderRequestDto.getUserId());
+        order.setSummary(orderRequestDto.getSummary());
+        order.setStatus("PENDING");
+        order.setShipFee(orderRequestDto.getShipFee());
+        order.setDiscountId(orderRequestDto.getDiscountId());
+        order.setCreatedAt(Timestamp.now());
+        order.setUpdatedAt(null);
+        order.setDetails(orderRequestDto.getDetails());
+
+        ApiFuture<WriteResult> result = docRef.set(order);
+        result.get();
+
+        // --- Send message to RabbitMQ ---
+        orderEventProducer.sendMessage(order);
+        // --- Send message to update product stock---
+        stockUpdateRequestProducer.sendMessage(order.getDetails());
+
+        orderMapper.toOrderResponseDto(order);
     }
 
     // READ Order
@@ -84,7 +115,7 @@ public class OrderService {
         Order order = snapshot.toObject(Order.class);
 
         assert order != null;
-        order.setCustomerId(orderRequestDto.getCustomerId());
+        order.setUserId(orderRequestDto.getUserId());
         order.setSummary(orderRequestDto.getSummary());
         order.setStatus(orderRequestDto.getStatus());
         order.setShipFee(orderRequestDto.getShipFee());

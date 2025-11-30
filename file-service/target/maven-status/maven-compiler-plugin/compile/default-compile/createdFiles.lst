@@ -1,8 +1,10 @@
 com\hmkeyewear\file_service\messaging\FileEventProducer.class
 com\hmkeyewear\file_service\service\FileService.class
+com\hmkeyewear\file_service\dto\FileRequestDto.class
 com\hmkeyewear\file_service\FileServiceApplication.class
+com\hmkeyewear\file_service\dto\FileDto.class
 com\hmkeyewear\file_service\dto\FileResponseDto.class
 com\hmkeyewear\file_service\messaging\FileEventConsumer.class
 com\hmkeyewear\file_service\config\RabbitMQConfig.class
 com\hmkeyewear\file_service\controller\FileController.class
-com\hmkeyewear\file_service\model\FileMetadata.class
+com\hmkeyewear\file_service\model\FileModel.class

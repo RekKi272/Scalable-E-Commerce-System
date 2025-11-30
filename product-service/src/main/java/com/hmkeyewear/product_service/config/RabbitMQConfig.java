@@ -36,6 +36,13 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.category.routing-key}")
     private String categoryRoutingKey;
 
+    // Stock update request queue
+    @Value("${app.rabbitmq.stock-update-request.queue}")
+    private String stockUpdateRequestQueueName;
+
+    @Value("${app.rabbitmq.stock-update-request.routing-key}")
+    private String stockUpdateRequestRoutingKey;
+
     // ---- Queues ----
     @Bean
     public Queue productQueue() {
@@ -50,6 +57,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue categoryQueue() {
         return new Queue(categoryQueueName, true);
+    }
+
+    @Bean
+    public Queue stockUpdateRequestQueue() {
+        return new Queue(stockUpdateRequestQueueName, true);
     }
 
     // ---- Exchange ----
@@ -81,6 +93,14 @@ public class RabbitMQConfig {
                 .bind(categoryQueue())
                 .to(exchange())
                 .with(categoryRoutingKey);
+    }
+
+    @Bean
+    public Binding stockUpdateRequestBinding() {
+        return BindingBuilder
+                .bind(stockUpdateRequestQueue())
+                .to(exchange())
+                .with(stockUpdateRequestRoutingKey);
     }
 
     // ---- Message Converter & RabbitTemplate ----

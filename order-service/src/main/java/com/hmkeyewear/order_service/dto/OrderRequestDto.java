@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderRequestDto {
-    private String customerId;
+    private String userId;
     private double summary;
     private String status;
     private double shipFee;
