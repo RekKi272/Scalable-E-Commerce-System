@@ -1,7 +1,7 @@
 package com.hmkeyewear.payment_service.messaging;
 
-import com.hmkeyewear.payment_service.dto.PaymentRequestDto;
-import com.hmkeyewear.payment_service.dto.VNPayResponseDto;
+import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
+import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
 import com.hmkeyewear.payment_service.service.PaymentService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;

@@ -1,5 +1,6 @@
 package com.hmkeyewear.cart_service.dto;
 
+import com.hmkeyewear.common_dto.dto.CartItemDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

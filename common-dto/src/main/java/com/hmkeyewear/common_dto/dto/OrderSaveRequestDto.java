@@ -1,11 +1,14 @@
-package com.hmkeyewear.payment_service.dto;
+package com.hmkeyewear.common_dto.dto;
 
-import com.hmkeyewear.payment_service.Model.OrderDetail;
-import lombok.Data;
+import lombok.*;
 
 import java.util.List;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
 public class OrderSaveRequestDto {
     private String userId;
     private double summary;

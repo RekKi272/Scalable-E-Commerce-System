@@ -1,8 +1,13 @@
-package com.hmkeyewear.cart_service.dto;
+package com.hmkeyewear.common_dto.dto;
 
-import lombok.Data;
+import lombok.*;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
 public class VNPayResponseDto {
     private String code;
     private String message;

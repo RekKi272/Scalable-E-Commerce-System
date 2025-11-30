@@ -2,9 +2,9 @@ package com.hmkeyewear.payment_service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hmkeyewear.payment_service.config.VNPayConfig;
-import com.hmkeyewear.payment_service.dto.OrderSaveRequestDto;
-import com.hmkeyewear.payment_service.dto.PaymentRequestDto;
-import com.hmkeyewear.payment_service.dto.VNPayResponseDto;
+import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
+import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
+import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
 import com.hmkeyewear.payment_service.messaging.OrderSaveRequestProducer;
 import com.hmkeyewear.payment_service.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -105,14 +105,14 @@ public class PaymentService {
                     objectMapper.readValue(cartJson, PaymentRequestDto.class);
 
             // Map to OrderSaveRequestDto
-            OrderSaveRequestDto toOrderSaveRequest = new OrderSaveRequestDto();
-            toOrderSaveRequest.setUserId(originalCart.getUserId());
-            toOrderSaveRequest.setItems(originalCart.getItems());
-            toOrderSaveRequest.setSummary(originalCart.getTotal());
-            toOrderSaveRequest.setDiscountId(originalCart.getDiscountId());
+            OrderSaveRequestDto orderSaveRequestDto = new OrderSaveRequestDto();
+            orderSaveRequestDto.setUserId(originalCart.getUserId());
+            orderSaveRequestDto.setItems(originalCart.getItems());
+            orderSaveRequestDto.setSummary(originalCart.getTotal());
+            orderSaveRequestDto.setDiscountId(originalCart.getDiscountId());
 
             // Send Save Order request to order-service
-            orderSaveRequestProducer.sendSaveRequest(toOrderSaveRequest);
+            orderSaveRequestProducer.sendSaveRequest(orderSaveRequestDto);
 
             return ResponseEntity.ok("Payment success");
 

@@ -1,7 +1,7 @@
 package com.hmkeyewear.cart_service.messaging;
 
-import com.hmkeyewear.cart_service.dto.PaymentRequestDto;
-import com.hmkeyewear.cart_service.dto.VNPayResponseDto;
+import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

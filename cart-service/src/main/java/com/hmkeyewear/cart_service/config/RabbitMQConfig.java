@@ -109,6 +109,7 @@ public class RabbitMQConfig {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(messageConverter());
         // We use convertSendAndReceive so configure reply timeout
+        rabbitTemplate.setUseDirectReplyToContainer(true);
         rabbitTemplate.setReplyTimeout(10_000); // 10s
         return rabbitTemplate;
     }

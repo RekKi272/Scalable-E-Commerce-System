@@ -1,19 +1,19 @@
-package com.hmkeyewear.cart_service.dto;
+package com.hmkeyewear.common_dto.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 public class PaymentRequestDto {
     private String userId;
     private List<CartItemDto> items;
     private double total;
-    private String discountId; // Optional
+    private String discountId;
     private String bankCode; // Optional
     private String returnUrl;
     private String ipAddress;

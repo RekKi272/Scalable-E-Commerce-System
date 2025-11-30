@@ -5,18 +5,15 @@ import com.algolia.model.search.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
-import com.hmkeyewear.product_service.dto.OrderDetailRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
-import com.hmkeyewear.product_service.feign.ProductInterface;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
 import com.hmkeyewear.product_service.messaging.ProductEventProducer;
-import com.hmkeyewear.product_service.model.Customer;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.ProductLite;
 import com.hmkeyewear.product_service.model.Variant;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
@@ -30,7 +27,6 @@ import java.util.stream.Collectors;
 @Service
 public class ProductService {
 
-    private final ProductInterface productInterface;
     private final ProductMapper productMapper;
     private final SearchClient searchClient;
     private final ProductEventProducer productEventProducer;
@@ -42,21 +38,14 @@ public class ProductService {
     private static final String ALGOLIA_INDEX_NAME = "products";
 
     // Constructor
-    public ProductService(ProductInterface productInterface,
-                          ProductMapper productMapper,
+    public ProductService(ProductMapper productMapper,
                           SearchClient searchClient,
                           ProductEventProducer productEventProducer) {
-        this.productInterface = productInterface;
         this.productMapper = productMapper;
         this.searchClient = searchClient;
         this.productEventProducer = productEventProducer;
     }
 
-    // Lấy tên khách hàng từ user-service
-    public String getCustomer(String customerId) throws ExecutionException, InterruptedException {
-        Customer customer = productInterface.getCustomer(customerId);
-        return customer.getFirstName();
-    }
 
     // ------------------- UTIL: Remove Vietnamese Diacritics -------------------
     private String removeVietnameseDiacritics(String str) {

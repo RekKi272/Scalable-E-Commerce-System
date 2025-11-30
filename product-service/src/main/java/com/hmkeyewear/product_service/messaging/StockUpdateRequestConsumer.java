@@ -2,7 +2,7 @@ package com.hmkeyewear.product_service.messaging;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hmkeyewear.product_service.dto.OrderDetailRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import com.hmkeyewear.product_service.service.ProductService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;

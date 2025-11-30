@@ -1,7 +1,7 @@
 package com.hmkeyewear.cart_service.messaging;
 
-import com.hmkeyewear.cart_service.dto.PaymentRequestDto;
-import com.hmkeyewear.cart_service.dto.VNPayResponseDto;
+import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
+import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -24,7 +24,7 @@ public class PaymentRequestEventProducer {
     }
 
     public VNPayResponseDto sendPaymentRequest(PaymentRequestDto payload) {
-        Object response = rabbitTemplate.convertSendAndReceive(exchangeName, routingKey, payload);
-        return (VNPayResponseDto) response;
+        return (VNPayResponseDto) rabbitTemplate.convertSendAndReceive(exchangeName, routingKey, payload);
     }
+
 }

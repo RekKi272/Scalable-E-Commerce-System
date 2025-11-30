@@ -1,6 +1,6 @@
 package com.hmkeyewear.payment_service.controller;
 
-import com.hmkeyewear.payment_service.dto.VNPayResponseDto;
+import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
 import com.hmkeyewear.payment_service.service.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;

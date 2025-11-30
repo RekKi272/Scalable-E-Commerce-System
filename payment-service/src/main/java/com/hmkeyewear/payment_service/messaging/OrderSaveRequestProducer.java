@@ -1,6 +1,6 @@
 package com.hmkeyewear.payment_service.messaging;
 
-import com.hmkeyewear.payment_service.dto.OrderSaveRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

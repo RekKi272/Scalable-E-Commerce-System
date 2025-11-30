@@ -1,8 +1,12 @@
-package com.hmkeyewear.order_service.dto;
+package com.hmkeyewear.common_dto.dto;
 
-import lombok.Data;
+import lombok.*;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
 public class OrderDetailRequestDto {
     private String productId;
     private String variantId;
