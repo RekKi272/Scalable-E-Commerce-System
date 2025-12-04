@@ -10,11 +10,11 @@ import java.util.List;
 @Setter
 public class Order {
     private String orderId;
-    private String customerId;
+    private String userId;
     private double summary;
     private String status;
     private double shipFee;
-    private String discountId;
+    private String discountId; // Optional
     private Timestamp createdAt;
     private String createdBy;
     private Timestamp updatedAt;

@@ -5,14 +5,13 @@ import com.algolia.model.search.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
 import com.hmkeyewear.product_service.dto.ItemRequestDto;
-import com.hmkeyewear.product_service.feign.ProductInterface;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
 import com.hmkeyewear.product_service.messaging.ProductEventProducer;
-import com.hmkeyewear.product_service.model.Customer;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.ProductLite;
 import com.hmkeyewear.product_service.model.Variant;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 @Service
 public class ProductService {
 
-    private final ProductInterface productInterface;
     private final ProductMapper productMapper;
     private final SearchClient searchClient;
     private final ProductEventProducer productEventProducer;
@@ -41,20 +39,12 @@ public class ProductService {
     private static final String ALGOLIA_INDEX_NAME = "products";
 
     // Constructor
-    public ProductService(ProductInterface productInterface,
-            ProductMapper productMapper,
+    public ProductService(ProductMapper productMapper,
             SearchClient searchClient,
             ProductEventProducer productEventProducer) {
-        this.productInterface = productInterface;
         this.productMapper = productMapper;
         this.searchClient = searchClient;
         this.productEventProducer = productEventProducer;
-    }
-
-    // Lấy tên khách hàng từ user-service
-    public String getCustomer(String customerId) throws ExecutionException, InterruptedException {
-        Customer customer = productInterface.getCustomer(customerId);
-        return customer.getFirstName();
     }
 
     // ------------------- UTIL: Remove Vietnamese Diacritics -------------------
@@ -217,6 +207,75 @@ public class ProductService {
         productEventProducer.sendMessage(product);
 
         return productMapper.toProductResponseDto(product);
+    }
+
+    // Update Product stock
+    public void updateStock(List<OrderDetailRequestDto> items) {
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Gom các items theo productId
+        Map<String, List<OrderDetailRequestDto>> grouped = items.stream()
+                .collect(Collectors.groupingBy(OrderDetailRequestDto::getProductId));
+
+        // Mỗi product sẽ chạy 1 transaction
+        for (String productId : grouped.keySet()) {
+
+            db.runTransaction(transaction -> {
+                DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
+                DocumentSnapshot snapshot = transaction.get(productRef).get();
+
+                if (!snapshot.exists()) {
+                    throw new RuntimeException("Product not found: " + productId);
+                }
+
+                Product product = snapshot.toObject(Product.class);
+                if (product == null) {
+                    throw new RuntimeException("Product data null for: " + productId);
+                }
+
+                List<Variant> variants = product.getVariants();
+                if (variants == null) {
+                    throw new RuntimeException("Product has no variants: " + productId);
+                }
+
+                // Lấy danh sách order items thuộc product này
+                List<OrderDetailRequestDto> productDetails = grouped.get(productId);
+
+                // Cập nhật tồn kho cho từng order detail
+                for (OrderDetailRequestDto detail : productDetails) {
+                    Variant variant = variants.stream()
+                            .filter(v -> v.getVariantId().equals(detail.getVariantId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (variant == null) {
+                        throw new RuntimeException(
+                                "Variant " + detail.getVariantId() + " not found in product " + productId);
+                    }
+
+                    // Kiểm tra tồn kho
+                    long currentStock = (variant.getQuantityImport() != null ? variant.getQuantityImport() : 0L)
+                            - (variant.getQuantitySell() != null ? variant.getQuantitySell() : 0L);
+
+                    if (currentStock < detail.getQuantity()) {
+                        throw new RuntimeException(
+                                "Không đủ hàng cho variant " + variant.getVariantId() +
+                                        " (còn: " + currentStock +
+                                        ", yêu cầu: " + detail.getQuantity() + ")");
+                    }
+
+                    // Cập nhật quantitySell (giả sử đây là bán hàng)
+                    Long newSellQty = (variant.getQuantitySell() != null ? variant.getQuantitySell() : 0L)
+                            + detail.getQuantity();
+                    variant.setQuantitySell(newSellQty);
+                }
+
+                // Lưu lại danh sách variants mới
+                transaction.update(productRef, "variants", variants);
+
+                return null;
+            });
+        }
     }
 
     // GET Product by Id

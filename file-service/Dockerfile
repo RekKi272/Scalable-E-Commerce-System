@@ -10,4 +10,4 @@ ADD ${FILE_JAR} file-service.jar
 ENTRYPOINT ["java", "-jar", "/file-service.jar"]
 
 # Expose service port
-EXPOSE 8090
+EXPOSE 8091

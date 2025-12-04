@@ -10,13 +10,15 @@ import org.mapstruct.Mapping;
 public interface CartMapper {
 
     // RequestDto -> Cart
-    @Mapping(source = "customerId", target = "customerId")
+    @Mapping(source = "userId", target = "userId")
     @Mapping(source = "items", target = "items")
     Cart toCart(CartRequestDto dto);
 
     // Cart -> ResponseDto
-    @Mapping(source = "customerId", target = "customerId")
+    @Mapping(source = "userId", target = "userId")
     @Mapping(source = "items", target = "items")
     @Mapping(source = "total", target = "total")
     CartResponseDto toResponseDto(Cart cart);
+
+    // CartResponseDto -> CartCheckoutRequestDto
 }

@@ -11,6 +11,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CartRequestDto {
-    private String customerId;
+    private String userId;
     private List<CartItem> items;
 }
