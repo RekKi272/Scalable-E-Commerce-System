@@ -173,9 +173,13 @@ public class ProductService {
     // CREATE product
     public ProductResponseDto createProduct(ProductRequestDto dto, String userId)
             throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
 
+        Firestore db = FirestoreClient.getFirestore();
         String newProductId = generateProductId(db);
+
+        if (dto.getVariants() == null || dto.getVariants().isEmpty()) {
+            throw new RuntimeException("Product must contain at least 1 variant.");
+        }
 
         Product product = new Product();
         product.setProductId(newProductId);
@@ -189,30 +193,27 @@ public class ProductService {
         product.setSellingPrice(dto.getSellingPrice());
         product.setAttributes(dto.getAttributes());
         product.setCreatedAt(Timestamp.now());
-        product.setCreatedBy(userId); // <-- từ header
+        product.setCreatedBy(userId);
         product.setUpdatedAt(Timestamp.now());
-        product.setUpdatedBy(userId); // <-- từ header
+        product.setUpdatedBy(userId);
 
-        if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
-            List<Variant> variantsWithId = new ArrayList<>();
-            for (Variant v : dto.getVariants()) {
-                v.setVariantId(generateVariantId(db, newProductId));
-                v.setQuantity(0L);
-                variantsWithId.add(v);
-            }
-            product.setVariants(variantsWithId);
+        // --- Xử lý biến thể ---
+        List<Variant> variants = new ArrayList<>();
+
+        for (Variant v : dto.getVariants()) {
+            v.setVariantId(generateVariantId(db, newProductId));
+            v.setQuantityImport(0L);
+            v.setQuantitySell(0L);
+            variants.add(v);
         }
+
+        product.setVariants(variants);
 
         if (dto.getImages() != null) {
             product.setImages(dto.getImages());
         }
 
         db.collection(COLLECTION_NAME).document(product.getProductId()).set(product).get();
-
-        // --- Đồng bộ với Algolia ---
-        // searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(product));
-
-        // --- Send message to RabbitMQ ---
         productEventProducer.sendMessage(product);
 
         return productMapper.toProductResponseDto(product);
@@ -340,6 +341,7 @@ public class ProductService {
     // UPDATE Product
     public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String userId)
             throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
 
@@ -348,35 +350,81 @@ public class ProductService {
             throw new RuntimeException("Product with ID " + productId + " not found");
         }
 
-        Product existingProduct = snapshot.toObject(Product.class);
-        if (existingProduct == null) {
+        Product existing = snapshot.toObject(Product.class);
+        if (existing == null) {
             throw new RuntimeException("Product data is null for ID " + productId);
         }
 
+        // Map các field cơ bản
         Product updatedProduct = productMapper.toProduct(dto);
         updatedProduct.setProductId(productId);
-        updatedProduct.setCreatedAt(existingProduct.getCreatedAt());
-        updatedProduct.setCreatedBy(existingProduct.getCreatedBy());
+        updatedProduct.setCreatedAt(existing.getCreatedAt());
+        updatedProduct.setCreatedBy(existing.getCreatedBy());
         updatedProduct.setUpdatedAt(Timestamp.now());
-        updatedProduct.setUpdatedBy(userId); // <-- từ header
+        updatedProduct.setUpdatedBy(userId);
 
-        if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
-            List<Variant> variantsWithId = new ArrayList<>();
-            for (Variant v : dto.getVariants()) {
-                if (v.getVariantId() == null || v.getVariantId().isEmpty()) {
-                    v.setVariantId(generateVariantId(db, productId));
-                }
-                variantsWithId.add(v);
+        // ------------------------
+        // QUẢN LÝ DANH SÁCH BIẾN THỂ
+        // ------------------------
+
+        List<Variant> oldVariants = existing.getVariants() != null ? existing.getVariants() : new ArrayList<>();
+        Map<String, Variant> oldMap = oldVariants.stream()
+                .collect(Collectors.toMap(Variant::getVariantId, v -> v));
+
+        List<Variant> newVariants = dto.getVariants() != null ? dto.getVariants() : new ArrayList<>();
+        List<Variant> finalList = new ArrayList<>();
+
+        // 1. DUYỆT DANH SÁCH FE GỬI LÊN
+        for (Variant v : newVariants) {
+
+            // CASE A — Biến thể CŨ (giữ nguyên ID)
+            if (v.getVariantId() != null && oldMap.containsKey(v.getVariantId())) {
+                Variant old = oldMap.get(v.getVariantId());
+
+                // Giữ lại số lượng cũ
+                v.setQuantityImport(old.getQuantityImport());
+                v.setQuantitySell(old.getQuantitySell());
+
+                finalList.add(v);
             }
-            updatedProduct.setVariants(variantsWithId);
+
+            // CASE B — Biến thể mới
+            else {
+                v.setVariantId(generateVariantId(db, productId));
+                v.setQuantityImport(0L);
+                v.setQuantitySell(0L);
+
+                finalList.add(v);
+            }
         }
 
+        // 2. GIỮ LẠI BIẾN THỂ CŨ KHÔNG ĐƯỢC GỬI LÊN (TRỪ KHI CHO PHÉP XOÁ)
+        for (Variant old : oldVariants) {
+
+            boolean FE_khong_gui_len = newVariants.stream()
+                    .noneMatch(v -> old.getVariantId().equals(v.getVariantId()));
+
+            if (FE_khong_gui_len) {
+
+                long importQty = old.getQuantityImport() != null ? old.getQuantityImport() : 0;
+                long sellQty = old.getQuantitySell() != null ? old.getQuantitySell() : 0;
+
+                boolean coTheXoa = (importQty == 0 && sellQty == 0);
+
+                if (!coTheXoa) {
+                    // Không được phép xoá → giữ lại biến thể cũ
+                    finalList.add(old);
+                }
+                // Nếu số lượng = 0 → cho phép xoá → không thêm vào finalList
+            }
+        }
+
+        updatedProduct.setVariants(finalList);
+
+        // ------------------------
+        // Lưu vào DB
+        // ------------------------
         productRef.set(updatedProduct).get();
-
-        // --- Đồng bộ Algolia ---
-        // searchClient.saveObjects(ALGOLIA_INDEX_NAME, List.of(updatedProduct));
-
-        // --- Send message to RabbitMQ ---
         productEventProducer.sendMessage(updatedProduct);
 
         return productMapper.toProductResponseDto(updatedProduct);
@@ -432,12 +480,11 @@ public class ProductService {
             try {
                 DocumentReference productRef = db.collection(COLLECTION_NAME).document(item.getProductId());
 
-                // Transaction để đảm bảo cập nhật atomic
                 db.runTransaction(transaction -> {
                     DocumentSnapshot snapshot = transaction.get(productRef).get();
                     if (!snapshot.exists()) {
                         results.add("ERROR: Product " + item.getProductId() + " not found");
-                        return null; // Không throw exception để tiếp tục batch
+                        return null;
                     }
 
                     Product product = snapshot.toObject(Product.class);
@@ -446,30 +493,35 @@ public class ProductService {
                         return null;
                     }
 
-                    // Tìm variant cần cập nhật
                     Variant variant = product.getVariants().stream()
                             .filter(v -> v.getVariantId().equals(item.getVariantId()))
                             .findFirst()
                             .orElse(null);
 
                     if (variant == null) {
-                        results.add("ERROR: Variant " + item.getVariantId() + " not found in product "
-                                + item.getProductId());
+                        results.add("ERROR: Variant " + item.getVariantId() + " not found");
                         return null;
                     }
 
-                    Long currentQty = variant.getQuantity() != null ? variant.getQuantity() : 0L;
                     Long quantity = item.getQuantity();
 
                     if ("IMPORT".equalsIgnoreCase(type)) {
-                        variant.setQuantity(currentQty + quantity);
-                    } else { // SELL
-                        if (currentQty < quantity) {
+                        Long importQty = (variant.getQuantityImport() != null ? variant.getQuantityImport() : 0L);
+                        variant.setQuantityImport(importQty + quantity);
+                    } else {
+                        Long sellQty = (variant.getQuantitySell() != null ? variant.getQuantitySell() : 0L);
+                        Long importQty = variant.getQuantityImport() != null ? variant.getQuantityImport() : 0L;
+
+                        // kiểm tra tồn kho hiện tại (import - sell)
+                        Long currentStock = importQty - sellQty;
+
+                        if (currentStock < quantity) {
                             results.add("ERROR: Not enough stock for product " + item.getProductId() +
-                                    " variant " + item.getVariantId() + ". Available: " + currentQty);
+                                    " variant " + item.getVariantId() + ". Available: " + currentStock);
                             return null;
                         }
-                        variant.setQuantity(currentQty - quantity);
+
+                        variant.setQuantitySell(sellQty + quantity);
                     }
 
                     product.setUpdatedAt(Timestamp.now());
@@ -480,7 +532,7 @@ public class ProductService {
                             item.getProductId() + " variant " + item.getVariantId());
 
                     return null;
-                }).get(); // get() để đợi transaction hoàn tất
+                }).get();
 
             } catch (Exception e) {
                 results.add("ERROR: Exception for product " + item.getProductId() +

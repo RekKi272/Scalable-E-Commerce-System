@@ -71,7 +71,7 @@ public class ProductController {
             @Valid @RequestBody ProductRequestDto productRequestDto)
             throws InterruptedException, ExecutionException {
 
-        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+        if (!List.of("ROLE_ADMIN").contains(role.toUpperCase())) {
             return ResponseEntity.status(403).body("Bạn không có quyền sửa sản phẩm");
         }
 
@@ -117,7 +117,7 @@ public class ProductController {
             @RequestHeader("X-User-Name") String username,
             @Valid @RequestBody BatchRequestDto batchDto) {
 
-        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
         }
 
@@ -140,8 +140,8 @@ public class ProductController {
             @RequestHeader("X-User-Name") String username,
             @Valid @RequestBody BatchRequestDto batchDto) {
 
-        if (!"ROLE_EMPLOYER".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
+        if (!List.of("ROLE_ADMIN", "ROLE_EMPLOYER").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền sửa sản phẩm");
         }
 
         try {
