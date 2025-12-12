@@ -24,7 +24,6 @@
         <module>payment-service</module>
         <module>user-service</module>
         <module>inventory-service</module>
-        <module>store-service</module>
         <module>file-service</module>
     </modules>
 
@@ -79,6 +78,12 @@
                         </annotationProcessorPaths>
                     </configuration>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    </plugin>
             </plugins>
         </pluginManagement>
     </build>

@@ -58,12 +58,6 @@ spring:
                       predicates:
                         - Path=/user/**
 
-                    # Store Service
-                    - id: store-service
-                      uri: lb://store-service
-                      predicates:
-                        - Path=/store/**
-
                     # Inventory Service
                     - id: inventory-service
                       uri: lb://inventory-service
