@@ -8,7 +8,6 @@ import com.hmkeyewear.product_service.dto.CategoryResponseDto;
 import com.hmkeyewear.product_service.mapper.CategoryMapper;
 import com.hmkeyewear.product_service.messaging.CategoryEventProducer;
 import com.hmkeyewear.product_service.model.Category;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
@@ -59,7 +58,8 @@ public class CategoryService {
     }
 
     // CREATE Category
-    public CategoryResponseDto createCategory(CategoryRequestDto dto, String createdBy) throws ExecutionException, InterruptedException {
+    public CategoryResponseDto createCategory(CategoryRequestDto dto, String createdBy)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
         String newCategoryId = generateCategoryId(db);
@@ -70,9 +70,7 @@ public class CategoryService {
         category.setCategoryName(dto.getCategoryName());
         category.setCreatedAt(Timestamp.now());
 
-        ApiFuture<WriteResult> future = db.collection(COLLECTION_NAME)
-                .document(category.getCategoryId())
-                .set(category);
+        db.collection(COLLECTION_NAME).document(category.getCategoryId()).set(category);
 
         // --- Send message to RabbitMQ ---
         categoryEventProducer.sendMessage(category);
@@ -109,7 +107,8 @@ public class CategoryService {
     }
 
     // UPDATE Category
-    public CategoryResponseDto updateCategory(String categoryId, CategoryRequestDto dto, String updatedBy) throws ExecutionException, InterruptedException {
+    public CategoryResponseDto updateCategory(String categoryId, CategoryRequestDto dto, String updatedBy)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference categoryRef = db.collection(COLLECTION_NAME).document(categoryId);
 
@@ -130,7 +129,6 @@ public class CategoryService {
         updatedCategory.setCategoryId(categoryId);
         updatedCategory.setCreatedAt(existingCategory.getCreatedAt());
         updatedCategory.setCreatedBy(existingCategory.getCreatedBy());
-
 
         ApiFuture<WriteResult> writeResult = categoryRef.set(updatedCategory);
         writeResult.get();
