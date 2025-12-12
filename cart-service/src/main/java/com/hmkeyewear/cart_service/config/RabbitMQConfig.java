@@ -42,6 +42,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.discount.routing-key}")
     private String discountRoutingKey;
 
+    // Order save request
+    @Value("${app.rabbitmq.order-save.queue}")
+    private String orderSaveQueueName;
+    @Value("${app.rabbitmq.order-save.routing-key}")
+    private String orderSaveRoutingKey;
+
     @Bean
     public Queue cartQueue() {
         return new Queue(cartQueueName, true, false, false);
@@ -60,6 +66,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue discountQueue() {
         return new Queue(discountQueueName, true, false, false);
+    }
+
+    @Bean
+    public Queue orderSaveQueue() {
+        return new Queue(orderSaveQueueName, true, false, false);
     }
 
     @Bean
@@ -97,6 +108,14 @@ public class RabbitMQConfig {
                 .bind(discountQueue())
                 .to(exchange())
                 .with(discountRoutingKey);
+    }
+
+    @Bean
+    public Binding orderSaveBinding() {
+        return BindingBuilder
+                .bind(orderSaveQueue())
+                .to(exchange())
+                .with(orderSaveRoutingKey);
     }
 
     @Bean

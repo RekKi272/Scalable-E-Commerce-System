@@ -11,6 +11,7 @@ import java.util.List;
 @Setter
 public class PaymentRequestDto {
     private String userId;
+    private String orderId;
     private List<CartItemDto> items;
     private double total;
     private String discountId;

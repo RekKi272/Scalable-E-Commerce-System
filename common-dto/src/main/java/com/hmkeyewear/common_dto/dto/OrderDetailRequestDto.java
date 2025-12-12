@@ -11,6 +11,6 @@ public class OrderDetailRequestDto {
     private String productId;
     private String variantId;
     private String productName;
-    private String unitPrice;
+    private double unitPrice;
     private int quantity;
 }

@@ -27,6 +27,10 @@ app:
       queue: payment_request_queue
       routing-key: payment_request_routing_key
 
+    order-status:
+      queue: order_status_update_queue
+      routing-key: order_status_update_routing_key
+
 payment:
   vnpay:
     url: ${VNP_URL}

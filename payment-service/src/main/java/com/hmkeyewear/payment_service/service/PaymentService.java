@@ -2,12 +2,14 @@ package com.hmkeyewear.payment_service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hmkeyewear.payment_service.config.VNPayConfig;
-import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
 import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
 import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
+import com.hmkeyewear.common_dto.dto.OrderPaymentStatusUpdateDto;
 import com.hmkeyewear.payment_service.messaging.OrderSaveRequestProducer;
+import com.hmkeyewear.payment_service.messaging.OrderStatusUpdateProducer;
 import com.hmkeyewear.payment_service.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -15,16 +17,12 @@ import java.util.Base64;
 import java.util.Map;
 
 @Service
+@AllArgsConstructor
 public class PaymentService {
     private final VNPayConfig vnPayConfig;
     private final ObjectMapper objectMapper;
     private final OrderSaveRequestProducer orderSaveRequestProducer;
-
-    public PaymentService(VNPayConfig vnPayConfig, ObjectMapper objectMapper, OrderSaveRequestProducer orderSaveRequestProducer) {
-        this.vnPayConfig = vnPayConfig;
-        this.objectMapper = objectMapper;
-        this.orderSaveRequestProducer = orderSaveRequestProducer;
-    }
+    private final OrderStatusUpdateProducer orderStatusUpdateProducer;
 
     public VNPayResponseDto createVnPayment(HttpServletRequest request) {
         long amount = Integer.parseInt(request.getParameter("amount")) * 100L;
@@ -56,12 +54,8 @@ public class PaymentService {
             Map<String, String> vnpParamsMap = vnPayConfig.getVNPayConfig();
             vnpParamsMap.put("vnp_Amount", String.valueOf(amountVND));
 
-            // ======================
-            // THÊM GIỎ HÀNG → VNP_ORDERINFO
-            // ======================
-            String cartJson = objectMapper.writeValueAsString(requestDto);
-            String encodedCart = Base64.getUrlEncoder().encodeToString(cartJson.getBytes());
-            vnpParamsMap.put("vnp_OrderInfo", encodedCart);
+            vnpParamsMap.put("vnp_TxnRef", requestDto.getOrderId());
+            vnpParamsMap.put("vnp_OrderInfo", "Thanh toan don hang: " + requestDto.getOrderId());
 
             if (requestDto.getBankCode() != null && !requestDto.getBankCode().isEmpty()) {
                 vnpParamsMap.put("vnp_BankCode", requestDto.getBankCode());
@@ -95,25 +89,14 @@ public class PaymentService {
 
         // Không thành công
         if (!"00".equals(responseCode)) {
+            OrderPaymentStatusUpdateDto statusUpdateDto = new OrderPaymentStatusUpdateDto(request.getParameter("vnp_TxnRef"), "FAILED");
+            orderStatusUpdateProducer.sendUpdateStatusRequest(statusUpdateDto);
             return ResponseEntity.ok("Payment failed");
         }
 
         try {
-            // giải mã giỏ hàng
-            String cartJson = new String(Base64.getUrlDecoder().decode(encodedOrderInfo));
-            PaymentRequestDto originalCart =
-                    objectMapper.readValue(cartJson, PaymentRequestDto.class);
-
-            // Map to OrderSaveRequestDto
-            OrderSaveRequestDto orderSaveRequestDto = new OrderSaveRequestDto();
-            orderSaveRequestDto.setUserId(originalCart.getUserId());
-            orderSaveRequestDto.setItems(originalCart.getItems());
-            orderSaveRequestDto.setSummary(originalCart.getTotal());
-            orderSaveRequestDto.setDiscountId(originalCart.getDiscountId());
-
-            // Send Save Order request to order-service
-            orderSaveRequestProducer.sendSaveRequest(orderSaveRequestDto);
-
+            OrderPaymentStatusUpdateDto statusUpdateDto = new OrderPaymentStatusUpdateDto(request.getParameter("vnp_TxnRef"), "DELIVERING");
+            orderStatusUpdateProducer.sendUpdateStatusRequest(statusUpdateDto);
             return ResponseEntity.ok("Payment success");
 
         } catch (Exception e) {

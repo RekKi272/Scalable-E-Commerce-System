@@ -32,6 +32,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.order.routing-key}")
     private String orderRoutingKey;
 
+    // Order status update
+    @Value("${app.rabbitmq.order-status.queue}")
+    private String orderStatusQueue;
+    @Value("${app.rabbitmq.order-status.routing-key}")
+    private String orderStatusRoutingKey;
+
     // ---- Queues ----
     @Bean
     public Queue paymentRequestQueue() {
@@ -41,6 +47,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue orderQueue() {
         return new Queue(orderQueue);
+    }
+
+    @Bean
+    public Queue orderStatusQueue() {
+        return new Queue(orderStatusQueue);
     }
 
     @Bean
@@ -63,6 +74,14 @@ public class RabbitMQConfig {
                 .bind(orderQueue())
                 .to(exchange())
                 .with(orderRoutingKey);
+    }
+
+    @Bean
+    public Binding orderStatusBinding() {
+        return BindingBuilder
+                .bind(orderStatusQueue())
+                .to(exchange())
+                .with(orderStatusRoutingKey);
     }
 
     // ---- Message Converter & RabbitTemplate ----

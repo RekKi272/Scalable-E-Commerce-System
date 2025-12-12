@@ -36,18 +36,23 @@ public class VNPayConfig {
         vnpParamsMap.put("vnp_Command", this.vnp_Command);
         vnpParamsMap.put("vnp_TmnCode", this.vnp_TmnCode);
         vnpParamsMap.put("vnp_CurrCode", "VND");
-        vnpParamsMap.put("vnp_TxnRef",  VNPayUtil.getRandomNumber(8));
-        vnpParamsMap.put("vnp_OrderInfo", "Thanh toan don hang:" +  VNPayUtil.getRandomNumber(8));
         vnpParamsMap.put("vnp_OrderType", this.vnp_OrderType);
         vnpParamsMap.put("vnp_Locale", "vn");
         vnpParamsMap.put("vnp_ReturnUrl", this.vnp_ReturnUrl);
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        String vnpCreateDate = formatter.format(calendar.getTime());
-        vnpParamsMap.put("vnp_CreateDate", vnpCreateDate);
-        calendar.add(Calendar.MINUTE, 15);
-        String vnp_ExpireDate = formatter.format(calendar.getTime());
-        vnpParamsMap.put("vnp_ExpireDate", vnp_ExpireDate);
+        TimeZone tz = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
+        Calendar cal = Calendar.getInstance(tz);
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+        format.setTimeZone(tz);
+
+        // Create date
+        String createDate = format.format(cal.getTime());
+        vnpParamsMap.put("vnp_CreateDate", createDate);
+
+        // Expire +15 minutes
+        cal.add(Calendar.MINUTE, 15);
+        String expireDate = format.format(cal.getTime());
+        vnpParamsMap.put("vnp_ExpireDate", expireDate);
 
         return vnpParamsMap;
     }

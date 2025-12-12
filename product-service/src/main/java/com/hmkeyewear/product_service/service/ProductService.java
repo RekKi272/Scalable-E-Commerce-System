@@ -40,8 +40,8 @@ public class ProductService {
 
     // Constructor
     public ProductService(ProductMapper productMapper,
-            SearchClient searchClient,
-            ProductEventProducer productEventProducer) {
+                          SearchClient searchClient,
+                          ProductEventProducer productEventProducer) {
         this.productMapper = productMapper;
         this.searchClient = searchClient;
         this.productEventProducer = productEventProducer;
