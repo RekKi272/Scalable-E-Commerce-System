@@ -35,6 +35,10 @@ app:
       queue: order_checkout_request_queue
       routing-key: order_checkout_request_routing_key
 
+    order-status:
+      queue: order_status_update_queue
+      routing-key: order_status_update_routing_key
+
     stock-update-request:
       queue: stock_update_queue
       routing-key: stock_update_routing_key

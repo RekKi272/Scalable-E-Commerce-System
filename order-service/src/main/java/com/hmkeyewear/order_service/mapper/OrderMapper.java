@@ -7,6 +7,7 @@ import com.hmkeyewear.order_service.dto.OrderSaveRequestDto;
 import com.hmkeyewear.order_service.model.Order;
 import com.hmkeyewear.order_service.model.OrderDetail;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
@@ -18,6 +19,7 @@ public interface OrderMapper {
     OrderResponseDto toOrderResponseDto(Order order);
 
     // OrderSaveRequestDto -> OrderRequestDto
+    @Mapping(source = "items", target = "details")
     OrderRequestDto toOrderRequestDto(OrderSaveRequestDto orderSaveRequestDto);
 
     // OrderDetails -> OrderDetailRequestDto

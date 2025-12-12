@@ -9,8 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class OrderSaveRequestConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderSaveRequestConsumer.class);
@@ -30,7 +31,7 @@ public class OrderSaveRequestConsumer {
      * Message được gửi từ payment-service sau khi thanh toán thành công
      */
     @RabbitListener(queues = "${app.rabbitmq.order-save-listener.queue}")
-    public void consumeOrderSaveRequest(String message) {
+    public String consumeOrderSaveRequest(String message) {
         try {
             LOGGER.info("Received Order Save Request Message: {}", message);
 
@@ -38,14 +39,13 @@ public class OrderSaveRequestConsumer {
             OrderSaveRequestDto saveDto = objectMapper.readValue(message, OrderSaveRequestDto.class);
 
             OrderRequestDto orderRequestDto = orderMapper.toOrderRequestDto(saveDto);
-
-            // Gọi service để lưu đơn hàng
-            orderService.saveOrder(orderRequestDto);
-
             LOGGER.info("Order saved successfully for user: {}", orderRequestDto.getUserId());
+            // Gọi service để lưu đơn hàng
+            return orderService.saveOrder(orderRequestDto);
 
         } catch (Exception e) {
             LOGGER.error("Failed to process Order Save Request message", e);
         }
+        return message;
     }
 }

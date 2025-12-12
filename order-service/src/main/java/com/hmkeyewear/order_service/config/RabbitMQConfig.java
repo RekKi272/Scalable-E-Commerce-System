@@ -42,6 +42,14 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.stock-update-request.routing-key}")
     private String stockUpdateRequestRoutingKey;
 
+    // Update order status after payment
+    @Value("${app.rabbitmq.order-status.queue}")
+    private String orderStatusQueueName;
+    @Value("${app.rabbitmq.order-status.routing-key}")
+    private String orderStatusRoutingKey;
+
+
+    // ---- Queues ----
     @Bean
     public Queue orderQueue() {
         return new Queue(orderQueueName, true, false, false);
@@ -64,10 +72,17 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue orderStatusQueue() {
+        return new Queue(orderStatusQueueName, true, false, false);
+    }
+
+    @Bean
     public TopicExchange exchange() {
         return new TopicExchange(exchangeName);
     }
 
+
+    // ---- Bindings ----
     @Bean
     public Binding orderBinding() {
         return BindingBuilder
@@ -99,6 +114,14 @@ public class RabbitMQConfig {
                 .bind(stockUpdateRequestQueue())
                 .to(exchange())
                 .with(stockUpdateRequestRoutingKey);
+    }
+
+    @Bean
+    public Binding orderStatusBinding() {
+        return BindingBuilder
+                .bind(orderStatusQueue())
+                .to(exchange())
+                .with(orderStatusRoutingKey);
     }
 
     @Bean

@@ -6,17 +6,22 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
 
+import com.hmkeyewear.common_dto.dto.OrderPaymentStatusUpdateDto;
 import com.hmkeyewear.order_service.messaging.OrderEventProducer;
 import com.hmkeyewear.order_service.messaging.StockUpdateRequestProducer;
 import com.hmkeyewear.order_service.model.Order;
+import com.hmkeyewear.order_service.model.OrderDetail;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -62,7 +67,7 @@ public class OrderService {
         return orderMapper.toOrderResponseDto(order);
     }
 
-    public void saveOrder(OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
+    public String saveOrder(OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
         // Create document with auto create ID
@@ -73,7 +78,12 @@ public class OrderService {
         order.setUserId(orderRequestDto.getUserId());
         order.setSummary(orderRequestDto.getSummary());
         order.setStatus("PENDING");
-        order.setShipFee(orderRequestDto.getShipFee());
+        if(!Double.isNaN(orderRequestDto.getShipFee())) {
+            order.setShipFee(orderRequestDto.getShipFee());
+        }
+        else {
+            order.setShipFee(15000);
+        }
         order.setDiscountId(orderRequestDto.getDiscountId());
         order.setCreatedAt(Timestamp.now());
         order.setUpdatedAt(null);
@@ -84,10 +94,27 @@ public class OrderService {
 
         // --- Send message to RabbitMQ ---
         orderEventProducer.sendMessage(order);
+
+        List<OrderDetailRequestDto> items = new ArrayList<>();
+
+        for (OrderDetail detail : order.getDetails()) {
+            OrderDetailRequestDto dto = new OrderDetailRequestDto();
+
+            dto.setProductId(detail.getProductId());
+            dto.setVariantId(detail.getVariantId());
+            dto.setProductName(detail.getProductName());
+            dto.setQuantity(detail.getQuantity());
+            dto.setUnitPrice(detail.getUnitPrice());
+
+            items.add(dto);
+        }
+
         // --- Send message to update product stock---
-        stockUpdateRequestProducer.sendMessage(order.getDetails());
+        stockUpdateRequestProducer.sendMessage(items);
 
         orderMapper.toOrderResponseDto(order);
+
+        return order.getOrderId();
     }
 
     // READ Order
@@ -142,4 +169,33 @@ public class OrderService {
 
         return "Order " + orderId + " deleted at " + result.get().getUpdateTime();
     }
+
+    // UPDATE ORDER STATUS AFTER PAYMENT
+    public void updateOrderStatus(OrderPaymentStatusUpdateDto dto)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document(dto.getOrderId());
+
+        // Lấy snapshot
+        DocumentSnapshot snapshot = docRef.get().get();
+        if (!snapshot.exists()) {
+            throw new RuntimeException("Order with ID " + dto.getOrderId() + " not found");
+        }
+
+        // Convert Firestore document → Order object
+        Order order = snapshot.toObject(Order.class);
+
+        assert order != null;
+        order.setStatus(dto.getStatus());
+        order.setUpdatedAt(Timestamp.now());
+
+        // Cập nhật Firestore
+        ApiFuture<WriteResult> result = docRef.set(order);
+        result.get();
+
+        // Gửi sự kiện RabbitMQ thông báo order được update
+        orderEventProducer.sendMessage(order);
+    }
+
 }

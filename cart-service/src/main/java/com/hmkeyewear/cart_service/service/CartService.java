@@ -11,10 +11,14 @@ import com.hmkeyewear.cart_service.dto.*;
 import com.hmkeyewear.cart_service.mapper.CartMapper;
 import com.hmkeyewear.cart_service.messaging.CartEventProducer;
 import com.hmkeyewear.cart_service.messaging.OrderCheckoutRequestEventProducer;
+import com.hmkeyewear.cart_service.messaging.OrderSaveRequestProducer;
 import com.hmkeyewear.cart_service.messaging.PaymentRequestEventProducer;
 import com.hmkeyewear.cart_service.model.Cart;
 import com.hmkeyewear.cart_service.model.CartItem;
 import com.hmkeyewear.cart_service.model.Discount;
+import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
@@ -26,6 +30,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 @Service
+@AllArgsConstructor
+@Slf4j
 public class CartService {
 
     private final CartMapper cartMapper;
@@ -36,19 +42,9 @@ public class CartService {
 
     private final OrderCheckoutRequestEventProducer orderCheckoutRequestEventProducer;
 
+    private final OrderSaveRequestProducer orderSaveRequestProducer;
+
     private final DiscountService discountService;
-    // Constructor
-    public CartService(CartMapper cartMapper,
-                       CartEventProducer cartEventProducer,
-                       PaymentRequestEventProducer paymentRequestEventProducer,
-                       OrderCheckoutRequestEventProducer orderCheckoutRequestEventProducer,
-                       DiscountService discountService) {
-        this.cartMapper = cartMapper;
-        this.cartEventProducer = cartEventProducer;
-        this.paymentRequestEventProducer = paymentRequestEventProducer;
-        this.orderCheckoutRequestEventProducer = orderCheckoutRequestEventProducer;
-        this.discountService = discountService;
-    }
 
     private static final String COLLECTION_NAME = "carts";
 
@@ -350,4 +346,15 @@ public class CartService {
         return cartMapper.toResponseDto(cart);
     }
 
+    public String createOrderForCheckout(PaymentRequestDto request) throws ExecutionException, InterruptedException {
+        OrderSaveRequestDto orderSaveRequestDto = new OrderSaveRequestDto();
+
+        // Mapping
+        orderSaveRequestDto.setUserId(request.getUserId());
+        orderSaveRequestDto.setDiscountId(request.getDiscountId());
+        orderSaveRequestDto.setSummary(request.getTotal());
+        orderSaveRequestDto.setItems(request.getItems());
+
+        return orderSaveRequestProducer.sendSaveRequest(orderSaveRequestDto);
+    }
 }

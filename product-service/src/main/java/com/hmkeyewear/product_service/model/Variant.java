@@ -9,5 +9,7 @@ public class Variant {
     private String variantId;
     private String color;
     private String thumbnail;
-    private Long quantity;
+
+    private Long quantityImport = 0L;
+    private Long quantitySell = 0L;
 }

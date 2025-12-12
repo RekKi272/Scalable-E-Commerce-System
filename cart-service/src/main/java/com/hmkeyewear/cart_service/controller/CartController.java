@@ -142,6 +142,8 @@ public class CartController {
 
         checkoutRequest.setUserId(userId);
         checkoutRequest.setIpAddress(request.getRemoteAddr());
+        String orderId = cartService.createOrderForCheckout(checkoutRequest);
+        checkoutRequest.setOrderId(orderId);
         // sent Request
         VNPayResponseDto response = cartService.createPayment(checkoutRequest);
 
