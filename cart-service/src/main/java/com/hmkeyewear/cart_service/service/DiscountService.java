@@ -27,56 +27,148 @@ public class DiscountService {
         this.discountMapper = discountMapper;
     }
 
-    // CREATE Discount
-    public DiscountResponseDto createDiscount(DiscountRequestDto discountRequestDto, String createBy) throws ExecutionException, InterruptedException {
+    // ====================================================================
+    // HÀM CONVERT GIỮA STRING ↔ TIMESTAMP
+    // ====================================================================
+    private Timestamp parseTimestamp(String datetime) {
+        if (datetime == null || datetime.isEmpty())
+            return null;
+
+        String normalized = datetime.replace(" ", "T");
+        if (!normalized.endsWith("Z")) {
+            normalized += "Z";
+        }
+        return Timestamp.parseTimestamp(normalized);
+    }
+
+    private String formatTimestamp(Timestamp ts) {
+        if (ts == null)
+            return null;
+        return ts.toString().replace("T", " ").replace("Z", "");
+    }
+
+    // ====================================================================
+    // CREATE
+    // ====================================================================
+    public DiscountResponseDto createDiscount(DiscountRequestDto dto, String createBy)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        DocumentReference docRef = db.collection(COLLECTION_NAME).document();
 
-        Discount discount = discountMapper.toDiscount(discountRequestDto);
+        // ====== Kiểm tra trùng ID ======
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document(dto.getDiscountId());
+        if (docRef.get().get().exists()) {
+            throw new RuntimeException("Mã giảm giá đã tồn tại");
+        }
 
+        // ====== Validate giá trị ======
+        if (dto.getValueDiscount() == null || dto.getValueDiscount() <= 0) {
+            throw new RuntimeException("Giá trị giảm phải lớn hơn 0");
+        }
+
+        if ("percentage".equalsIgnoreCase(dto.getValueType()) && dto.getValueDiscount() >= 100) {
+            throw new RuntimeException("Giá trị giảm phần trăm phải nhỏ hơn 100");
+        }
+
+        if (dto.getMinPriceRequired() != null && dto.getMinPriceRequired() <= 0) {
+            throw new RuntimeException("Đơn tối thiểu phải lớn hơn 0");
+        }
+
+        if (dto.getMaxPriceDiscount() != null && dto.getMaxPriceDiscount() <= 0) {
+            throw new RuntimeException("Giảm tối đa phải lớn hơn 0");
+        }
+
+        if (dto.getMaxQuantity() <= 0) {
+            throw new RuntimeException("Số lượng tối đa phải lớn hơn 0");
+        }
+
+        // ====== Validate ngày ======
+        Timestamp now = Timestamp.now();
+        Timestamp start = parseTimestamp(dto.getStartDate());
+        Timestamp end = parseTimestamp(dto.getEndDate());
+
+        if (start.compareTo(now) < 0) {
+            throw new RuntimeException("Ngày bắt đầu không được nhỏ hơn hiện tại");
+        }
+
+        if (end.compareTo(start) < 0) {
+            throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
+        }
+
+        // ====== Create Discount ======
+        Discount discount = discountMapper.toDiscount(dto);
+        discount.setStartDate(start);
+        discount.setEndDate(end);
         discount.setCreatedBy(createBy);
-        discount.setCreatedAt(Timestamp.now());
+        discount.setCreatedAt(now);
 
         ApiFuture<WriteResult> result = docRef.set(discount);
         result.get();
 
-        // Send message to RabbitMQ
         discountEventProducer.sendMessage(discount);
 
-        return discountMapper.toDiscountResponseDto(discount);
+        // ====== Build Response ======
+        DiscountResponseDto res = discountMapper.toDiscountResponseDto(discount);
+        res.setStartDate(formatTimestamp(start));
+        res.setEndDate(formatTimestamp(end));
+
+        return res;
     }
 
-    // READ Discount
-    public DiscountResponseDto getDiscountById(String discountId) throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
-        DocumentReference docRef = db.collection(COLLECTION_NAME).document(discountId);
+    // ====================================================================
+    // READ
+    // ====================================================================
+    public DiscountResponseDto getDiscountById(String discountId)
+            throws ExecutionException, InterruptedException {
 
-        DocumentSnapshot document = docRef.get().get();
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot document = db.collection(COLLECTION_NAME)
+                .document(discountId)
+                .get().get();
+
         if (!document.exists()) {
             return null;
         }
 
         Discount discount = document.toObject(Discount.class);
-        return discountMapper.toDiscountResponseDto(discount);
+        DiscountResponseDto res = discountMapper.toDiscountResponseDto(discount);
+
+        res.setStartDate(formatTimestamp(discount.getStartDate()));
+        res.setEndDate(formatTimestamp(discount.getEndDate()));
+
+        return res;
     }
 
+    // ====================================================================
     // READ ALL
-    public List<DiscountResponseDto> getAllDiscounts() throws ExecutionException, InterruptedException {
+    // ====================================================================
+    public List<DiscountResponseDto> getAllDiscounts()
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME).get().get().getDocuments();
-        
-        List<DiscountResponseDto> discountResponseDtos = new ArrayList<>();
-        for (QueryDocumentSnapshot document : documents) {
-            Discount discount = document.toObject(Discount.class);
-            discountResponseDtos.add(discountMapper.toDiscountResponseDto(discount));
+        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME)
+                .get().get().getDocuments();
+
+        List<DiscountResponseDto> list = new ArrayList<>();
+
+        for (QueryDocumentSnapshot doc : documents) {
+            Discount discount = doc.toObject(Discount.class);
+            DiscountResponseDto res = discountMapper.toDiscountResponseDto(discount);
+            res.setStartDate(formatTimestamp(discount.getStartDate()));
+            res.setEndDate(formatTimestamp(discount.getEndDate()));
+
+            list.add(res);
         }
-        return discountResponseDtos;
+        return list;
     }
 
-    // READ ALL RAW
-    public List<Discount> getAllDiscountsRaw() throws ExecutionException, InterruptedException {
+    public List<Discount> getAllDiscountsRaw()
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME).get().get().getDocuments();
+        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME)
+                .get().get().getDocuments();
+
         List<Discount> discountList = new ArrayList<>();
         for (QueryDocumentSnapshot document : documents) {
             Discount discount = document.toObject(Discount.class);
@@ -85,38 +177,84 @@ public class DiscountService {
         return discountList;
     }
 
-    // UPDATE Discount
-    public DiscountResponseDto updateDiscount(String userId, DiscountRequestDto discountRequestDto) throws ExecutionException, InterruptedException {
+    // ====================================================================
+    // UPDATE
+    // ====================================================================
+    public DiscountResponseDto updateDiscount(String userId, DiscountRequestDto dto)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        DocumentReference docRef = db.collection(COLLECTION_NAME).document(discountRequestDto.getDiscountId());
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document(dto.getDiscountId());
 
         DocumentSnapshot snapshot = docRef.get().get();
-
         if (!snapshot.exists()) {
-            throw new RuntimeException("Discount with ID " + discountRequestDto.getDiscountId() + " not found");
+            throw new RuntimeException("Không tìm thấy mã giảm giá");
         }
 
-        Discount existingDiscount = snapshot.toObject(Discount.class);
-        if (existingDiscount == null) {
-            throw new RuntimeException("Discount with ID " + discountRequestDto.getDiscountId() + " not found");
+        Discount existing = snapshot.toObject(Discount.class);
+        if (existing == null) {
+            throw new RuntimeException("Không tìm thấy mã giảm giá");
         }
-        Discount discount = discountMapper.toDiscount(discountRequestDto);
-        discount.setCreatedAt(existingDiscount.getCreatedAt());
-        discount.setCreatedBy(existingDiscount.getCreatedBy());
-        discount.setDiscountId(existingDiscount.getDiscountId());
+
+        // ====== Validate giá trị ======
+        if (dto.getValueDiscount() == null || dto.getValueDiscount() <= 0) {
+            throw new RuntimeException("Giá trị giảm phải lớn hơn 0");
+        }
+
+        if ("percentage".equalsIgnoreCase(dto.getValueType()) && dto.getValueDiscount() >= 100) {
+            throw new RuntimeException("Giá trị giảm phần trăm phải nhỏ hơn 100");
+        }
+
+        if (dto.getMinPriceRequired() != null && dto.getMinPriceRequired() <= 0) {
+            throw new RuntimeException("Đơn tối thiểu phải lớn hơn 0");
+        }
+
+        if (dto.getMaxPriceDiscount() != null && dto.getMaxPriceDiscount() <= 0) {
+            throw new RuntimeException("Giảm tối đa phải lớn hơn 0");
+        }
+
+        if (dto.getMaxQuantity() <= 0) {
+            throw new RuntimeException("Số lượng tối đa phải lớn hơn 0");
+        }
+
+        // ====== Validate ngày khi update ======
+        Timestamp start = parseTimestamp(dto.getStartDate());
+        Timestamp end = parseTimestamp(dto.getEndDate());
+
+        if (end.compareTo(start) < 0) {
+            throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
+        }
+
+        // ====== Build updated Discount ======
+        Discount discount = discountMapper.toDiscount(dto);
+
+        discount.setStartDate(start);
+        discount.setEndDate(end);
+
+        discount.setCreatedAt(existing.getCreatedAt());
+        discount.setCreatedBy(existing.getCreatedBy());
         discount.setUpdatedAt(Timestamp.now());
         discount.setUpdatedBy(userId);
 
-        // Send message to RabbitMQ
+        docRef.set(discount).get();
         discountEventProducer.sendMessage(discount);
 
-        return discountMapper.toDiscountResponseDto(discount);
+        DiscountResponseDto res = discountMapper.toDiscountResponseDto(discount);
+        res.setStartDate(formatTimestamp(start));
+        res.setEndDate(formatTimestamp(end));
+
+        return res;
     }
 
-    // DELETE Discount
-    public String deleteDiscount(String discountId) throws ExecutionException, InterruptedException {
+    // ====================================================================
+    // DELETE
+    // ====================================================================
+    public String deleteDiscount(String discountId)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(discountId);
+
         ApiFuture<WriteResult> result = docRef.delete();
         result.get();
 
@@ -125,14 +263,17 @@ public class DiscountService {
         return "Discount " + discountId + " is deleted";
     }
 
-    // UPDATE Usage
-    public void updateDiscountUsage(Discount discount) throws ExecutionException, InterruptedException {
+    // ====================================================================
+    // UPDATE USAGE
+    // ====================================================================
+    public void updateDiscountUsage(Discount discount)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("discounts").document(discount.getDiscountId());
+
         docRef.update("usedQuantity", discount.getUsedQuantity()).get();
 
-        // Gửi message update tới RabbitMQ nếu cần
         discountEventProducer.sendMessage(discount);
     }
-
 }

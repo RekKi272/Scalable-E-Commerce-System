@@ -1,21 +1,19 @@
 package com.hmkeyewear.cart_service.dto;
 
-import com.google.cloud.Timestamp;
 import lombok.Data;
 
 @Data
 public class DiscountRequestDto {
-    private String discountId; //
-    private String valueType; // (percentage/ fixed)
-    private Long valueDiscount; // (10%, 50.000VND)
-    private Long minPriceRequired; //
-    private Long maxPriceDiscount; // optional
+    private String discountId;
+    private String valueType;
+    private Long valueDiscount;
+    private Long minPriceRequired;
+    private Long maxPriceDiscount;
 
-    private Timestamp startDate;
-    private Timestamp endDate;
+    private String startDate; // đổi thành String
+    private String endDate; // đổi thành String
 
     private int maxQuantity;
     private int usedQuantity;
-
-    private String description; // Introduce the discount
+    private String description;
 }
