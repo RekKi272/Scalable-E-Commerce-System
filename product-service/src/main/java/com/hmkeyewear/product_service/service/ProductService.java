@@ -40,8 +40,8 @@ public class ProductService {
 
     // Constructor
     public ProductService(ProductMapper productMapper,
-            SearchClient searchClient,
-            ProductEventProducer productEventProducer) {
+                          SearchClient searchClient,
+                          ProductEventProducer productEventProducer) {
         this.productMapper = productMapper;
         this.searchClient = searchClient;
         this.productEventProducer = productEventProducer;
@@ -183,9 +183,9 @@ public class ProductService {
         product.setSellingPrice(dto.getSellingPrice());
         product.setAttributes(dto.getAttributes());
         product.setCreatedAt(Timestamp.now());
-        product.setCreatedBy(userId); // <-- từ header
+        product.setCreatedBy(userId);
         product.setUpdatedAt(Timestamp.now());
-        product.setUpdatedBy(userId); // <-- từ header
+        product.setUpdatedBy(userId);
 
         // --- Xử lý biến thể ---
         List<Variant> variants = new ArrayList<>();
@@ -519,89 +519,6 @@ public class ProductService {
 
         return "Successfully deleted product with id " + productId;
     }
-
-    /**
-     * Cập nhật nhiều sản phẩm cùng lúc (batch), cộng dồn số lượng và kiểm tra không
-     * bán âm.
-     * type: "IMPORT" hoặc "SELL" (truyền từ controller)
-     */
-    public List<String> updateInventoryBatchWithType(List<ItemRequestDto> items, String username, String type)
-            throws ExecutionException, InterruptedException {
-
-        if (!List.of("IMPORT", "SELL").contains(type.toUpperCase())) {
-            throw new IllegalArgumentException("Type must be either IMPORT or SELL");
-        }
-
-        Firestore db = FirestoreClient.getFirestore();
-        List<String> results = new ArrayList<>();
-
-        for (ItemRequestDto item : items) {
-            try {
-                DocumentReference productRef = db.collection(COLLECTION_NAME).document(item.getProductId());
-
-                db.runTransaction(transaction -> {
-                    DocumentSnapshot snapshot = transaction.get(productRef).get();
-                    if (!snapshot.exists()) {
-                        results.add("ERROR: Product " + item.getProductId() + " not found");
-                        return null;
-                    }
-
-                    Product product = snapshot.toObject(Product.class);
-                    if (product == null || product.getVariants() == null) {
-                        results.add("ERROR: Product " + item.getProductId() + " data invalid");
-                        return null;
-                    }
-
-                    Variant variant = product.getVariants().stream()
-                            .filter(v -> v.getVariantId().equals(item.getVariantId()))
-                            .findFirst()
-                            .orElse(null);
-
-                    if (variant == null) {
-                        results.add("ERROR: Variant " + item.getVariantId() + " not found");
-                        return null;
-                    }
-
-                    Long quantity = item.getQuantity();
-
-                    if ("IMPORT".equalsIgnoreCase(type)) {
-                        Long importQty = (variant.getQuantityImport() != null ? variant.getQuantityImport() : 0L);
-                        variant.setQuantityImport(importQty + quantity);
-                    } else {
-                        Long sellQty = (variant.getQuantitySell() != null ? variant.getQuantitySell() : 0L);
-                        Long importQty = variant.getQuantityImport() != null ? variant.getQuantityImport() : 0L;
-
-                        // kiểm tra tồn kho hiện tại (import - sell)
-                        Long currentStock = importQty - sellQty;
-
-                        if (currentStock < quantity) {
-                            results.add("ERROR: Not enough stock for product " + item.getProductId() +
-                                    " variant " + item.getVariantId() + ". Available: " + currentStock);
-                            return null;
-                        }
-
-                        variant.setQuantitySell(sellQty + quantity);
-                    }
-
-                    product.setUpdatedAt(Timestamp.now());
-                    product.setUpdatedBy(username);
-
-                    transaction.set(productRef, product, SetOptions.merge());
-                    results.add("SUCCESS: " + type + " " + quantity + " units for product " +
-                            item.getProductId() + " variant " + item.getVariantId());
-
-                    return null;
-                }).get();
-
-            } catch (Exception e) {
-                results.add("ERROR: Exception for product " + item.getProductId() +
-                        " variant " + item.getVariantId() + " - " + e.getMessage());
-            }
-        }
-
-        return results;
-    }
-}
 
     /**
      * Cập nhật nhiều sản phẩm cùng lúc (batch), cộng dồn số lượng và kiểm tra không
