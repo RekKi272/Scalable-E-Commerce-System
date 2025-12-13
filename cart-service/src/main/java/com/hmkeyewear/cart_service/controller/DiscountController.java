@@ -23,9 +23,8 @@ public class DiscountController {
     public ResponseEntity<?> createDiscount(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestBody DiscountRequestDto discountRequestDto
-    ) throws ExecutionException, InterruptedException {
-        if(userId == null) {
+            @RequestBody DiscountRequestDto discountRequestDto) throws ExecutionException, InterruptedException {
+        if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }
 
@@ -42,10 +41,9 @@ public class DiscountController {
     public ResponseEntity<?> getDiscountById(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam String discountId
-    ) throws ExecutionException, InterruptedException {
+            @RequestParam String discountId) throws ExecutionException, InterruptedException {
 
-        if(userId == null) {
+        if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }
 
@@ -57,8 +55,7 @@ public class DiscountController {
     @GetMapping("/getAll")
     public ResponseEntity<?> getAllDiscounts(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId
-    ) throws ExecutionException, InterruptedException {
+            @RequestHeader("X-User-Id") String userId) throws ExecutionException, InterruptedException {
         if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }
@@ -75,8 +72,7 @@ public class DiscountController {
     public ResponseEntity<?> updateDiscount(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestBody DiscountRequestDto discountRequestDto
-    ) throws ExecutionException, InterruptedException {
+            @RequestBody DiscountRequestDto discountRequestDto) throws ExecutionException, InterruptedException {
         if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }
@@ -90,12 +86,12 @@ public class DiscountController {
     }
 
     // DELETE Discount
-    @DeleteMapping
+    @DeleteMapping("/delete")
     public ResponseEntity<?> deleteDiscount(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam String discountId
-    ) throws ExecutionException, InterruptedException {
+            @RequestParam(name = "discountId") String discountId) throws ExecutionException, InterruptedException {
+
         if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }

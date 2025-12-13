@@ -7,8 +7,6 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
 public class PaymentRequestDto {
     private String userId;
     private String orderId;
