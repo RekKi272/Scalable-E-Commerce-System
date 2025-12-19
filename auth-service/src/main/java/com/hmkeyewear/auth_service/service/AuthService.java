@@ -10,7 +10,7 @@ import com.hmkeyewear.auth_service.dto.AuthResponseDto;
 import com.hmkeyewear.auth_service.dto.RegisterStaffRequestDto;
 import com.hmkeyewear.auth_service.messaging.UserEventProducer;
 import com.hmkeyewear.auth_service.model.User;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 @Service
+@AllArgsConstructor
 public class AuthService {
 
     private static final String COLLECTION_NAME = "users";
@@ -25,16 +26,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserEventProducer userEventProducer;
-
-    @Autowired
-    public AuthService(PasswordEncoder passwordEncoder, JwtService jwtService, UserEventProducer userEventProducer) {
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-        this.userEventProducer = userEventProducer;
-    }
+    private final RefreshTokenService refreshTokenService;
 
     public String generateToken(String userId, String email, String role, String storeId) {
-        return jwtService.generateToken(userId, email, role, storeId);
+        return jwtService.generateAccessToken(userId, email, role, storeId);
     }
 
     public void validateToken(String token) {
@@ -73,17 +68,20 @@ public class AuthService {
         // --- Send message to RabbitMQ ---
         userEventProducer.sendMessage(user);
 
-        String token = jwtService.generateToken(
+        String accessToken = jwtService.generateAccessToken(
                 user.getUserId(),
                 user.getEmail(),
                 user.getRole(),
                 null);
 
+        String refreshToken = refreshTokenService.create(user.getUserId());
+
         return new AuthResponseDto(
                 user.getUserId(),
                 user.getEmail(),
                 user.getRole(),
-                token,
+                accessToken,
+                refreshToken,
                 user.getFirstName(),
                 user.getLastName());
     }
@@ -127,13 +125,16 @@ public class AuthService {
         // --- Send message to RabbitMQ ---
         userEventProducer.sendMessage(user);
 
-        String token = jwtService.generateToken(user.getUserId(), user.getEmail(), user.getRole(), user.getStoreId());
+        String accessToken = jwtService.generateAccessToken(user.getUserId(), user.getEmail(), user.getRole(), user.getStoreId());
+
+        String refreshToken = refreshTokenService.create(user.getUserId());
 
         return new AuthResponseDto(
                 user.getUserId(),
                 user.getEmail(),
                 user.getRole(),
-                token,
+                accessToken,
+                refreshToken,
                 user.getFirstName(),
                 user.getLastName());
     }
@@ -159,17 +160,20 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = jwtService.generateToken(
+        String accessToken = jwtService.generateAccessToken(
                 user.getUserId(),
                 user.getEmail(),
                 user.getRole(),
                 user.getStoreId());
 
+        String refreshToken = refreshTokenService.create(user.getUserId());
+
         return new AuthResponseDto(
                 user.getUserId(),
                 user.getEmail(),
                 user.getRole(),
-                token,
+                accessToken,
+                refreshToken,
                 user.getFirstName(),
                 user.getLastName());
 
@@ -193,5 +197,22 @@ public class AuthService {
             throw new RuntimeException("User not found");
         }
         return Optional.of(user);
+    }
+
+    // Find User by Id
+    public User findById(String userId) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+                .whereEqualTo("userId", userId)
+                .get();
+
+        QuerySnapshot snapshot = query.get();
+
+        if (snapshot.isEmpty()) {
+            throw new RuntimeException("User not found with id: " + userId);
+        }
+
+        DocumentSnapshot doc = snapshot.getDocuments().get(0);
+        return doc.toObject(User.class);
     }
 }
