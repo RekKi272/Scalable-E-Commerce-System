@@ -10,6 +10,7 @@ import java.util.List;
 public class PaymentRequestDto {
     private String userId;
     private String orderId;
+    private String email;
     private List<CartItemDto> items;
     private double total;
     private String discountId;

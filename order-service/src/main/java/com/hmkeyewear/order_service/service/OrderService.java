@@ -50,6 +50,7 @@ public class OrderService {
         Order order = new Order();
         order.setOrderId(docRef.getId());
         order.setUserId(orderRequestDto.getUserId());
+        order.setEmail(orderRequestDto.getEmail());
         order.setSummary(orderRequestDto.getSummary());
         order.setStatus(orderRequestDto.getStatus());
         order.setShipFee(orderRequestDto.getShipFee());
@@ -76,6 +77,7 @@ public class OrderService {
         Order order = new Order();
         order.setOrderId(docRef.getId());
         order.setUserId(orderRequestDto.getUserId());
+        order.setEmail(orderRequestDto.getEmail());
         order.setSummary(orderRequestDto.getSummary());
         order.setStatus("PENDING");
         if(!Double.isNaN(orderRequestDto.getShipFee())) {
@@ -143,6 +145,7 @@ public class OrderService {
 
         assert order != null;
         order.setUserId(orderRequestDto.getUserId());
+        order.setEmail(orderRequestDto.getEmail());
         order.setSummary(orderRequestDto.getSummary());
         order.setStatus(orderRequestDto.getStatus());
         order.setShipFee(orderRequestDto.getShipFee());

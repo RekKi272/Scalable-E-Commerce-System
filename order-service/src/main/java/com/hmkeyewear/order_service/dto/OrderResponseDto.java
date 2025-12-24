@@ -15,6 +15,7 @@ import java.util.List;
 public class OrderResponseDto {
     private String orderId;
     private String userId;
+    private String email;
     private double summary;
     private String status;
     private double shipFee;

@@ -25,6 +25,7 @@
         <module>user-service</module>
         <module>inventory-service</module>
         <module>file-service</module>
+        <module>notification-service</module>
     </modules>
 
     <properties>

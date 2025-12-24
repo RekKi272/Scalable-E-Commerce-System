@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class OrderRequestDto {
     private String userId;
+    private String email;
     private double summary;
     private String status;
     private double shipFee;

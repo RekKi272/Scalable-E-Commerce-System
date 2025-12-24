@@ -1,12 +1,11 @@
-package com.hmkeyewear.payment_service.config;
+package com.hmkeyewear.notificationservice.config;
 
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
+
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -17,44 +16,33 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
-
     @Value("${app.rabbitmq.exchange}")
     private String exchangeName;
 
-    @Value("${app.rabbitmq.payment-request.queue}")
-    private String paymentRequestQueue;
+    // For order mail sender workflow
+    @Value("${app.rabbitmq.order-mail.queue}")
+    private String orderMailQueue;
+    @Value("${app.rabbitmq.order-mail.routing-key}")
+    private String orderMailRoutingKey;
 
-    @Value("${app.rabbitmq.payment-request.routing-key}")
-    private String paymentRequestRoutingKey;
-
-    @Value("${app.rabbitmq.order.queue}")
-    private String orderQueue;
-
-    @Value("${app.rabbitmq.order.routing-key}")
-    private String orderRoutingKey;
-
-    // Order status update
-    @Value("${app.rabbitmq.order-status.queue}")
-    private String orderStatusQueue;
-    @Value("${app.rabbitmq.order-status.routing-key}")
-    private String orderStatusRoutingKey;
+    // For forgot password sender workflow
+    @Value("${app.rabbitmq.forgot-password.queue}")
+    private String forgotPasswordQueue;
+    @Value("${app.rabbitmq.forgot-password.routing_key}")
+    private String forgotPasswordRoutingKey;
 
     // ---- Queues ----
     @Bean
-    public Queue paymentRequestQueue() {
-        return new Queue(paymentRequestQueue);
+    public Queue orderMailQueue() {
+        return new Queue(orderMailQueue);
     }
 
     @Bean
-    public Queue orderQueue() {
-        return new Queue(orderQueue);
+    public Queue forgotPasswordQueue() {
+        return new Queue(forgotPasswordQueue);
     }
 
-    @Bean
-    public Queue orderStatusQueue() {
-        return new Queue(orderStatusQueue);
-    }
-
+    // ---- Exchange ----
     @Bean
     public TopicExchange exchange() {
         return new TopicExchange(exchangeName);
@@ -62,27 +50,19 @@ public class RabbitMQConfig {
 
     // ---- Bindings ----
     @Bean
-    public Binding paymentRequestBinding() {
+    public Binding orderMailBinding() {
         return BindingBuilder
-                .bind(paymentRequestQueue())
+                .bind(orderMailQueue())
                 .to(exchange())
-                .with(paymentRequestRoutingKey);
+                .with(orderMailRoutingKey);
     }
 
     @Bean
-    public Binding orderBinding() {
+    public Binding forgotPasswordBinding() {
         return BindingBuilder
-                .bind(orderQueue())
+                .bind(forgotPasswordQueue())
                 .to(exchange())
-                .with(orderRoutingKey);
-    }
-
-    @Bean
-    public Binding orderStatusBinding() {
-        return BindingBuilder
-                .bind(orderStatusQueue())
-                .to(exchange())
-                .with(orderStatusRoutingKey);
+                .with(forgotPasswordRoutingKey);
     }
 
     // ---- Message Converter & RabbitTemplate ----
@@ -97,4 +77,5 @@ public class RabbitMQConfig {
         rabbitTemplate.setMessageConverter(messageConverter());
         return rabbitTemplate;
     }
+
 }
