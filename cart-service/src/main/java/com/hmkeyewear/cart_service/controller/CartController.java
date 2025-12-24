@@ -129,6 +129,7 @@ public class CartController {
     @PostMapping("/checkout")
     public ResponseEntity<?> checkout(
             @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Name") String email,
             HttpServletRequest request,
             @RequestBody(required = false) PaymentRequestDto checkoutRequest)
             throws ExecutionException, InterruptedException {
@@ -141,10 +142,12 @@ public class CartController {
         }
 
         checkoutRequest.setUserId(userId);
+        checkoutRequest.setEmail(email);
         checkoutRequest.setIpAddress(request.getRemoteAddr());
+        // Create Order
         String orderId = cartService.createOrderForCheckout(checkoutRequest);
         checkoutRequest.setOrderId(orderId);
-        // sent Request
+        // sent Payment Request
         VNPayResponseDto response = cartService.createPayment(checkoutRequest);
 
         return ResponseEntity.ok(response); // FE redirect to response.getPaymentUrl

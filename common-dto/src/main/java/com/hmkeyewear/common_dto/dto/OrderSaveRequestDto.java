@@ -11,6 +11,7 @@ import java.util.List;
 @Getter
 public class OrderSaveRequestDto {
     private String userId;
+    private String email;
     private double summary;
     private List<CartItemDto> items; // GIỮ nguyên từ cart-service
     private String discountId;

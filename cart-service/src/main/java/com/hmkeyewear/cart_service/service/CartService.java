@@ -351,6 +351,7 @@ public class CartService {
 
         // Mapping
         orderSaveRequestDto.setUserId(request.getUserId());
+        orderSaveRequestDto.setEmail(request.getEmail());
         orderSaveRequestDto.setDiscountId(request.getDiscountId());
         orderSaveRequestDto.setSummary(request.getTotal());
         orderSaveRequestDto.setItems(request.getItems());

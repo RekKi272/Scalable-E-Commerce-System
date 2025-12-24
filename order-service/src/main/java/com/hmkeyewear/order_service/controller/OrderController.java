@@ -24,12 +24,14 @@ public class OrderController {
     public ResponseEntity<?> createOrder(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Name") String userName,
             @RequestBody OrderRequestDto orderRequestDto)
             throws ExecutionException, InterruptedException {
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để tạo đơn hàng");
         }
-
+        orderRequestDto.setUserId(userId);
+        orderRequestDto.setEmail(userName);
         OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto);
 
         return ResponseEntity.ok(orderResponseDto);

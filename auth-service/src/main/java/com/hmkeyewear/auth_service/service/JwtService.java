@@ -12,11 +12,14 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
+
+    private static final long ACCESS_TOKEN_MINUTES = 15;
 
     private Claims extractAllClaimsFromToken(String token) {
         return Jwts.parserBuilder()
@@ -30,6 +33,8 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
+
+
     public void validateToken(final String token) {
         Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
@@ -37,23 +42,38 @@ public class JwtService {
                 .parseClaimsJws(token);
     }
 
-    public String generateToken(String userId, String userName, String role, String storeId) {
+    /* ================= ACCESS TOKEN ================= */
+
+    public String generateAccessToken(String userId, String userName, String role, String storeId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("role", role);
         claims.put("storeId", storeId);
-        return createToken(claims, userName);
-    }
-
-    private String createToken(Map<String, Object> claims, String userName) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userName)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 120)) // 2 hours
+                .setIssuedAt(new Date())
+                .setExpiration(
+                        new Date(System.currentTimeMillis()
+                                + 1000 * 60 * ACCESS_TOKEN_MINUTES)) // Access Token only last 15 minutes
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
+    /* ================= REFRESH TOKEN ================= */
+    public String generateRefreshToken() {
+        return UUID.randomUUID().toString();
+    }
+
+    /* ================= PARSE ================= */
+    public Claims parse(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSignKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
 
     public String extractUsername(String token) {
         return extractAllClaimsFromToken(token).getSubject();

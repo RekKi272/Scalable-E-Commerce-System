@@ -75,6 +75,12 @@ spring:
                       uri: lb://payment-service
                       predicates:
                         - Path=/payment/**
+
+                    # Notification Service
+                    - id: notification-service
+                      uri: lb://notification-service
+                      predicates:
+                        - Path=/notification/**
           globalcors:
             cors-configurations:
               '[/**]':

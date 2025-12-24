@@ -1,0 +1,43 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: notification-service
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    stream:
+      username: guest
+      password: guest
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username:
+    password:
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://service-registry:8761/eureka/
+
+app:
+  rabbitmq:
+    exchange: main_exchange
+    # For order mail sender
+    order-mail:
+      queue: order_mail_queue
+      routing-key: order_mail_routing_key
+
+    # For Forgot password function
+    forgot-password:
+      queue: forgot_pass_queue
+      routing_key: forgot_pass_routing_key
+
+
+
+
