@@ -1,14 +1,13 @@
 package com.hmkeyewear.order_service.service;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.firestore.DocumentReference;
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.WriteResult;
+import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
+import com.hmkeyewear.order_service.dto.RevenueChartResponseDto;
+import com.hmkeyewear.order_service.dto.RevenueYearChartResponseDto;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
 
 import com.hmkeyewear.common_dto.dto.OrderPaymentStatusUpdateDto;
@@ -20,8 +19,10 @@ import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -199,6 +200,127 @@ public class OrderService {
 
         // Gửi sự kiện RabbitMQ thông báo order được update
         orderEventProducer.sendMessage(order);
+    }
+
+    // Statistic Revenue for Chart
+    public RevenueChartResponseDto statisticRevenueChart(
+            LocalDate fromDate,
+            LocalDate toDate
+    ) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+
+        Timestamp from = Timestamp.of(
+                Date.from(fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+
+        Timestamp to = Timestamp.of(
+                Date.from(toDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+
+        ApiFuture<QuerySnapshot> future = db.collection("orders")
+                .whereGreaterThanOrEqualTo("createdAt", from)
+                .whereLessThan("createdAt", to)
+                .whereIn("status", List.of("PAID", "SUCCESS", "COMPLETED","DELIVERING"))
+                .get();
+
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+        // Init map với 0 cho toàn bộ ngày
+        Map<String, Double> revenueMap = new LinkedHashMap<>();
+        LocalDate current = fromDate;
+        while (!current.isAfter(toDate)) {
+            revenueMap.put(current.toString(), 0.0);
+            current = current.plusDays(1);
+        }
+
+        // Group + sum
+        for (QueryDocumentSnapshot doc : documents) {
+            Order order = doc.toObject(Order.class);
+
+            LocalDate orderDate = order.getCreatedAt()
+                    .toDate()
+                    .toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+
+            String key = orderDate.toString();
+            revenueMap.put(
+                    key,
+                    revenueMap.get(key) + order.getSummary()
+            );
+        }
+
+        return new RevenueChartResponseDto(revenueMap);
+    }
+
+    // Statistic by WEEK
+    public RevenueChartResponseDto statisticByWeek(LocalDate anyDayInWeek)
+            throws ExecutionException, InterruptedException {
+
+        LocalDate startOfWeek = anyDayInWeek.with(DayOfWeek.MONDAY);
+        LocalDate endOfWeek = startOfWeek.plusDays(6);
+
+        return statisticRevenueChart(startOfWeek, endOfWeek);
+    }
+
+
+    // Statistic by MONTH
+    public RevenueChartResponseDto statisticByMonth(int year, int month)
+            throws ExecutionException, InterruptedException {
+
+        LocalDate fromDate = LocalDate.of(year, month, 1);
+        LocalDate toDate = fromDate.withDayOfMonth(fromDate.lengthOfMonth());
+
+        return statisticRevenueChart(fromDate, toDate);
+    }
+
+    // Statistic by YEAR
+    public RevenueYearChartResponseDto statisticRevenueByYear(int year)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        LocalDate fromDate = LocalDate.of(year, 1, 1);
+        LocalDate toDate = LocalDate.of(year, 12, 31);
+
+        Timestamp from = Timestamp.of(
+                Date.from(fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+
+        Timestamp to = Timestamp.of(
+                Date.from(toDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+
+        // Query orders trong năm
+        ApiFuture<QuerySnapshot> future = db.collection("orders")
+                .whereGreaterThanOrEqualTo("createdAt", from)
+                .whereLessThan("createdAt", to)
+                .whereIn("status", List.of("PAID", "SUCCESS", "COMPLETED", "DELIVERING"))
+                .get();
+
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+        // Init 12 tháng = 0
+        Map<String, Double> revenueByMonth = new LinkedHashMap<>();
+        for (int i = 1; i <= 12; i++) {
+            revenueByMonth.put(String.format("%02d", i), 0.0);
+        }
+
+        // Group theo tháng
+        for (QueryDocumentSnapshot doc : documents) {
+            Order order = doc.toObject(Order.class);
+
+            int month = order.getCreatedAt()
+                    .toDate()
+                    .toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .getMonthValue();
+
+            String key = String.format("%02d", month);
+
+            revenueByMonth.put(
+                    key,
+                    revenueByMonth.get(key) + order.getSummary()
+            );
+        }
+
+        return new RevenueYearChartResponseDto(revenueByMonth);
     }
 
 }
