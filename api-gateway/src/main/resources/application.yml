@@ -16,7 +16,7 @@ spring:
               enabled: true
               lower-case-service-id: true
           routes:
-            # Auth Service
+                    # Auth Service
                     - id: auth-service
                       uri: lb://auth-service
                       predicates:
@@ -27,60 +27,80 @@ spring:
                       uri: lb://blog-service
                       predicates:
                         - Path=/blog/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # Banner Service
                     - id: blog-service
                       uri: lb://blog-service
                       predicates:
                         - Path=/banner/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # Cart Service
                     - id: cart-service
                       uri: lb://cart-service
                       predicates:
                         - Path=/cart/**,/discount/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # Order Service
                     - id: order-service
                       uri: lb://order-service
                       predicates:
                         - Path=/order/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # Product Service
                     - id: product-service
                       uri: lb://product-service
                       predicates:
                         - Path=/product/**,/category/**,/brand/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # User Service
                     - id: user-service
                       uri: lb://user-service
                       predicates:
                         - Path=/user/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # Inventory Service
                     - id: inventory-service
                       uri: lb://inventory-service
                       predicates:
                         - Path=/inventory/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # File Service
                     - id: file-service
                       uri: lb://file-service
                       predicates:
                         - Path=/file/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # Payment Service
                     - id: payment-service
                       uri: lb://payment-service
                       predicates:
                         - Path=/payment/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
 
                     # Notification Service
                     - id: notification-service
                       uri: lb://notification-service
                       predicates:
                         - Path=/notification/**
+                      filters:
+                        - RemoveRequestHeader=Cookie
           globalcors:
             cors-configurations:
               '[/**]':
@@ -105,9 +125,9 @@ spring:
               args:
                 strategy: RETAIN_UNIQUE
                 name: Access-Control-Allow-Credentials
-            - name: RemoveRequestHeader
-              args:
-                name: Cookie
+#            - name: RemoveRequestHeader
+#              args:
+#                name: Cookie
 
 jwt:
   secret: ${JWT_SECRET}
