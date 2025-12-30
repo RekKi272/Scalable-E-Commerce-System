@@ -41,7 +41,7 @@ public class ProductController {
 
     // READ ONE PRODUCT
     @GetMapping("/get")
-    public ResponseEntity<ProductResponseDto> getProductById(@RequestParam String productId)
+    public ResponseEntity<ProductResponseDto> getProductById(@RequestParam("productId") String productId)
             throws InterruptedException, ExecutionException {
         ProductResponseDto response = productService.getProductById(productId);
         return ResponseEntity.ok(response);

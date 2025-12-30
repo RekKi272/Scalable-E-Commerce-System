@@ -16,24 +16,24 @@ public class CartController {
 
     private final CartService cartService;
 
-
     public CartController(CartService cartService) {
         this.cartService = cartService;
     }
 
-//    @PostMapping("/create")
-//    public ResponseEntity<CartResponseDto> createCart(@RequestBody CartRequestDto dto) throws ExecutionException, InterruptedException {
-//        return ResponseEntity.ok(cartService.createCart(dto));
-//    }
+    // @PostMapping("/create")
+    // public ResponseEntity<CartResponseDto> createCart(@RequestBody CartRequestDto
+    // dto) throws ExecutionException, InterruptedException {
+    // return ResponseEntity.ok(cartService.createCart(dto));
+    // }
 
     /**
-     *  Lấy giỏ hàng của người dùng đã đăng nhập
+     * Lấy giỏ hàng của người dùng đã đăng nhập
      */
     @GetMapping("/get")
     public ResponseEntity<?> getCart(
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestHeader(value = "X-User-Role", required = false) String role
-    ) throws ExecutionException, InterruptedException {
+            @RequestHeader(value = "X-User-Role", required = false) String role)
+            throws ExecutionException, InterruptedException {
 
         if (userId == null || userId.isEmpty()) {
             return ResponseEntity.status(401).body("Bạn cần đăng nhập để xem giỏ hàng");
@@ -47,31 +47,28 @@ public class CartController {
     }
 
     /**
-     *  Thêm sản phẩm vào giỏ hàng
+     * Thêm sản phẩm vào giỏ hàng
      */
     @PostMapping("/add")
     public ResponseEntity<?> addToCart(
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestBody AddToCartRequestDto request
-    ) throws ExecutionException, InterruptedException {
+            @RequestBody AddToCartRequestDto request) throws ExecutionException, InterruptedException {
 
         if (userId == null || userId.isEmpty()) {
             return ResponseEntity.status(401).body("Bạn cần đăng nhập để thêm vào giỏ hàng");
         }
-
 
         CartResponseDto updatedCart = cartService.addToCart(request, userId);
         return ResponseEntity.ok(updatedCart);
     }
 
     /**
-     *  Cập nhật toàn bộ giỏ hàng
+     * Cập nhật toàn bộ giỏ hàng
      */
     @PutMapping("/update")
     public ResponseEntity<?> updateCart(
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestBody CartRequestDto dto
-    ) throws ExecutionException, InterruptedException {
+            @RequestBody CartRequestDto dto) throws ExecutionException, InterruptedException {
 
         if (userId == null || userId.isEmpty()) {
             return ResponseEntity.status(401).body("Bạn cần đăng nhập để cập nhật giỏ hàng");
@@ -85,12 +82,34 @@ public class CartController {
     }
 
     /**
-     *  Xóa giỏ hàng (thường dùng khi thanh toán xong)
+     * Xóa 1 sản phẩm trong giỏ hàng
+     */
+    @DeleteMapping("/removeItem")
+    public ResponseEntity<?> removeItem(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam("productId") String productId,
+            @RequestParam(value = "variantId", required = false) String variantId)
+            throws ExecutionException, InterruptedException {
+
+        if (userId == null || userId.isEmpty()) {
+            return ResponseEntity.status(401).body("Bạn cần đăng nhập để xóa sản phẩm");
+        }
+
+        try {
+            CartResponseDto updatedCart = cartService.removeItem(userId, productId, variantId);
+            return ResponseEntity.ok(updatedCart);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * Xóa giỏ hàng (thường dùng khi thanh toán xong)
      */
     @DeleteMapping("/clear")
     public ResponseEntity<?> clearCart(
-            @RequestHeader(value = "X-User-Id", required = false) String userId
-    ) throws ExecutionException, InterruptedException {
+            @RequestHeader(value = "X-User-Id", required = false) String userId)
+            throws ExecutionException, InterruptedException {
 
         if (userId == null || userId.isEmpty()) {
             return ResponseEntity.status(401).body("Bạn cần đăng nhập để xóa giỏ hàng");
@@ -109,20 +128,18 @@ public class CartController {
     @PatchMapping("/updateQuantity")
     public ResponseEntity<?> updateItemQuantity(
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam String productId,
-            @RequestParam(required = false) String action,
-            @RequestParam(required = false) Integer quantity)
+            @RequestParam(name = "productId") String productId,
+            @RequestParam(name = "variantId", required = false) String variantId,
+            @RequestParam(name = "action", required = false) String action,
+            @RequestParam(name = "quantity", required = false) Integer quantity)
             throws ExecutionException, InterruptedException {
 
         if (action == null && quantity == null) {
             return ResponseEntity.badRequest().build();
         }
 
-        if (userId == null || userId.isEmpty()) {
-            return ResponseEntity.status(401).body("Bạn cần đăng nhập để xóa giỏ hàng");
-        }
+        CartResponseDto updatedCart = cartService.updateItemQuantity(userId, productId, variantId, action, quantity);
 
-        CartResponseDto updatedCart = cartService.updateItemQuantity(userId, productId, action, quantity);
         return ResponseEntity.ok(updatedCart);
     }
 
@@ -157,8 +174,7 @@ public class CartController {
     @PostMapping("/applyDiscount")
     public ResponseEntity<?> applyDiscount(
             @RequestHeader("X-User-Id") String userId,
-            @RequestBody String discountCode
-    ) throws ExecutionException, InterruptedException {
+            @RequestBody String discountCode) throws ExecutionException, InterruptedException {
 
         if (userId == null || userId.isEmpty()) {
             return ResponseEntity.status(401).body("Bạn cần đăng nhập để áp dụng mã giảm giá");

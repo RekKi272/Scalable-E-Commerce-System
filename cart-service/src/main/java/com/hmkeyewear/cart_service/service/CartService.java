@@ -51,7 +51,8 @@ public class CartService {
     /**
      * Thêm sản phẩm vào giỏ hàng
      */
-    public CartResponseDto addToCart(AddToCartRequestDto request, String userId) throws ExecutionException, InterruptedException {
+    public CartResponseDto addToCart(AddToCartRequestDto request, String userId)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(userId);
 
@@ -79,7 +80,8 @@ public class CartService {
 
         // Kiểm tra sản phẩm đã có trong giỏ chưa
         Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(i -> i.getProductId().equals(request.getProductId()))
+                .filter(i -> i.getProductId().equals(request.getProductId()) &&
+                        i.getVariantId().equals(request.getVariantId()))
                 .findFirst();
 
         if (existingItem.isPresent()) {
@@ -91,8 +93,7 @@ public class CartService {
                     request.getProductName(),
                     request.getUnitPrice(),
                     request.getQuantity(),
-                    request.getThumbnail()
-            );
+                    request.getThumbnail());
             cart.getItems().add(newItem);
         }
 
@@ -112,7 +113,6 @@ public class CartService {
 
         return cartMapper.toResponseDto(cart);
     }
-
 
     public CartResponseDto createCart(CartRequestDto dto) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
@@ -177,10 +177,11 @@ public class CartService {
     }
 
     /**
-     *  Cập nhật số lượng sản phẩm trong giỏ hàng
+     * Cập nhật số lượng sản phẩm trong giỏ hàng
      * Có thể tăng/giảm 1 đơn vị hoặc set số lượng cụ thể
      */
-    public CartResponseDto updateItemQuantity(String userId, String productId, String action, Integer quantity)
+    public CartResponseDto updateItemQuantity(String userId, String productId, String variantId, String action,
+            Integer quantity)
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
@@ -198,7 +199,8 @@ public class CartService {
         }
 
         Optional<CartItem> optionalItem = cart.getItems().stream()
-                .filter(i -> i.getProductId().equals(productId))
+                .filter(i -> i.getProductId().equals(productId) &&
+                        i.getVariantId().equals(variantId))
                 .findFirst();
 
         if (optionalItem.isEmpty()) {
@@ -207,7 +209,7 @@ public class CartService {
 
         CartItem item = optionalItem.get();
 
-        //  Nếu có action: increment/decrement
+        // Nếu có action: increment/decrement
         if (action != null) {
             switch (action.toLowerCase()) {
                 case "increment" -> item.setQuantity(item.getQuantity() + 1);
@@ -218,7 +220,8 @@ public class CartService {
 
         // Nếu có quantity cụ thể
         if (quantity != null) {
-            if (quantity <= 0) throw new RuntimeException("Quantity must be > 0");
+            if (quantity <= 0)
+                throw new RuntimeException("Quantity must be > 0");
             item.setQuantity(quantity);
         }
 
@@ -236,7 +239,47 @@ public class CartService {
         return cartMapper.toResponseDto(cart);
     }
 
+    /**
+     * Xóa 1 item khỏi giỏ hàng
+     */
+    public CartResponseDto removeItem(String userId, String productId, String variantId)
+            throws ExecutionException, InterruptedException {
 
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document(userId);
+        DocumentSnapshot snapshot = docRef.get().get();
+
+        if (!snapshot.exists()) {
+            throw new RuntimeException("Giỏ hàng không tồn tại");
+        }
+
+        Cart cart = snapshot.toObject(Cart.class);
+        if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+            throw new RuntimeException("Giỏ hàng đang trống");
+        }
+
+        // Lọc bỏ item cần xóa
+        List<CartItem> updatedItems = cart.getItems().stream()
+                .filter(i -> !i.getProductId().equals(productId)
+                        || (variantId != null && !variantId.equals(i.getVariantId())))
+                .toList();
+
+        cart.setItems(updatedItems);
+
+        // Tính lại tổng
+        double total = updatedItems.stream()
+                .mapToDouble(i -> i.getUnitPrice() * i.getQuantity())
+                .sum();
+        cart.setTotal(total);
+
+        // Lưu lại vào Firestore
+        docRef.set(cart).get();
+
+        // --- Gửi message RabbitMQ ---
+        cartEventProducer.sendMessage(cart);
+
+        return cartMapper.toResponseDto(cart);
+    }
 
     public String deleteCart(String userId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
@@ -249,7 +292,6 @@ public class CartService {
 
         return "Cart deleted successfully";
     }
-
 
     /**
      * Xóa giỏ hàng (sau khi thanh toán)
@@ -269,7 +311,8 @@ public class CartService {
         return response;
     }
 
-    public CartResponseDto applyDiscount(String userId, String discountCode) throws ExecutionException, InterruptedException {
+    public CartResponseDto applyDiscount(String userId, String discountCode)
+            throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference cartRef = db.collection(COLLECTION_NAME).document(userId);
         DocumentSnapshot snapshot = cartRef.get().get();
@@ -322,7 +365,8 @@ public class CartService {
             }
         } else if ("fixed".equalsIgnoreCase(discount.getValueType())) {
             discountAmount = discount.getValueDiscount();
-            if (discountAmount > totalBefore) discountAmount = totalBefore; // không âm
+            if (discountAmount > totalBefore)
+                discountAmount = totalBefore; // không âm
         } else {
             throw new RuntimeException("Loại giảm giá không hợp lệ");
         }
@@ -331,7 +375,7 @@ public class CartService {
 
         // --- Cập nhật cart ---
         cart.setDiscountId(discount.getDiscountId());
-//        cart.setDiscountAmount(discountAmount);
+        // cart.setDiscountAmount(discountAmount);
         cart.setTotal(newTotal);
 
         cartRef.set(cart).get();

@@ -1,8 +1,10 @@
 com\hmkeyewear\common_dto\dto\PaymentRequestDto.class
 com\hmkeyewear\common_dto\dto\VNPayResponseDto.class
 com\hmkeyewear\common_dto\dto\AddToCartRequestDto.class
+com\hmkeyewear\common_dto\dto\ForgotPasswordRequest.class
 com\hmkeyewear\common_dto\dto\OrderPaymentStatusUpdateDto.class
 com\hmkeyewear\common_dto\dto\CartItemDto.class
 com\hmkeyewear\common_dto\dto\VNPayResponseDto$VNPayResponseDtoBuilder.class
+com\hmkeyewear\common_dto\dto\InvoiceEmailEvent.class
 com\hmkeyewear\common_dto\dto\OrderSaveRequestDto.class
 com\hmkeyewear\common_dto\dto\OrderDetailRequestDto.class
