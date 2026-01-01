@@ -10,6 +10,13 @@ spring:
     stream:
       username: guest
       password: guest
+  data:
+    redis:
+      host: redis
+      port: 6379
+      connect-timeout: 6000
+      timeout: 2000
+      password: ${REDIS_PASSWORD:defaultPassword}
 
 eureka:
   client:
@@ -30,3 +37,7 @@ app:
     user:
       queue: user_queue
       routing_key: user_routing_key
+    # For Forgot password function
+    forgot-password:
+      queue: forgot_pass_queue
+      routing_key: forgot_pass_routing_key
