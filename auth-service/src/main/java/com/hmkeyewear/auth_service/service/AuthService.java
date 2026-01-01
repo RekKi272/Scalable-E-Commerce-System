@@ -8,13 +8,17 @@ import com.hmkeyewear.auth_service.dto.LoginRequestDto;
 import com.hmkeyewear.auth_service.dto.RegisterCustomerRequestDto;
 import com.hmkeyewear.auth_service.dto.AuthResponseDto;
 import com.hmkeyewear.auth_service.dto.RegisterStaffRequestDto;
+import com.hmkeyewear.auth_service.messaging.OtpEventProducer;
 import com.hmkeyewear.auth_service.messaging.UserEventProducer;
+import com.hmkeyewear.auth_service.model.PasswordResetToken;
 import com.hmkeyewear.auth_service.model.User;
 import lombok.AllArgsConstructor;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -26,7 +30,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserEventProducer userEventProducer;
-    private final RefreshTokenService refreshTokenService;
+    private final OtpEventProducer otpEventProducer;
+    private final RefreshTokenRedisService refreshTokenRedisService;
+    private final OtpService otpService;
+
 
     public String generateToken(String userId, String email, String role, String storeId) {
         return jwtService.generateAccessToken(userId, email, role, storeId);
@@ -74,7 +81,7 @@ public class AuthService {
                 user.getRole(),
                 null);
 
-        String refreshToken = refreshTokenService.create(user.getUserId());
+        String refreshToken = refreshTokenRedisService.create(user.getUserId());
 
         return new AuthResponseDto(
                 user.getUserId(),
@@ -127,7 +134,7 @@ public class AuthService {
 
         String accessToken = jwtService.generateAccessToken(user.getUserId(), user.getEmail(), user.getRole(), user.getStoreId());
 
-        String refreshToken = refreshTokenService.create(user.getUserId());
+        String refreshToken = refreshTokenRedisService.create(user.getUserId());
 
         return new AuthResponseDto(
                 user.getUserId(),
@@ -166,7 +173,7 @@ public class AuthService {
                 user.getRole(),
                 user.getStoreId());
 
-        String refreshToken = refreshTokenService.create(user.getUserId());
+        String refreshToken = refreshTokenRedisService.create(user.getUserId());
 
         return new AuthResponseDto(
                 user.getUserId(),
@@ -214,5 +221,50 @@ public class AuthService {
 
         DocumentSnapshot doc = snapshot.getDocuments().get(0);
         return doc.toObject(User.class);
+    }
+
+    // FORGOT PASSWORD PROCESSING
+    public void forgotPasswordRequest(String email){
+        // Get User
+        Optional<User> optionalUser;
+        try {
+            optionalUser = findByEmail(email);
+        } catch (Exception e) {
+            return; // always return OK
+        }
+
+        if (optionalUser.isEmpty()) {
+            return;
+        }
+
+        String otp = otpService.generateOtp(email);
+        otpEventProducer.sendOtp(email, otp);
+    }
+
+    // RESET PASSWORD
+    public void resetPassword(String email, String newPassword) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Find user by Email
+        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+                .whereEqualTo("email", email)
+                .get();
+
+        QuerySnapshot snapshot = query.get();
+        if (snapshot.isEmpty()) {
+            throw new RuntimeException("User not found with email: " + email);
+        }
+
+        DocumentSnapshot doc = snapshot.getDocuments().get(0);
+        DocumentReference userRef = doc.getReference();
+
+        // Encode new password
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        // Update password
+        userRef.update(
+                "password", encodedPassword,
+                "updatedAt", Timestamp.now()
+        ).get();
     }
 }

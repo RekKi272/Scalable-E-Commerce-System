@@ -2,6 +2,7 @@ package com.hmkeyewear.auth_service.service;
 
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.firebase.cloud.FirestoreClient;
@@ -23,6 +24,23 @@ public class RefreshTokenService {
     /* ========== HASH TOKEN ========== */
     private String hash(String token) {
         return DigestUtils.sha256Hex(token);
+    }
+
+    /* ========== LOGIN: revoke toàn bộ token cũ ========= */
+    public void revokeAllByUser(String userId)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        QuerySnapshot snapshot = db.collection(COLLECTION_NAME)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("revoked", false)
+                .get()
+                .get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            doc.getReference().update("revoked", true);
+        }
     }
 
     /* ========== CREATE REFRESH TOKEN ========= */

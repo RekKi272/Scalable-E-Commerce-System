@@ -21,9 +21,9 @@ firebase:
     path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-product.json}
 
 algolia:
-  app-id: ${ALGOLIA_APP_ID}
-  api-key: ${ALGOLIA_API_KEY}
-  api-write-key: ${ALGOLIA_API_WRITE_KEY}
+  app-id: ${ALGOLIA_APP_ID:yourAppId}
+  api-key: ${ALGOLIA_API_KEY:yourAPIKey}
+  api-write-key: ${ALGOLIA_API_WRITE_KEY:yourWriteKey}
   index-name: products
 
 app:
