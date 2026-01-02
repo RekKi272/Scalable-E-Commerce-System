@@ -243,6 +243,11 @@ public class AuthService {
 
     // RESET PASSWORD
     public void resetPassword(String email, String newPassword) throws ExecutionException, InterruptedException {
+        // Check OTP verified
+        if(!otpService.isOtpVerified(email)){
+            throw new RuntimeException("OTP not verified or expired");
+        }
+
         Firestore db = FirestoreClient.getFirestore();
 
         // Find user by Email
@@ -266,5 +271,11 @@ public class AuthService {
                 "password", encodedPassword,
                 "updatedAt", Timestamp.now()
         ).get();
+
+        //  Clear OTP verified state
+        otpService.clearOtpVerified(email);
+
+        // revoked all old refreshToken
+        refreshTokenRedisService.revokeAllByUser(userRef.getId());
     }
 }
