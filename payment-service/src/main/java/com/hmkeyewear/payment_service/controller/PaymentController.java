@@ -30,9 +30,17 @@ public class PaymentController {
         return new ResponseEntity<>(vnPayResponseDto, HttpStatus.OK);
     }
 
+    // For UI
     @GetMapping("/vn-pay-callback")
     public ResponseEntity<?> payCallbackHandler(
             HttpServletRequest request) {
         return paymentService.handleVNPayCallback(request);
+    }
+
+    // For backend handler
+    @GetMapping("/vn-pay-ipn")
+    public ResponseEntity<?> handleIpn(
+            HttpServletRequest request) {
+        return paymentService.handleVNPayIpn(request);
     }
 }
