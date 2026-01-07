@@ -28,6 +28,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/auth/forgot-password",
             "/auth/verify-otp",
             "/auth/reset-password",
+            "/payment/vn-pay-ipn",
+            "/payment/vn-pay-callback",
             "/banner/active",
             "/blog/active",
             "/blog/get",
