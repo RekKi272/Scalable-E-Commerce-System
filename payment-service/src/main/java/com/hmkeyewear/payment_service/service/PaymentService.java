@@ -84,23 +84,48 @@ public class PaymentService {
 
     public ResponseEntity<?> handleVNPayCallback(HttpServletRequest request) {
         String responseCode = request.getParameter("vnp_ResponseCode");
-        String encodedOrderInfo = request.getParameter("vnp_OrderInfo");
 
-        // Không thành công
-        if (!"00".equals(responseCode)) {
-            OrderPaymentStatusUpdateDto statusUpdateDto = new OrderPaymentStatusUpdateDto(request.getParameter("vnp_TxnRef"), "FAILED");
-            orderStatusUpdateProducer.sendUpdateStatusRequest(statusUpdateDto);
-            return ResponseEntity.ok("Payment failed");
+        if ("00".equals(responseCode)) {
+            return ResponseEntity.ok(
+                    "Thanh toán thành công. Đơn hàng đang được xác nhận."
+            );
         }
 
-        try {
-            OrderPaymentStatusUpdateDto statusUpdateDto = new OrderPaymentStatusUpdateDto(request.getParameter("vnp_TxnRef"), "DELIVERING");
-            orderStatusUpdateProducer.sendUpdateStatusRequest(statusUpdateDto);
-            return ResponseEntity.ok("Payment success");
-
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Decode cart failed");
-        }
+        return ResponseEntity.ok("Thanh toán thất bại hoặc bị hủy.");
     }
 
+    public ResponseEntity<?> handleVNPayIpn(HttpServletRequest request) {
+        Map<String, String> params = VNPayUtil.getParamsMap(request);
+
+        // Verify chữ ký
+        boolean isValidSignature = VNPayUtil.verifySignature(
+                params,
+                vnPayConfig.getVnp_SecretKey()
+        );
+
+        if (!isValidSignature) {
+            return ResponseEntity.ok(
+                    "{\"RspCode\":\"97\",\"Message\":\"Invalid signature\"}"
+            );
+        }
+
+        String responseCode = params.get("vnp_ResponseCode");
+        String orderId = params.get("vnp_TxnRef");
+
+        // Update order status
+        if ("00".equals(responseCode)) {
+            orderStatusUpdateProducer.sendUpdateStatusRequest(
+                    new OrderPaymentStatusUpdateDto(orderId, "PAID")
+            );
+        } else {
+            orderStatusUpdateProducer.sendUpdateStatusRequest(
+                    new OrderPaymentStatusUpdateDto(orderId, "FAILED")
+            );
+        }
+
+        // Trả kết quả cho VNPay
+        return ResponseEntity.ok(
+                "{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}"
+        );
+    }
 }

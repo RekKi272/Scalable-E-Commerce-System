@@ -1,16 +1,15 @@
 package com.hmkeyewear.auth_service.controller;
 
-import com.hmkeyewear.auth_service.dto.AuthResponseDto;
-import com.hmkeyewear.auth_service.dto.LoginRequestDto;
-import com.hmkeyewear.auth_service.dto.RegisterCustomerRequestDto;
-import com.hmkeyewear.auth_service.dto.RegisterStaffRequestDto;
+import com.hmkeyewear.auth_service.dto.*;
 import com.hmkeyewear.auth_service.model.RefreshToken;
 import com.hmkeyewear.auth_service.model.User;
-import com.hmkeyewear.auth_service.service.AuthService;
-import com.hmkeyewear.auth_service.service.JwtService;
-import com.hmkeyewear.auth_service.service.RefreshTokenService;
+import com.hmkeyewear.auth_service.service.*;
+import com.hmkeyewear.common_dto.dto.ForgotPasswordRequestDto;
+import com.hmkeyewear.common_dto.dto.ResetPasswordRequestDto;
+import com.hmkeyewear.common_dto.dto.VerifyOtpRequestDto;
+import com.hmkeyewear.common_dto.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -21,9 +20,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/auth")
 public class AuthController {
 
@@ -31,14 +32,9 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenRedisService refreshTokenRedisService;
     private final JwtService jwtService;
-
-    public AuthController(AuthService authService, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, JwtService jwtService) {
-        this.authService = authService;
-        this.authenticationManager = authenticationManager;
-        this.refreshTokenService = refreshTokenService;
-        this.jwtService = jwtService;
-    }
+    private final OtpService otpService;
 
     @PostMapping("/register-staff")
     public ResponseEntity<AuthResponseDto> registerStaff(
@@ -75,6 +71,14 @@ public class AuthController {
             throw new RuntimeException("Invalid email or password");
         }
 
+        // Get user to revoke old token
+        Optional<User> optionalUser = authService.findByEmail(loginRequestDto.getEmail());
+        if (optionalUser.isEmpty()) {
+            throw new RuntimeException("User not found");
+        }
+        User user = optionalUser.get();
+        refreshTokenRedisService.revokeAllByUser(user.getUserId());
+
         // Auth Service create accessToken and refreshToken
         AuthResponseDto authResponseDto = authService.login(loginRequestDto);
 
@@ -97,16 +101,22 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
             @CookieValue(name = "refresh_token", required = false)
-            String refreshToken)
+            String refreshToken,
+            HttpServletResponse response)
         throws ExecutionException, InterruptedException {
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // Verify + rotate refresh token
-        RefreshToken token = refreshTokenService.verify(refreshToken);
+        // Verify current refresh token
+        RefreshToken token = refreshTokenRedisService.verify(refreshToken);
 
         User user = authService.findById(token.getUserId());
+
+        // Rotate refresh token
+        refreshTokenRedisService.logout(refreshToken);
+        String newRefreshToken = refreshTokenRedisService.create(user.getUserId());
+
 
         String newAccessToken = jwtService.generateAccessToken(
                 user.getUserId(),
@@ -114,6 +124,17 @@ public class AuthController {
                 user.getRole(),
                 user.getStoreId()
         );
+
+        ResponseCookie cookie = ResponseCookie.from(
+                        "refresh_token", newRefreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/auth")
+                .maxAge(Duration.ofDays(7))
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(newAccessToken);
     }
@@ -132,7 +153,7 @@ public class AuthController {
     ) throws ExecutionException, InterruptedException {
 
         if (refreshToken != null) {
-            refreshTokenService.logout(refreshToken);
+            refreshTokenRedisService.logout(refreshToken);
         }
 
         ResponseCookie clear = ResponseCookie.from("refresh_token", "")
@@ -143,6 +164,95 @@ public class AuthController {
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, clear.toString());
-        return ResponseEntity.ok("Logged out");
+        return ResponseEntity.ok(
+                new ApiResponse(true, "Logged out")
+        );
+
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(
+            @RequestBody ForgotPasswordRequestDto forgotPasswordRequestDto) throws ExecutionException, InterruptedException {
+
+        authService.forgotPasswordRequest(forgotPasswordRequestDto.getEmail());
+        return ResponseEntity.ok(
+                new ApiResponse(true, "Email has been sent")
+        );
+
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse> verifyOtp(
+            @RequestBody VerifyOtpRequestDto dto
+    ) {
+        try {
+            otpService.verifyOtp(dto.getEmail(), dto.getOtp());
+            return ResponseEntity.ok(
+                    new ApiResponse(true, "OTP verified")
+            );
+        } catch (RuntimeException ex) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, ex.getMessage()));
+        }
+    }
+
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse> resetPassword(
+            @RequestBody ResetPasswordRequestDto dto
+    ) {
+        // Validate email
+        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Email is required"));
+        }
+
+        // Validate password
+        if (dto.getNewPassword() == null || dto.getConfirmPassword() == null) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Password is required"));
+        }
+
+        // Password mismatch
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Password confirmation does not match"));
+        }
+
+        // Password policy
+        if (dto.getNewPassword().length() < 8) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Password must be at least 8 characters"));
+        }
+
+        try {
+            // 5. Reset password
+            authService.resetPassword(
+                    dto.getEmail(),
+                    dto.getNewPassword()
+            );
+
+            return ResponseEntity.ok(
+                    new ApiResponse(true, "Password reset successfully")
+            );
+
+        } catch (RuntimeException ex) {
+            // User not found, OTP chưa verify, v.v.
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, ex.getMessage()));
+
+        } catch (Exception ex) {
+            // Unexpected error
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Internal server error"));
+        }
+    }
+
 }

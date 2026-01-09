@@ -24,9 +24,20 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.user.routing_key}")
     private String userRoutingKey;
 
+    // Forgot Password Sender
+    @Value("${app.rabbitmq.forgot-password.queue}")
+    private String forgotPasswordQueueName;
+    @Value("${app.rabbitmq.forgot-password.routing_key}")
+    private String forgotPasswordRoutingKey;
+
     @Bean
     public Queue userQueue() {
         return new Queue(userQueueName, true, false, true); // Auto delete message
+    }
+
+    @Bean
+    public Queue forgotPasswordQueue() {
+        return new Queue(forgotPasswordQueueName, true, false, true);
     }
 
     @Bean
@@ -40,6 +51,14 @@ public class RabbitMQConfig {
                 .bind(userQueue())
                 .to(exchange())
                 .with(userRoutingKey);
+    }
+
+    @Bean
+    public Binding forgotPasswordBinding() {
+        return BindingBuilder
+                .bind(forgotPasswordQueue())
+                .to(exchange())
+                .with(forgotPasswordRoutingKey);
     }
 
     @Bean

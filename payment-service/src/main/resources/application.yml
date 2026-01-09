@@ -34,10 +34,10 @@ app:
 
 payment:
   vnpay:
-    url: ${VNP_URL}
-    tmn-code: ${VNP_TMN_CODE}
-    secret-key: ${VNP_SECRET_KEY}
-    return-url: ${VNP_RETURN_URL}
-    version: ${VNP_VERSION}
-    command: ${VNP_COMMAND}
-    order-type: ${VNP_ORDER_TYPE}
+    url: ${VNP_URL:yourPaymentUrl}
+    tmn-code: ${VNP_TMN_CODE:yourCode}
+    secret-key: ${VNP_SECRET_KEY:yourKey}
+    return-url: ${VNP_RETURN_URL:yourReturnUrl}
+    version: ${VNP_VERSION:yourVersion}
+    command: ${VNP_COMMAND:yourCommand}
+    order-type: ${VNP_ORDER_TYPE:yourCommand}

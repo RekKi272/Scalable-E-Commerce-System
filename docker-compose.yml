@@ -24,6 +24,15 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - JWT_SECRET=${JWT_SECRET}
 
+  redis:
+    image: redis:7.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: redis-server --appendonly yes
+
   auth-service:
     build: ./auth-service
     container_name: auth-service
@@ -185,6 +194,9 @@ services:
     container_name: notification-service
     ports:
       - "8092:8092"
+    environment:
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_APP_PASSWORD=${MAIL_APP_PASSWORD}
     env_file:
       - .env
     depends_on:

@@ -56,6 +56,7 @@ public class VNPayUtil {
         }
         return sb.toString();
     }
+
     public static String getPaymentURL(Map<String, String> paramsMap, boolean encodeKey) {
         return paramsMap.entrySet().stream()
                 .filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
@@ -76,4 +77,28 @@ public class VNPayUtil {
         });
         return map;
     }
+
+    public static boolean verifySignature(
+            Map<String, String> params,
+            String secretKey) {
+
+        // Lấy secure hash VNPay gửi sang
+        String vnpSecureHash = params.get("vnp_SecureHash");
+        if (vnpSecureHash == null) return false;
+
+        // Loại bỏ các field không tham gia ký
+        Map<String, String> filteredParams = new HashMap<>(params);
+        filteredParams.remove("vnp_SecureHash");
+        filteredParams.remove("vnp_SecureHashType");
+
+        // Build lại hashData đúng chuẩn VNPay
+        String hashData = getPaymentURL(filteredParams, false);
+
+        // Tính hash từ secret key
+        String calculatedHash = hmacSHA512(secretKey, hashData);
+
+        // So sánh
+        return calculatedHash.equalsIgnoreCase(vnpSecureHash);
+    }
+
 }

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class InvoiceEmailListener {
+public class InvoiceEmailConsumer {
 
     private final EmailServiceSender emailSender;
 
