@@ -39,13 +39,7 @@ public class DiscountController {
     // Get Discount By Id
     @GetMapping("/get")
     public ResponseEntity<?> getDiscountById(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam String discountId) throws ExecutionException, InterruptedException {
-
-        if (userId == null) {
-            return ResponseEntity.status(403).body("Vui lòng đăng nhập");
-        }
+            @RequestParam(name = "discountId") String discountId) throws ExecutionException, InterruptedException {
 
         DiscountResponseDto response = discountService.getDiscountById(discountId);
         return ResponseEntity.ok(response);
@@ -90,7 +84,8 @@ public class DiscountController {
     public ResponseEntity<?> deleteDiscount(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam(name = "discountId") String discountId) throws ExecutionException, InterruptedException {
+            @RequestParam(name = "discountId") String discountId)
+            throws ExecutionException, InterruptedException {
 
         if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
@@ -100,6 +95,11 @@ public class DiscountController {
             return ResponseEntity.status(403).body("Bạn không có quyền xóa mã giảm giá");
         }
 
-        return ResponseEntity.ok(discountService.deleteDiscount(discountId));
+        try {
+            return ResponseEntity.ok(discountService.deleteDiscount(discountId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
+
 }

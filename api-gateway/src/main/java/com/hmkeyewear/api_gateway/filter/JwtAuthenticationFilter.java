@@ -33,6 +33,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/banner/active",
             "/blog/active",
             "/blog/get",
+            "/discount/get",
             "/eureka"
     };
 

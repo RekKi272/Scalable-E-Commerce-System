@@ -255,9 +255,23 @@ public class DiscountService {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(discountId);
 
-        ApiFuture<WriteResult> result = docRef.delete();
-        result.get();
+        DocumentSnapshot snapshot = docRef.get().get();
+        if (!snapshot.exists()) {
+            throw new RuntimeException("Không tìm thấy mã giảm giá");
+        }
 
+        Discount discount = snapshot.toObject(Discount.class);
+        if (discount == null) {
+            throw new RuntimeException("Không tìm thấy mã giảm giá");
+        }
+
+        // ====== KIỂM TRA ĐÃ CÓ NGƯỜI DÙNG CHƯA ======
+        if (discount.getUsedQuantity() > 0) {
+            throw new RuntimeException("Không thể xóa mã giảm giá vì đã có đơn hàng sử dụng");
+        }
+
+        // ====== CHƯA AI DÙNG → ĐƯỢC XÓA ======
+        docRef.delete().get();
         discountEventProducer.sendMessage(discountId);
 
         return "Discount " + discountId + " is deleted";
