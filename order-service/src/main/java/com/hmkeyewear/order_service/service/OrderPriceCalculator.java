@@ -3,9 +3,11 @@ package com.hmkeyewear.order_service.service;
 import com.hmkeyewear.order_service.model.DiscountDetail;
 import com.hmkeyewear.order_service.model.OrderDetail;
 import com.hmkeyewear.order_service.model.ShipInfo;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class OrderPriceCalculator {
 
     public double calculatePriceTemp(List<OrderDetail> details) {

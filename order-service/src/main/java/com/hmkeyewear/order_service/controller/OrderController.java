@@ -43,7 +43,7 @@ public class OrderController {
     public ResponseEntity<?> getOrder(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam String orderId)
+            @RequestParam("orderId") String orderId)
             throws ExecutionException, InterruptedException {
 
         if (role == null || userId == null) {
@@ -58,7 +58,7 @@ public class OrderController {
     public ResponseEntity<?> updateOrder(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @PathVariable String orderId,
+            @PathVariable("orderId") String orderId,
             @RequestBody OrderRequestDto orderRequestDto)
             throws ExecutionException, InterruptedException {
 
@@ -74,7 +74,7 @@ public class OrderController {
     public ResponseEntity<?> deleteOrder(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam String orderId)
+            @RequestParam("orderId") String orderId)
             throws ExecutionException, InterruptedException {
 
         if (role == null || userId == null) {
@@ -90,8 +90,8 @@ public class OrderController {
     public ResponseEntity<?> statisticByMonth(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam int year,
-            @RequestParam int month) throws ExecutionException, InterruptedException {
+            @RequestParam("year") int year,
+            @RequestParam("month") int month) throws ExecutionException, InterruptedException {
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
@@ -106,7 +106,7 @@ public class OrderController {
     public ResponseEntity<?> statisticByWeek(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate localDate)
+            @RequestParam("localDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate localDate)
             throws ExecutionException, InterruptedException {
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
@@ -122,7 +122,7 @@ public class OrderController {
     public ResponseEntity<?> statisticByYear(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam int year) throws ExecutionException, InterruptedException {
+            @RequestParam("year") int year) throws ExecutionException, InterruptedException {
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
