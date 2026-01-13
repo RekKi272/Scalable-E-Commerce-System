@@ -20,6 +20,10 @@ public class OrderStatusUpdateConsumer {
         this.invoiceEmailProducer = invoiceEmailProducer;
     }
 
+    /**
+     * Listening queue: order_status_update_queue
+     * Message sent from payment-service AFTER Payment DONE (CAN BE FAILED, CANCELLED, SUCCEED, etc)
+     */
     @RabbitListener(queues = "${app.rabbitmq.order-status.queue}")
     public void orderStatusUpdateReceive(OrderPaymentStatusUpdateDto orderPaymentStatusUpdateDto) throws ExecutionException, InterruptedException {
         if (orderPaymentStatusUpdateDto.getStatus().equals("DELIVERING")) {

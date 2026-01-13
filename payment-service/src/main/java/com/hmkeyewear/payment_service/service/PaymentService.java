@@ -112,7 +112,7 @@ public class PaymentService {
         String responseCode = params.get("vnp_ResponseCode");
         String orderId = params.get("vnp_TxnRef");
 
-        // Update order status
+        // SEND to order-service to update order status
         if ("00".equals(responseCode)) {
             orderStatusUpdateProducer.sendUpdateStatusRequest(
                     new OrderPaymentStatusUpdateDto(orderId, "PAID")

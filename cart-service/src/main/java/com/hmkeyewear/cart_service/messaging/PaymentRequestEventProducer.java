@@ -23,6 +23,10 @@ public class PaymentRequestEventProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
+    /**
+     * Producing queue: payment_request_queue
+     * Message sent to payment-service WHEN USER click CHECKOUT for ONLINE PAYMENT (VNPAY)
+     */
     public VNPayResponseDto sendPaymentRequest(PaymentRequestDto payload) {
         return (VNPayResponseDto) rabbitTemplate.convertSendAndReceive(exchangeName, routingKey, payload);
     }

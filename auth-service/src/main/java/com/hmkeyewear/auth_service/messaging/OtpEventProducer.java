@@ -19,6 +19,10 @@ public class OtpEventProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
+    /**
+     * Producing queue: forgot_pass_queue
+     * Message sent to notification-service WHEN USER FORGOT PASSWORD
+     */
     public void sendOtp(String email, String otp) {
         VerifyOtpRequestDto verifyOtpRequestDto = new VerifyOtpRequestDto(email, otp);
         rabbitTemplate.convertAndSend(exchangeName, routingKey, verifyOtpRequestDto);

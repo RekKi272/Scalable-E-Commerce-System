@@ -27,8 +27,8 @@ public class OrderSaveRequestConsumer {
     }
 
     /**
-     * Lắng nghe queue: order-save-request
-     * Message được gửi từ payment-service sau khi thanh toán thành công
+     * Listening queue: order-save-request
+     * Message sent from cart-service when user request online payment (VNPAY)
      */
     @RabbitListener(queues = "${app.rabbitmq.order-save-listener.queue}")
     public String consumeOrderSaveRequest(String message) {
@@ -40,7 +40,7 @@ public class OrderSaveRequestConsumer {
 
             OrderRequestDto orderRequestDto = orderMapper.toOrderRequestDto(saveDto);
             LOGGER.info("Order saved successfully for user: {}", orderRequestDto.getUserId());
-            // Gọi service để lưu đơn hàng
+            // CALL service to save
             return orderService.saveOrder(orderRequestDto);
 
         } catch (Exception e) {

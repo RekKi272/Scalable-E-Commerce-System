@@ -31,6 +31,10 @@ public class StockUpdateRequestProducer {
         this.orderMapper = orderMapper;
     }
 
+    /**
+     * Producing queue: stock_update_queue
+     * Message sent to product-service WHEN DOING Payment
+     */
     public void sendMessage(List<OrderDetailRequestDto> orderDetailList) {
         LOGGER.info("Message sent -> {}", orderDetailList.toString());
         rabbitTemplate.convertAndSend(exchangeName, orderRoutingKey, orderDetailList);

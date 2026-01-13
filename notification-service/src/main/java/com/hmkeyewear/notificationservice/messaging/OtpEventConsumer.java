@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 public class OtpEventConsumer {
     private final EmailServiceSender emailSender;
 
+    /**
+     * Listening queue: forgot_pass_queue
+     * Message sent from auth-service WHEN USER FORGOT PASSWORD
+     */
     @RabbitListener(queues = "${app.rabbitmq.forgot-password.queue}")
     public void process(VerifyOtpRequestDto verifyOtpRequestDto) {
         String html = """
