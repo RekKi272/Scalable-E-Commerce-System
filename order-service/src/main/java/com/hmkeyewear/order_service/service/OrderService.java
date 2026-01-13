@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
+import com.hmkeyewear.order_service.constant.PaymentMethod;
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
 import com.hmkeyewear.order_service.dto.RevenueChartResponseDto;
@@ -15,6 +16,10 @@ import com.hmkeyewear.order_service.messaging.OrderEventProducer;
 import com.hmkeyewear.order_service.messaging.StockUpdateRequestProducer;
 import com.hmkeyewear.order_service.model.Order;
 import com.hmkeyewear.order_service.model.OrderDetail;
+import com.hmkeyewear.order_service.model.DiscountDetail;
+import com.hmkeyewear.order_service.model.ShipInfo;
+import com.hmkeyewear.order_service.util.OrderAuditUtil;
+
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
@@ -32,90 +37,123 @@ public class OrderService {
     private final OrderEventProducer orderEventProducer;
     private final StockUpdateRequestProducer stockUpdateRequestProducer;
 
+    private final OrderPriceCalculator priceCalculator;
+    private final OrderStatusResolver statusResolver;
+
     private static final String COLLECTION_NAME = "orders";
 
     // Constructor
-    public OrderService(OrderMapper orderMapper, OrderEventProducer orderEventProducer, StockUpdateRequestProducer stockUpdateRequestProducer) {
+    public OrderService(OrderMapper orderMapper,
+            OrderEventProducer orderEventProducer,
+            StockUpdateRequestProducer stockUpdateRequestProducer,
+            OrderPriceCalculator priceCalculator,
+            OrderStatusResolver statusResolver) {
         this.orderMapper = orderMapper;
         this.orderEventProducer = orderEventProducer;
         this.stockUpdateRequestProducer = stockUpdateRequestProducer;
+        this.priceCalculator = priceCalculator;
+        this.statusResolver = statusResolver;
     }
 
     // CREATE Order
-    public OrderResponseDto createOrder(OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
+    public OrderResponseDto createOrder(OrderRequestDto dto, String role)
+            throws ExecutionException, InterruptedException {
 
-        // Create document with auto create ID
+        Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document();
 
         Order order = new Order();
         order.setOrderId(docRef.getId());
-        order.setUserId(orderRequestDto.getUserId());
-        order.setEmail(orderRequestDto.getEmail());
-        order.setSummary(orderRequestDto.getSummary());
-        order.setStatus(orderRequestDto.getStatus());
-        order.setShipFee(orderRequestDto.getShipFee());
-        order.setDiscountId(orderRequestDto.getDiscountId());
-        order.setCreatedAt(Timestamp.now());
-        order.setUpdatedAt(null);
-        order.setDetails(orderRequestDto.getDetails());
 
-        ApiFuture<WriteResult> result = docRef.set(order);
-        result.get();
+        // BASIC INFO
+        order.setUserId(dto.getUserId());
+        order.setEmail(dto.getEmail());
+        order.setFullname(dto.getFullname());
+        order.setPaymentMethod(dto.getPaymentMethod());
+        order.setDiscount(dto.getDiscount());
+        order.setDetails(dto.getDetails());
+        order.setShip(dto.getShip());
+        order.setNote(dto.getNote());
 
-        // --- Send message to RabbitMQ ---
+        // ---- CALCULATE PRICE ----
+        double priceTemp = priceCalculator.calculatePriceTemp(dto.getDetails());
+        double priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, dto.getDiscount());
+        double shippingFee = priceCalculator.calculateShippingFee(dto.getShip());
+        double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased, shippingFee);
+
+        order.setPriceTemp(priceTemp);
+        order.setPriceDecreased(priceDecreased);
+        order.setSummary(summary);
+
+        // ---- SET STATUS ----
+        PaymentMethod method = PaymentMethod.valueOf(dto.getPaymentMethod());
+        order.setStatus(statusResolver.resolveInitStatus(method));
+
+        // ---- AUDIT ----
+        OrderAuditUtil.setCreateAudit(order, dto.getCreatedBy());
+
+        // ---- SAVE ----
+        docRef.set(order).get();
+
+        // ---- SEND EVENT ----
         orderEventProducer.sendMessage(order);
 
         return orderMapper.toOrderResponseDto(order);
     }
 
-    public String saveOrder(OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
+    public String saveOrder(OrderRequestDto dto) throws ExecutionException, InterruptedException {
 
-        // Create document with auto create ID
+        Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document();
 
         Order order = new Order();
         order.setOrderId(docRef.getId());
-        order.setUserId(orderRequestDto.getUserId());
-        order.setEmail(orderRequestDto.getEmail());
-        order.setSummary(orderRequestDto.getSummary());
-        order.setStatus("PENDING");
-        if(!Double.isNaN(orderRequestDto.getShipFee())) {
-            order.setShipFee(orderRequestDto.getShipFee());
-        }
-        else {
-            order.setShipFee(15000);
-        }
-        order.setDiscountId(orderRequestDto.getDiscountId());
-        order.setCreatedAt(Timestamp.now());
-        order.setUpdatedAt(null);
-        order.setDetails(orderRequestDto.getDetails());
 
-        ApiFuture<WriteResult> result = docRef.set(order);
-        result.get();
+        order.setUserId(dto.getUserId());
+        order.setEmail(dto.getEmail());
+        order.setFullname(dto.getFullname());
+        order.setPaymentMethod(dto.getPaymentMethod());
+        order.setNote(dto.getNote());
+        order.setDiscount(dto.getDiscount());
+        order.setDetails(dto.getDetails());
+        order.setShip(dto.getShip());
 
-        // --- Send message to RabbitMQ ---
+        // ---- CALCULATE PRICE ----
+        double priceTemp = priceCalculator.calculatePriceTemp(dto.getDetails());
+        double priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, dto.getDiscount());
+        double shippingFee = priceCalculator.calculateShippingFee(dto.getShip());
+        double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased, shippingFee);
+
+        order.setPriceTemp(priceTemp);
+        order.setPriceDecreased(priceDecreased);
+        order.setSummary(summary);
+
+        // ---- SET STATUS ----
+        PaymentMethod method = PaymentMethod.valueOf(dto.getPaymentMethod());
+        order.setStatus(statusResolver.resolveInitStatus(method));
+
+        // ---- AUDIT ----
+        OrderAuditUtil.setCreateAudit(order, dto.getCreatedBy());
+
+        // ---- SAVE ----
+        docRef.set(order).get();
+
+        // ---- SEND EVENT ----
         orderEventProducer.sendMessage(order);
 
+        // ---- PREPARE STOCK MESSAGE ----
         List<OrderDetailRequestDto> items = new ArrayList<>();
-
         for (OrderDetail detail : order.getDetails()) {
-            OrderDetailRequestDto dto = new OrderDetailRequestDto();
-
-            dto.setProductId(detail.getProductId());
-            dto.setVariantId(detail.getVariantId());
-            dto.setProductName(detail.getProductName());
-            dto.setQuantity(detail.getQuantity());
-            dto.setUnitPrice(detail.getUnitPrice());
-
-            items.add(dto);
+            OrderDetailRequestDto item = new OrderDetailRequestDto();
+            item.setProductId(detail.getProductId());
+            item.setVariantId(detail.getVariantId());
+            item.setProductName(detail.getProductName());
+            item.setQuantity(detail.getQuantity());
+            item.setUnitPrice(detail.getUnitPrice());
+            items.add(item);
         }
 
-        // --- Send message to product-service for updating product stock---
         stockUpdateRequestProducer.sendMessage(items);
-
-        orderMapper.toOrderResponseDto(order);
 
         return order.getOrderId();
     }
@@ -133,7 +171,9 @@ public class OrderService {
     }
 
     // UPDATE order
-    public OrderResponseDto updateOrder(String orderId, OrderRequestDto orderRequestDto) throws ExecutionException, InterruptedException {
+    public OrderResponseDto updateOrder(String orderId, OrderRequestDto dto, String updatedBy)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(orderId);
 
@@ -143,21 +183,47 @@ public class OrderService {
         }
 
         Order order = snapshot.toObject(Order.class);
+        if (order == null) {
+            throw new RuntimeException("Cannot parse order data");
+        }
 
-        assert order != null;
-        order.setUserId(orderRequestDto.getUserId());
-        order.setEmail(orderRequestDto.getEmail());
-        order.setSummary(orderRequestDto.getSummary());
-        order.setStatus(orderRequestDto.getStatus());
-        order.setShipFee(orderRequestDto.getShipFee());
-        order.setDiscountId(orderRequestDto.getDiscountId());
-        order.setDetails(orderRequestDto.getDetails());
-        order.setUpdatedAt(Timestamp.now());
+        // -------- UPDATE BASIC INFO --------
+        order.setEmail(dto.getEmail());
+        order.setFullname(dto.getFullname());
+        order.setNote(dto.getNote());
 
+        if (dto.getPaymentMethod() != null) {
+            order.setPaymentMethod(dto.getPaymentMethod());
+        }
+
+        // -------- UPDATE DETAILS / DISCOUNT / SHIP --------
+        order.setDetails(dto.getDetails());
+        order.setDiscount(dto.getDiscount());
+        order.setShip(dto.getShip());
+
+        // ---- RECALCULATE PRICE ----
+        double priceTemp = priceCalculator.calculatePriceTemp(order.getDetails());
+        double priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, order.getDiscount());
+        double shippingFee = priceCalculator.calculateShippingFee(order.getShip());
+        double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased, shippingFee);
+
+        order.setPriceTemp(priceTemp);
+        order.setPriceDecreased(priceDecreased);
+        order.setSummary(summary);
+
+        // -------- UPDATE STATUS --------
+        if (dto.getStatus() != null) {
+            order.setStatus(dto.getStatus());
+        }
+
+        // ---- AUDIT ----
+        OrderAuditUtil.setUpdateAudit(order, updatedBy);
+
+        // -------- SAVE --------
         ApiFuture<WriteResult> result = docRef.set(order);
         result.get();
 
-        // --- Send message to RabbitMQ ---
+        // -------- SEND EVENT --------
         orderEventProducer.sendMessage(order);
 
         return orderMapper.toOrderResponseDto(order);
@@ -205,8 +271,7 @@ public class OrderService {
     // Statistic Revenue for Chart
     public RevenueChartResponseDto statisticRevenueChart(
             LocalDate fromDate,
-            LocalDate toDate
-    ) throws ExecutionException, InterruptedException {
+            LocalDate toDate) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
         Timestamp from = Timestamp.of(
@@ -218,7 +283,7 @@ public class OrderService {
         ApiFuture<QuerySnapshot> future = db.collection("orders")
                 .whereGreaterThanOrEqualTo("createdAt", from)
                 .whereLessThan("createdAt", to)
-                .whereIn("status", List.of("PAID", "SUCCESS", "COMPLETED","DELIVERING"))
+                .whereIn("status", List.of("PAID", "SUCCESS", "COMPLETED", "DELIVERING"))
                 .get();
 
         List<QueryDocumentSnapshot> documents = future.get().getDocuments();
@@ -244,8 +309,7 @@ public class OrderService {
             String key = orderDate.toString();
             revenueMap.put(
                     key,
-                    revenueMap.get(key) + order.getSummary()
-            );
+                    revenueMap.get(key) + order.getSummary());
         }
 
         return new RevenueChartResponseDto(revenueMap);
@@ -260,7 +324,6 @@ public class OrderService {
 
         return statisticRevenueChart(startOfWeek, endOfWeek);
     }
-
 
     // Statistic by MONTH
     public RevenueChartResponseDto statisticByMonth(int year, int month)
@@ -316,8 +379,7 @@ public class OrderService {
 
             revenueByMonth.put(
                     key,
-                    revenueByMonth.get(key) + order.getSummary()
-            );
+                    revenueByMonth.get(key) + order.getSummary());
         }
 
         return new RevenueYearChartResponseDto(revenueByMonth);

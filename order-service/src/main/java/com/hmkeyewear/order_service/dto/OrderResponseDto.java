@@ -1,11 +1,13 @@
 package com.hmkeyewear.order_service.dto;
 
-import com.google.cloud.Timestamp;
 import com.hmkeyewear.order_service.model.OrderDetail;
+import com.hmkeyewear.order_service.model.DiscountDetail;
+import com.hmkeyewear.order_service.model.ShipInfo;
+
+import com.google.cloud.Timestamp;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 
 import java.util.List;
 
@@ -16,13 +18,24 @@ public class OrderResponseDto {
     private String orderId;
     private String userId;
     private String email;
+    private String fullname;
+
+    private String paymentMethod;
+
+    private double priceTemp;
+    private double priceDecreased;
     private double summary;
+
     private String status;
-    private double shipFee;
-    private String discountId;
+
+    private List<DiscountDetail> discount;
+    private List<OrderDetail> details;
+    private List<ShipInfo> ship;
+
+    private String note;
+
     private Timestamp createdAt;
     private String createdBy;
     private Timestamp updatedAt;
     private String updatedBy;
-    private List<OrderDetail> details;
 }

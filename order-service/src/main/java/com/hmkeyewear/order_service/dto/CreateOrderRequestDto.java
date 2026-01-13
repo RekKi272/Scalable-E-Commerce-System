@@ -1,19 +1,15 @@
 package com.hmkeyewear.order_service.dto;
 
-import com.hmkeyewear.order_service.model.OrderDetail;
 import com.hmkeyewear.order_service.model.DiscountDetail;
+import com.hmkeyewear.order_service.model.OrderDetail;
 import com.hmkeyewear.order_service.model.ShipInfo;
-
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class OrderRequestDto {
+public class CreateOrderRequestDto {
+
     private String userId;
     private String email;
     private String fullname;
@@ -25,14 +21,4 @@ public class OrderRequestDto {
     private List<ShipInfo> ship;
 
     private String note;
-
-    // BE tự tính
-    private double priceTemp;
-    private double priceDecreased;
-    private double summary;
-
-    private String status;
-
-    // audit
-    private String createdBy;
 }

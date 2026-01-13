@@ -25,15 +25,16 @@ public class OrderController {
     public ResponseEntity<?> createOrder(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Name") String userName,
             @RequestBody OrderRequestDto orderRequestDto)
             throws ExecutionException, InterruptedException {
+
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để tạo đơn hàng");
         }
-        orderRequestDto.setUserId(userId);
-        orderRequestDto.setEmail(userName);
-        OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto);
+
+        orderRequestDto.setCreatedBy(userId);
+
+        OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto, role);
 
         return ResponseEntity.ok(orderResponseDto);
     }
@@ -65,7 +66,7 @@ public class OrderController {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để sửa đơn ");
         }
 
-        OrderResponseDto orderResponseDto = orderService.updateOrder(orderId, orderRequestDto);
+        OrderResponseDto orderResponseDto = orderService.updateOrder(orderId, orderRequestDto, userId);
         return ResponseEntity.ok(orderResponseDto);
     }
 
@@ -80,7 +81,7 @@ public class OrderController {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
 
-        return  ResponseEntity.ok(orderService.deleteOrder(orderId));
+        return ResponseEntity.ok(orderService.deleteOrder(orderId));
     }
 
     // ----- STATISTIC -----
@@ -90,8 +91,7 @@ public class OrderController {
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
             @RequestParam int year,
-            @RequestParam int month
-    ) throws ExecutionException, InterruptedException {
+            @RequestParam int month) throws ExecutionException, InterruptedException {
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
@@ -106,9 +106,8 @@ public class OrderController {
     public ResponseEntity<?> statisticByWeek(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate localDate
-    ) throws ExecutionException, InterruptedException {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate localDate)
+            throws ExecutionException, InterruptedException {
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
@@ -123,8 +122,7 @@ public class OrderController {
     public ResponseEntity<?> statisticByYear(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam int year
-    ) throws ExecutionException, InterruptedException {
+            @RequestParam int year) throws ExecutionException, InterruptedException {
         if (role == null || userId == null) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }

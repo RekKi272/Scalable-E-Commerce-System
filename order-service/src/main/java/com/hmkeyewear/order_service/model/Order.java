@@ -10,15 +10,27 @@ import java.util.List;
 @Setter
 public class Order {
     private String orderId;
+
     private String userId;
     private String email;
+    private String fullname;
+
+    private String paymentMethod; // CASH, COD, BANK_TRANSFER
+
+    private double priceTemp;
+    private double priceDecreased;
     private double summary;
+
     private String status;
-    private double shipFee;
-    private String discountId; // Optional
+
+    private List<DiscountDetail> discount;
+    private List<OrderDetail> details;
+    private List<ShipInfo> ship;
+
+    private String note;
+
     private Timestamp createdAt;
     private String createdBy;
     private Timestamp updatedAt;
     private String updatedBy;
-    private List<OrderDetail> details;
 }
