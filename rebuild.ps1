@@ -34,7 +34,7 @@ Get-ChildItem -Path . -Recurse -Filter "pom.xml" | ForEach-Object {
 }
 
 # 5️⃣ Docker Compose up (rebuild images)
-Write-Host "==> Building and running Docker Compose..."
-docker-compose up --build -d
+Write-Host "==> Building and running Docker Compose (local)..."
+docker-compose -f docker-compose.local.yml up --build -d
 
 Write-Host "✅ All services rebuilt and running."

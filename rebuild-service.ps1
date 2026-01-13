@@ -33,8 +33,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # 4️⃣ (Tùy chọn) Docker Compose build & up cho service này
-Write-Host "==> Rebuilding and starting Docker for $ServiceName ..."
-docker-compose build $ServiceName
-docker-compose up -d $ServiceName
+Write-Host "==> Rebuilding and starting Docker for $ServiceName (local)..."
+docker-compose -f docker-compose.local.yml build $ServiceName
+docker-compose -f docker-compose.local.yml up -d $ServiceName
 
 Write-Host "✅ Service '$ServiceName' rebuilt and running."
