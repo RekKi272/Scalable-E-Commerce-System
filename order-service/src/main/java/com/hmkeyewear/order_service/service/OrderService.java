@@ -112,7 +112,7 @@ public class OrderService {
             items.add(dto);
         }
 
-        // --- Send message to update product stock---
+        // --- Send message to product-service for updating product stock---
         stockUpdateRequestProducer.sendMessage(items);
 
         orderMapper.toOrderResponseDto(order);

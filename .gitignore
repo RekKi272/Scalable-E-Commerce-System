@@ -20,14 +20,21 @@
 .DS_Store
 Thumbs.db
 
-# ---- Docker ----
+# ---- Docker / Containers----
 /secrets/*
 !secrets/.gitkeep
 docker-compose.override.yml
+**/*.tar
+**/*.pid
 
 # ---- Environment files ----
 .env
+.env.*
 *.env
+!*.env.example
+
+secrets/
+**/secrets/
 
 # ---- Firebase keys ----
 firebase-*.json
@@ -37,3 +44,15 @@ serviceAccountKey.json
 *.out
 *.err
 logs/
+
+# ---- JWT / SSL / Crypto ----
+*.pem
+*.crt
+*.key
+*.p12
+*.jks
+*.keystore
+
+nginx/ssl/
+certbot/
+**/.well-known/

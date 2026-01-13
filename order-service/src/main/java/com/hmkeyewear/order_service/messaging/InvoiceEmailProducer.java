@@ -19,6 +19,10 @@ public class InvoiceEmailProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
+    /**
+     * Producer queue: order_mail_queue
+     * Message sent TO notification-service AFTER Payment DONE (CAN BE FAILED, CANCELLED, SUCCEED, etc)
+     */
     public void sendEmailRequest(InvoiceEmailEvent event) {
         rabbitTemplate.convertAndSend(exchangeName, orderMailRoutingKey, event);
     }

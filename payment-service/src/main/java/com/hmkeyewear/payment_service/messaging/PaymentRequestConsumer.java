@@ -15,7 +15,10 @@ public class PaymentRequestConsumer {
         this.paymentService = paymentService;
     }
 
-    // Return value to caller
+    /**
+     * Listening queue: payment_request_queue
+     * Message sent from cart-service WHEN USER checkout their CART for ONLINE PAYMENT (VNPAY)
+     */
     @RabbitListener(queues = "${app.rabbitmq.payment-request.queue}")
     public VNPayResponseDto receivePaymentRequest(PaymentRequestDto paymentRequestDto) {
         return paymentService.createPaymentForCartService(paymentRequestDto);

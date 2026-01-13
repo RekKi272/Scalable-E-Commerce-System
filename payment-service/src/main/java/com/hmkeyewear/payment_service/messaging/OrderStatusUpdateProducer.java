@@ -23,6 +23,10 @@ public class OrderStatusUpdateProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
+    /**
+     * PRODUCER queue: order_status_update_queue
+     * Message sent TO notification-service WHEN PAYMENT DONE (FAILED, PAID, etc..)
+     */
     public void sendUpdateStatusRequest(OrderPaymentStatusUpdateDto orderStatus) {
         LOGGER.info("Sending update status {}at Order {}", orderStatus.getOrderId(), orderStatus.getStatus());
         rabbitTemplate.convertAndSend(exchangeName, routingKey, orderStatus);

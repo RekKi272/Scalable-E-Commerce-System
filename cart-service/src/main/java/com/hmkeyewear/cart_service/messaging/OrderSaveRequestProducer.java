@@ -28,6 +28,10 @@ public class OrderSaveRequestProducer {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Producing queue: order_save_request_queue
+     * Message sent to order-service WHEN USER click CHECKOUT for ONLINE PAYMENT to save temp order
+     */
     public String sendSaveRequest(OrderSaveRequestDto orderSaveRequestDto) {
         try {
             // Chuyển DTO -> JSON String

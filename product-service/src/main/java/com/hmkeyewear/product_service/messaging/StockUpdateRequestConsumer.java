@@ -15,7 +15,7 @@ public class StockUpdateRequestConsumer {
     private final ProductService productService;
 
 
-    // Handler stock update request
+    // Handler stock update request from ORDER-SERVICE
     @RabbitListener(queues = "${app.rabbitmq.stock-update-request.queue}")
     public void receiveStockUpdateRequest(List<OrderDetailRequestDto> orderDetailRequestDtoList) {
         try {

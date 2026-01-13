@@ -12,6 +12,10 @@ public class InvoiceEmailConsumer {
 
     private final EmailServiceSender emailSender;
 
+    /**
+     * Listening queue: order_mail_queue
+     * Message sent from payment-service AFTER PAYMENT SUCCEED
+     */
     @RabbitListener(queues = "${app.rabbitmq.order-mail.queue}")
     public void handle(InvoiceEmailEvent event) {
         String html = """
