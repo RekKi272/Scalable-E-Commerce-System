@@ -14,6 +14,7 @@ public class Order {
     private String userId;
     private String email;
     private String fullname;
+    private String phone;
 
     private String paymentMethod; // CASH, COD, BANK_TRANSFER
 
@@ -23,9 +24,9 @@ public class Order {
 
     private String status;
 
-    private List<DiscountDetail> discount;
+    private DiscountDetail discount;
     private List<OrderDetail> details;
-    private List<ShipInfo> ship;
+    private ShipInfo ship;
 
     private String note;
 

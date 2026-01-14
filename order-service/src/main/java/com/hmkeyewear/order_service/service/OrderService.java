@@ -69,16 +69,26 @@ public class OrderService {
         order.setUserId(dto.getUserId());
         order.setEmail(dto.getEmail());
         order.setFullname(dto.getFullname());
+        order.setPhone(dto.getPhone());
         order.setPaymentMethod(dto.getPaymentMethod());
-        order.setDiscount(dto.getDiscount());
+        order.setDiscount(dto.getDiscount()); // object
         order.setDetails(dto.getDetails());
-        order.setShip(dto.getShip());
+        order.setShip(dto.getShip()); // object
         order.setNote(dto.getNote());
 
         // ---- CALCULATE PRICE ----
         double priceTemp = priceCalculator.calculatePriceTemp(dto.getDetails());
-        double priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, dto.getDiscount());
-        double shippingFee = priceCalculator.calculateShippingFee(dto.getShip());
+
+        double priceDecreased = 0;
+        if (dto.getDiscount() != null) {
+            priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, dto.getDiscount());
+        }
+
+        double shippingFee = 0;
+        if (dto.getShip() != null) {
+            shippingFee = priceCalculator.calculateShippingFee(dto.getShip());
+        }
+
         double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased, shippingFee);
 
         order.setPriceTemp(priceTemp);
@@ -101,7 +111,8 @@ public class OrderService {
         return orderMapper.toOrderResponseDto(order);
     }
 
-    public String saveOrder(OrderRequestDto dto) throws ExecutionException, InterruptedException {
+    public String saveOrder(OrderRequestDto dto)
+            throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document();
@@ -112,16 +123,26 @@ public class OrderService {
         order.setUserId(dto.getUserId());
         order.setEmail(dto.getEmail());
         order.setFullname(dto.getFullname());
+        order.setPhone(dto.getPhone());
         order.setPaymentMethod(dto.getPaymentMethod());
         order.setNote(dto.getNote());
-        order.setDiscount(dto.getDiscount());
+        order.setDiscount(dto.getDiscount()); // object
         order.setDetails(dto.getDetails());
-        order.setShip(dto.getShip());
+        order.setShip(dto.getShip()); // object
 
         // ---- CALCULATE PRICE ----
         double priceTemp = priceCalculator.calculatePriceTemp(dto.getDetails());
-        double priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, dto.getDiscount());
-        double shippingFee = priceCalculator.calculateShippingFee(dto.getShip());
+
+        double priceDecreased = 0;
+        if (dto.getDiscount() != null) {
+            priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, dto.getDiscount());
+        }
+
+        double shippingFee = 0;
+        if (dto.getShip() != null) {
+            shippingFee = priceCalculator.calculateShippingFee(dto.getShip());
+        }
+
         double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased, shippingFee);
 
         order.setPriceTemp(priceTemp);
@@ -170,8 +191,31 @@ public class OrderService {
         return null;
     }
 
+    public List<OrderResponseDto> getOrdersByPhone(String phone)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME)
+                .whereEqualTo("phone", phone)
+                .get();
+
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+        List<OrderResponseDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : documents) {
+            Order order = doc.toObject(Order.class);
+            result.add(orderMapper.toOrderResponseDto(order));
+        }
+
+        return result;
+    }
+
     // UPDATE order
-    public OrderResponseDto updateOrder(String orderId, OrderRequestDto dto, String updatedBy)
+    public OrderResponseDto updateOrder(
+            String orderId,
+            OrderRequestDto dto,
+            String updatedBy)
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
@@ -190,6 +234,7 @@ public class OrderService {
         // -------- UPDATE BASIC INFO --------
         order.setEmail(dto.getEmail());
         order.setFullname(dto.getFullname());
+        order.setPhone(dto.getPhone());
         order.setNote(dto.getNote());
 
         if (dto.getPaymentMethod() != null) {
@@ -197,14 +242,26 @@ public class OrderService {
         }
 
         // -------- UPDATE DETAILS / DISCOUNT / SHIP --------
-        order.setDetails(dto.getDetails());
-        order.setDiscount(dto.getDiscount());
-        order.setShip(dto.getShip());
+        if (dto.getDetails() != null) {
+            order.setDetails(dto.getDetails());
+        }
+
+        order.setDiscount(dto.getDiscount()); // object
+        order.setShip(dto.getShip()); // object
 
         // ---- RECALCULATE PRICE ----
         double priceTemp = priceCalculator.calculatePriceTemp(order.getDetails());
-        double priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, order.getDiscount());
-        double shippingFee = priceCalculator.calculateShippingFee(order.getShip());
+
+        double priceDecreased = 0;
+        if (order.getDiscount() != null) {
+            priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, order.getDiscount());
+        }
+
+        double shippingFee = 0;
+        if (order.getShip() != null) {
+            shippingFee = priceCalculator.calculateShippingFee(order.getShip());
+        }
+
         double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased, shippingFee);
 
         order.setPriceTemp(priceTemp);
@@ -220,8 +277,7 @@ public class OrderService {
         OrderAuditUtil.setUpdateAudit(order, updatedBy);
 
         // -------- SAVE --------
-        ApiFuture<WriteResult> result = docRef.set(order);
-        result.get();
+        docRef.set(order).get();
 
         // -------- SEND EVENT --------
         orderEventProducer.sendMessage(order);
@@ -255,8 +311,10 @@ public class OrderService {
 
         // Convert Firestore document → Order object
         Order order = snapshot.toObject(Order.class);
+        if (order == null) {
+            throw new RuntimeException("Cannot parse order data");
+        }
 
-        assert order != null;
         order.setStatus(dto.getStatus());
         order.setUpdatedAt(Timestamp.now());
 
@@ -298,7 +356,16 @@ public class OrderService {
 
         // Group + sum
         for (QueryDocumentSnapshot doc : documents) {
-            Order order = doc.toObject(Order.class);
+            Order order;
+            try {
+                order = doc.toObject(Order.class);
+            } catch (Exception e) {
+                continue;
+            }
+
+            if (order == null || order.getCreatedAt() == null) {
+                continue;
+            }
 
             LocalDate orderDate = order.getCreatedAt()
                     .toDate()
@@ -307,9 +374,7 @@ public class OrderService {
                     .toLocalDate();
 
             String key = orderDate.toString();
-            revenueMap.put(
-                    key,
-                    revenueMap.get(key) + order.getSummary());
+            revenueMap.put(key, revenueMap.get(key) + order.getSummary());
         }
 
         return new RevenueChartResponseDto(revenueMap);
@@ -367,7 +432,16 @@ public class OrderService {
 
         // Group theo tháng
         for (QueryDocumentSnapshot doc : documents) {
-            Order order = doc.toObject(Order.class);
+            Order order;
+            try {
+                order = doc.toObject(Order.class);
+            } catch (Exception e) {
+                continue;
+            }
+
+            if (order == null || order.getCreatedAt() == null) {
+                continue;
+            }
 
             int month = order.getCreatedAt()
                     .toDate()

@@ -14,22 +14,22 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderRequestDto {
+
     private String userId;
     private String email;
     private String fullname;
+    private String phone;
 
     private String paymentMethod; // CASH, COD, BANK_TRANSFER
 
-    private List<DiscountDetail> discount;
+    // object đơn
+    private DiscountDetail discount;
+    private ShipInfo ship;
+
+    // danh sách sản phẩm
     private List<OrderDetail> details;
-    private List<ShipInfo> ship;
 
     private String note;
-
-    // BE tự tính
-    private double priceTemp;
-    private double priceDecreased;
-    private double summary;
 
     private String status;
 

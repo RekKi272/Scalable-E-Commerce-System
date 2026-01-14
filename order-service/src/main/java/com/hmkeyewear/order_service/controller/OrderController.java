@@ -54,6 +54,20 @@ public class OrderController {
         return ResponseEntity.ok(orderResponseDto);
     }
 
+    @GetMapping("/by-phone")
+    public ResponseEntity<?> getOrdersByPhone(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam("phone") String phone)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null || userId == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập để xem đơn hàng");
+        }
+
+        return ResponseEntity.ok(orderService.getOrdersByPhone(phone));
+    }
+
     @PutMapping("/update/{orderId}")
     public ResponseEntity<?> updateOrder(
             @RequestHeader("X-User-Role") String role,
@@ -96,9 +110,10 @@ public class OrderController {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
 
-        if (role.equalsIgnoreCase("ROLE_ADMIN")) {
-            return ResponseEntity.status(404).body("Bạn không có thẩm quyền xem thống kê");
+        if (!role.equalsIgnoreCase("ROLE_ADMIN")) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền xem thống kê");
         }
+
         return ResponseEntity.ok(orderService.statisticByMonth(year, month));
     }
 
@@ -112,9 +127,10 @@ public class OrderController {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
 
-        if (role.equalsIgnoreCase("ROLE_ADMIN")) {
-            return ResponseEntity.status(404).body("Bạn không có thẩm quyền xem thống kê");
+        if (!role.equalsIgnoreCase("ROLE_ADMIN")) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền xem thống kê");
         }
+
         return ResponseEntity.ok(orderService.statisticByWeek(localDate));
     }
 
@@ -127,9 +143,10 @@ public class OrderController {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
         }
 
-        if (role.equalsIgnoreCase("ROLE_ADMIN")) {
-            return ResponseEntity.status(404).body("Bạn không có thẩm quyền xem thống kê");
+        if (!role.equalsIgnoreCase("ROLE_ADMIN")) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền xem thống kê");
         }
+
         return ResponseEntity.ok(orderService.statisticRevenueByYear(year));
     }
 }

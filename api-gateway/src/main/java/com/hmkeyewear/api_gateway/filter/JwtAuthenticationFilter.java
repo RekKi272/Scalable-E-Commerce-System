@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.util.AntPathMatcher;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -17,23 +18,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     // Dùng constructor injection với @RequiredArgsConstructor, không @Autowired
     private final JwtUtil jwtUtil;
+    private final AntPathMatcher matcher = new AntPathMatcher();
 
     // Các endpoint public không cần token
     private static final String[] OPEN_ENDPOINTS = {
-            "/auth/login",
-            "/auth/register-customer",
-            "/auth/token",
-            "/auth/validate",
-            "/auth/refresh",
-            "/auth/forgot-password",
-            "/auth/verify-otp",
-            "/auth/reset-password",
+            "/auth/**",
             "/payment/vn-pay-ipn",
             "/payment/vn-pay-callback",
             "/banner/active",
             "/blog/active",
-            "/blog/get",
+            "/blog/get/**",
             "/discount/get",
+            "/discount/get/*",
             "/eureka"
     };
 
@@ -47,7 +43,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         // Skip public endpoints
         for (String open : OPEN_ENDPOINTS) {
-            if (path.startsWith(open)) {
+            if (matcher.match(open, path)) {
                 System.out.println("[GATEWAY] Public endpoint, skipping JWT filter: " + path);
                 return chain.filter(exchange);
             }

@@ -13,12 +13,13 @@ public class CreateOrderRequestDto {
     private String userId;
     private String email;
     private String fullname;
+    private String phone;
 
     private String paymentMethod; // CASH, COD, BANK_TRANSFER
 
-    private List<DiscountDetail> discount;
+    private DiscountDetail discount;
     private List<OrderDetail> details;
-    private List<ShipInfo> ship;
+    private ShipInfo ship;
 
     private String note;
 }

@@ -20,8 +20,10 @@ public interface OrderMapper {
 
     // OrderSaveRequestDto -> OrderRequestDto
     @Mapping(source = "items", target = "details")
+    @Mapping(target = "discount", ignore = true) // vì OrderSaveRequestDto chỉ có discountId
+    @Mapping(target = "ship", ignore = true) // không có ship trong OrderSaveRequestDto
     OrderRequestDto toOrderRequestDto(OrderSaveRequestDto orderSaveRequestDto);
 
-    // OrderDetails -> OrderDetailRequestDto
+    // OrderDetail -> OrderDetailRequestDto
     OrderDetailRequestDto toOrderDetailRequestDto(OrderDetail orderDetail);
 }

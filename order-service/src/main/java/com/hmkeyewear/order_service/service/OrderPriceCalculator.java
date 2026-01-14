@@ -21,34 +21,33 @@ public class OrderPriceCalculator {
         return total;
     }
 
-    public double calculatePriceDecreased(double priceTemp, List<DiscountDetail> discounts) {
-        double decreased = 0;
-
-        if (discounts == null)
+    public double calculatePriceDecreased(double priceTemp, DiscountDetail discount) {
+        if (discount == null)
             return 0;
 
-        for (DiscountDetail d : discounts) {
-            if ("percentage".equalsIgnoreCase(d.getValueType())) {
-                decreased += priceTemp * d.getValueDiscount() / 100;
-            } else if ("fixed".equalsIgnoreCase(d.getValueType())) {
-                decreased += d.getValueDiscount();
-            }
+        double decreased = 0;
+
+        if ("percentage".equalsIgnoreCase(discount.getValueType())) {
+            decreased = priceTemp * discount.getValueDiscount() / 100;
+        } else if ("fixed".equalsIgnoreCase(discount.getValueType())) {
+            decreased = discount.getValueDiscount();
         }
+
         return decreased;
     }
 
-    public double calculateShippingFee(List<ShipInfo> ships) {
-        double fee = 0;
-        if (ships == null)
+    public double calculateShippingFee(ShipInfo ship) {
+        if (ship == null)
             return 0;
-
-        for (ShipInfo s : ships) {
-            fee += s.getShippingFee();
-        }
-        return fee;
+        return ship.getShippingFee();
     }
 
-    public double calculateSummary(double priceTemp, double priceDecreased, double shippingFee) {
-        return priceTemp - priceDecreased + shippingFee;
+    public double calculateSummary(
+            double priceTemp,
+            double priceDecreased,
+            double shippingFee) {
+
+        double total = priceTemp - priceDecreased + shippingFee;
+        return total < 0 ? 0 : total;
     }
 }
