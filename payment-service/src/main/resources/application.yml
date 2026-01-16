@@ -38,6 +38,7 @@ payment:
     tmn-code: ${VNP_TMN_CODE:yourCode}
     secret-key: ${VNP_SECRET_KEY:yourKey}
     return-url: ${VNP_RETURN_URL:yourReturnUrl}
+    ipn-url: ${VNP_IPN_URL:yourIpnUrl}
     version: ${VNP_VERSION:yourVersion}
     command: ${VNP_COMMAND:yourCommand}
     order-type: ${VNP_ORDER_TYPE:yourCommand}
