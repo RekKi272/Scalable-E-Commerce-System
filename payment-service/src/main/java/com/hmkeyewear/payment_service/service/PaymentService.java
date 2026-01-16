@@ -24,25 +24,43 @@ public class PaymentService {
     private final OrderStatusUpdateProducer orderStatusUpdateProducer;
 
     public VNPayResponseDto createVnPayment(HttpServletRequest request) {
-        long amount = Integer.parseInt(request.getParameter("amount")) * 100L;
+
+        String orderId = request.getParameter("orderId");
+        if (orderId == null || orderId.isBlank()) {
+            throw new IllegalArgumentException("orderId is required");
+        }
+
+        long amount = Long.parseLong(request.getParameter("amount")) * 100L;
         String bankCode = request.getParameter("bankCode");
+
         Map<String, String> vnpParamsMap = vnPayConfig.getVNPayConfig();
+
+        // Case: Retry giao dịch
+        String txnRef = orderId + "_" + System.currentTimeMillis();
+
+        vnpParamsMap.put("vnp_TxnRef", txnRef);
+        vnpParamsMap.put("vnp_OrderInfo", "Thanh toan don hang: " + orderId);
         vnpParamsMap.put("vnp_Amount", String.valueOf(amount));
+        vnpParamsMap.put("vnp_IpAddr", VNPayUtil.getIpAddress(request));
+
         if (bankCode != null && !bankCode.isEmpty()) {
             vnpParamsMap.put("vnp_BankCode", bankCode);
         }
-        vnpParamsMap.put("vnp_IpAddr", VNPayUtil.getIpAddress(request));
-        //build query url
+
         String queryUrl = VNPayUtil.getPaymentURL(vnpParamsMap, true);
         String hashData = VNPayUtil.getPaymentURL(vnpParamsMap, false);
-        String vnpSecureHash = VNPayUtil.hmacSHA512(vnPayConfig.getVnp_SecretKey(), hashData);
+        String vnpSecureHash = VNPayUtil.hmacSHA512(
+                vnPayConfig.getVnp_SecretKey(), hashData);
+
         queryUrl += "&vnp_SecureHash=" + vnpSecureHash;
+
         String paymentUrl = vnPayConfig.getVnp_PayUrl() + "?" + queryUrl;
 
         return VNPayResponseDto.builder()
                 .code("ok")
                 .message("success")
-                .paymentUrl(paymentUrl).build();
+                .paymentUrl(paymentUrl)
+                .build();
     }
 
     // Thanh toán từ cart-service (có giỏ hàng)
@@ -87,8 +105,7 @@ public class PaymentService {
 
         if ("00".equals(responseCode)) {
             return ResponseEntity.ok(
-                    "Thanh toán thành công. Đơn hàng đang được xác nhận."
-            );
+                    "Thanh toán thành công. Đơn hàng đang được xác nhận.");
         }
 
         return ResponseEntity.ok("Thanh toán thất bại hoặc bị hủy.");
@@ -100,32 +117,30 @@ public class PaymentService {
         // Verify chữ ký
         boolean isValidSignature = VNPayUtil.verifySignature(
                 params,
-                vnPayConfig.getVnp_SecretKey()
-        );
+                vnPayConfig.getVnp_SecretKey());
 
         if (!isValidSignature) {
             return ResponseEntity.ok(
-                    "{\"RspCode\":\"97\",\"Message\":\"Invalid signature\"}"
-            );
+                    "{\"RspCode\":\"97\",\"Message\":\"Invalid signature\"}");
         }
 
         String responseCode = params.get("vnp_ResponseCode");
-        String orderId = params.get("vnp_TxnRef");
+
+        // Tách timestamp để lấy giao dịch
+        String txnRef = params.get("vnp_TxnRef");
+        String orderId = txnRef.split("_")[0];
 
         // SEND to order-service to update order status
         if ("00".equals(responseCode)) {
             orderStatusUpdateProducer.sendUpdateStatusRequest(
-                    new OrderPaymentStatusUpdateDto(orderId, "PAID")
-            );
+                    new OrderPaymentStatusUpdateDto(orderId, "PAID"));
         } else {
             orderStatusUpdateProducer.sendUpdateStatusRequest(
-                    new OrderPaymentStatusUpdateDto(orderId, "FAILED")
-            );
+                    new OrderPaymentStatusUpdateDto(orderId, "FAILED"));
         }
 
         // Trả kết quả cho VNPay
         return ResponseEntity.ok(
-                "{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}"
-        );
+                "{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}");
     }
 }
