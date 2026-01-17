@@ -191,6 +191,26 @@ public class OrderService {
         return null;
     }
 
+    public List<OrderResponseDto> getOrdersByEmail(String email)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME)
+                .whereEqualTo("email", email)
+                .get();
+
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+        List<OrderResponseDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : documents) {
+            Order order = doc.toObject(Order.class);
+            result.add(orderMapper.toOrderResponseDto(order));
+        }
+
+        return result;
+    }
+
     public List<OrderResponseDto> getOrdersByPhone(String phone)
             throws ExecutionException, InterruptedException {
 

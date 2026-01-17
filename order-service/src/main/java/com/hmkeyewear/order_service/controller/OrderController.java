@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -54,7 +55,26 @@ public class OrderController {
         return ResponseEntity.ok(orderResponseDto);
     }
 
-    @GetMapping("/by-phone")
+    @GetMapping("/get-by-email")
+    public ResponseEntity<?> getOrderByEmail(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam("userEmail") String userEmail)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập");
+        }
+
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thực hiện");
+        }
+
+        List<OrderResponseDto> orders = orderService.getOrdersByEmail(userEmail);
+
+        return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/get-by-phone")
     public ResponseEntity<?> getOrdersByPhone(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
@@ -66,6 +86,25 @@ public class OrderController {
         }
 
         return ResponseEntity.ok(orderService.getOrdersByPhone(phone));
+    }
+
+    @GetMapping("/my-order")
+    public ResponseEntity<?> getMyOrder(
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Name") String userEmail)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null || userEmail == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập");
+        }
+
+        if (!"ROLE_CUSTOMER".equals(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền xem đơn hàng");
+        }
+
+        List<OrderResponseDto> orders = orderService.getOrdersByEmail(userEmail);
+
+        return ResponseEntity.ok(orders);
     }
 
     @PutMapping("/update/{orderId}")

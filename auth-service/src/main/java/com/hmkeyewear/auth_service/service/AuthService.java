@@ -34,7 +34,6 @@ public class AuthService {
     private final RefreshTokenRedisService refreshTokenRedisService;
     private final OtpService otpService;
 
-
     public String generateToken(String userId, String email, String role, String storeId) {
         return jwtService.generateAccessToken(userId, email, role, storeId);
     }
@@ -132,7 +131,8 @@ public class AuthService {
         // --- Send message to RabbitMQ ---
         userEventProducer.sendMessage(user);
 
-        String accessToken = jwtService.generateAccessToken(user.getUserId(), user.getEmail(), user.getRole(), user.getStoreId());
+        String accessToken = jwtService.generateAccessToken(user.getUserId(), user.getEmail(), user.getRole(),
+                user.getStoreId());
 
         String refreshToken = refreshTokenRedisService.create(user.getUserId());
 
@@ -224,7 +224,7 @@ public class AuthService {
     }
 
     // FORGOT PASSWORD PROCESSING
-    public void forgotPasswordRequest(String email){
+    public void forgotPasswordRequest(String email) {
         // Get User
         Optional<User> optionalUser;
         try {
@@ -244,7 +244,7 @@ public class AuthService {
     // RESET PASSWORD
     public void resetPassword(String email, String newPassword) throws ExecutionException, InterruptedException {
         // Check OTP verified
-        if(!otpService.isOtpVerified(email)){
+        if (!otpService.isOtpVerified(email)) {
             throw new RuntimeException("OTP not verified or expired");
         }
 
@@ -269,13 +269,52 @@ public class AuthService {
         // Update password
         userRef.update(
                 "password", encodedPassword,
-                "updatedAt", Timestamp.now()
-        ).get();
+                "updatedAt", Timestamp.now()).get();
 
-        //  Clear OTP verified state
+        // Clear OTP verified state
         otpService.clearOtpVerified(email);
 
         // revoked all old refreshToken
         refreshTokenRedisService.revokeAllByUser(userRef.getId());
+    }
+
+    public void changePassword(
+            String email,
+            String oldPassword,
+            String newPassword) throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Find user by email
+        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+                .whereEqualTo("email", email)
+                .get();
+
+        QuerySnapshot snapshot = query.get();
+        if (snapshot.isEmpty()) {
+            throw new RuntimeException("User not found");
+        }
+
+        DocumentSnapshot doc = snapshot.getDocuments().get(0);
+        User user = doc.toObject(User.class);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        // Check old password
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        // Encode new password
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        // Update password
+        doc.getReference().update(
+                "password", encodedPassword,
+                "updatedAt", Timestamp.now()).get();
+
+        // Revoke all refresh tokens
+        refreshTokenRedisService.revokeAllByUser(user.getUserId());
     }
 }

@@ -4,6 +4,7 @@ import com.hmkeyewear.auth_service.dto.*;
 import com.hmkeyewear.auth_service.model.RefreshToken;
 import com.hmkeyewear.auth_service.model.User;
 import com.hmkeyewear.auth_service.service.*;
+import com.hmkeyewear.auth_service.dto.ChangePasswordRequestDto;
 import com.hmkeyewear.common_dto.dto.ForgotPasswordRequestDto;
 import com.hmkeyewear.common_dto.dto.ResetPasswordRequestDto;
 import com.hmkeyewear.common_dto.dto.VerifyOtpRequestDto;
@@ -100,10 +101,9 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
-            @CookieValue(name = "refresh_token", required = false)
-            String refreshToken,
+            @CookieValue(name = "refresh_token", required = false) String refreshToken,
             HttpServletResponse response)
-        throws ExecutionException, InterruptedException {
+            throws ExecutionException, InterruptedException {
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -117,16 +117,14 @@ public class AuthController {
         refreshTokenRedisService.logout(refreshToken);
         String newRefreshToken = refreshTokenRedisService.create(user.getUserId());
 
-
         String newAccessToken = jwtService.generateAccessToken(
                 user.getUserId(),
                 user.getEmail(),
                 user.getRole(),
-                user.getStoreId()
-        );
+                user.getStoreId());
 
         ResponseCookie cookie = ResponseCookie.from(
-                        "refresh_token", newRefreshToken)
+                "refresh_token", newRefreshToken)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
@@ -147,10 +145,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(
-            @CookieValue(name = "refresh_token", required = false)
-            String refreshToken,
-            HttpServletResponse response
-    ) throws ExecutionException, InterruptedException {
+            @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            HttpServletResponse response) throws ExecutionException, InterruptedException {
 
         if (refreshToken != null) {
             refreshTokenRedisService.logout(refreshToken);
@@ -165,31 +161,28 @@ public class AuthController {
 
         response.addHeader(HttpHeaders.SET_COOKIE, clear.toString());
         return ResponseEntity.ok(
-                new ApiResponse(true, "Logged out")
-        );
+                new ApiResponse(true, "Logged out"));
 
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(
-            @RequestBody ForgotPasswordRequestDto forgotPasswordRequestDto) throws ExecutionException, InterruptedException {
+            @RequestBody ForgotPasswordRequestDto forgotPasswordRequestDto)
+            throws ExecutionException, InterruptedException {
 
         authService.forgotPasswordRequest(forgotPasswordRequestDto.getEmail());
         return ResponseEntity.ok(
-                new ApiResponse(true, "Email has been sent")
-        );
+                new ApiResponse(true, "Email has been sent"));
 
     }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse> verifyOtp(
-            @RequestBody VerifyOtpRequestDto dto
-    ) {
+            @RequestBody VerifyOtpRequestDto dto) {
         try {
             otpService.verifyOtp(dto.getEmail(), dto.getOtp());
             return ResponseEntity.ok(
-                    new ApiResponse(true, "OTP verified")
-            );
+                    new ApiResponse(true, "OTP verified"));
         } catch (RuntimeException ex) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -197,11 +190,9 @@ public class AuthController {
         }
     }
 
-
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse> resetPassword(
-            @RequestBody ResetPasswordRequestDto dto
-    ) {
+            @RequestBody ResetPasswordRequestDto dto) {
         // Validate email
         if (dto.getEmail() == null || dto.getEmail().isBlank()) {
             return ResponseEntity
@@ -234,12 +225,10 @@ public class AuthController {
             // 5. Reset password
             authService.resetPassword(
                     dto.getEmail(),
-                    dto.getNewPassword()
-            );
+                    dto.getNewPassword());
 
             return ResponseEntity.ok(
-                    new ApiResponse(true, "Password reset successfully")
-            );
+                    new ApiResponse(true, "Password reset successfully"));
 
         } catch (RuntimeException ex) {
             // User not found, OTP chưa verify, v.v.
@@ -255,4 +244,47 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse> changePassword(
+            @RequestHeader("X-User-Name") String email,
+            @RequestBody ChangePasswordRequestDto dto) {
+        // Validate input
+        if (dto.getOldPassword() == null || dto.getNewPassword() == null || dto.getConfirmPassword() == null) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Password is required"));
+        }
+
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Password confirmation does not match"));
+        }
+
+        if (dto.getNewPassword().length() < 8) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Password must be at least 8 characters"));
+        }
+
+        try {
+            authService.changePassword(
+                    email,
+                    dto.getOldPassword(),
+                    dto.getNewPassword());
+
+            return ResponseEntity.ok(
+                    new ApiResponse(true, "Password changed successfully"));
+
+        } catch (RuntimeException ex) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, ex.getMessage()));
+
+        } catch (Exception ex) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Internal server error"));
+        }
+    }
 }
