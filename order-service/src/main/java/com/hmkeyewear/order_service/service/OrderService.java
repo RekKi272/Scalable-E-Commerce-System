@@ -7,8 +7,8 @@ import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import com.hmkeyewear.order_service.constant.PaymentMethod;
 import com.hmkeyewear.order_service.dto.OrderRequestDto;
 import com.hmkeyewear.order_service.dto.OrderResponseDto;
-import com.hmkeyewear.order_service.dto.RevenueChartResponseDto;
-import com.hmkeyewear.order_service.dto.RevenueYearChartResponseDto;
+import com.hmkeyewear.order_service.dto.RevenueChartWithOrdersResponseDto;
+import com.hmkeyewear.order_service.dto.RevenueYearChartWithOrdersResponseDto;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
 
 import com.hmkeyewear.common_dto.dto.OrderPaymentStatusUpdateDto;
@@ -16,8 +16,6 @@ import com.hmkeyewear.order_service.messaging.OrderEventProducer;
 import com.hmkeyewear.order_service.messaging.StockUpdateRequestProducer;
 import com.hmkeyewear.order_service.model.Order;
 import com.hmkeyewear.order_service.model.OrderDetail;
-import com.hmkeyewear.order_service.model.DiscountDetail;
-import com.hmkeyewear.order_service.model.ShipInfo;
 import com.hmkeyewear.order_service.util.OrderAuditUtil;
 
 import org.springframework.stereotype.Service;
@@ -40,6 +38,7 @@ public class OrderService {
     private final OrderPriceCalculator priceCalculator;
     private final OrderStatusResolver statusResolver;
 
+    private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final String COLLECTION_NAME = "orders";
 
     // Constructor
@@ -346,17 +345,16 @@ public class OrderService {
         orderEventProducer.sendMessage(order);
     }
 
-    // Statistic Revenue for Chart
-    public RevenueChartResponseDto statisticRevenueChart(
+    private RevenueChartWithOrdersResponseDto statisticByDateRange(
             LocalDate fromDate,
             LocalDate toDate) throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
 
         Timestamp from = Timestamp.of(
-                Date.from(fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant()));
-
+                Date.from(fromDate.atStartOfDay(VN_ZONE).toInstant()));
         Timestamp to = Timestamp.of(
-                Date.from(toDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                Date.from(toDate.plusDays(1).atStartOfDay(VN_ZONE).toInstant()));
 
         ApiFuture<QuerySnapshot> future = db.collection("orders")
                 .whereGreaterThanOrEqualTo("createdAt", from)
@@ -366,7 +364,6 @@ public class OrderService {
 
         List<QueryDocumentSnapshot> documents = future.get().getDocuments();
 
-        // Init map với 0 cho toàn bộ ngày
         Map<String, Double> revenueMap = new LinkedHashMap<>();
         LocalDate current = fromDate;
         while (!current.isAfter(toDate)) {
@@ -374,54 +371,47 @@ public class OrderService {
             current = current.plusDays(1);
         }
 
-        // Group + sum
-        for (QueryDocumentSnapshot doc : documents) {
-            Order order;
-            try {
-                order = doc.toObject(Order.class);
-            } catch (Exception e) {
-                continue;
-            }
+        List<OrderResponseDto> orders = new ArrayList<>();
 
-            if (order == null || order.getCreatedAt() == null) {
+        for (QueryDocumentSnapshot doc : documents) {
+            Order order = doc.toObject(Order.class);
+            if (order == null || order.getCreatedAt() == null)
                 continue;
-            }
 
             LocalDate orderDate = order.getCreatedAt()
                     .toDate()
                     .toInstant()
-                    .atZone(ZoneId.systemDefault())
+                    .atZone(VN_ZONE)
                     .toLocalDate();
 
             String key = orderDate.toString();
             revenueMap.put(key, revenueMap.get(key) + order.getSummary());
+
+            orders.add(orderMapper.toOrderResponseDto(order));
         }
 
-        return new RevenueChartResponseDto(revenueMap);
+        return new RevenueChartWithOrdersResponseDto(revenueMap, orders);
     }
 
-    // Statistic by WEEK
-    public RevenueChartResponseDto statisticByWeek(LocalDate anyDayInWeek)
+    public RevenueChartWithOrdersResponseDto statisticByWeek(LocalDate anyDay)
             throws ExecutionException, InterruptedException {
 
-        LocalDate startOfWeek = anyDayInWeek.with(DayOfWeek.MONDAY);
-        LocalDate endOfWeek = startOfWeek.plusDays(6);
+        LocalDate start = anyDay.with(DayOfWeek.MONDAY);
+        LocalDate end = start.plusDays(6);
 
-        return statisticRevenueChart(startOfWeek, endOfWeek);
+        return statisticByDateRange(start, end);
     }
 
-    // Statistic by MONTH
-    public RevenueChartResponseDto statisticByMonth(int year, int month)
+    public RevenueChartWithOrdersResponseDto statisticByMonth(int year, int month)
             throws ExecutionException, InterruptedException {
 
-        LocalDate fromDate = LocalDate.of(year, month, 1);
-        LocalDate toDate = fromDate.withDayOfMonth(fromDate.lengthOfMonth());
+        LocalDate from = LocalDate.of(year, month, 1);
+        LocalDate to = from.withDayOfMonth(from.lengthOfMonth());
 
-        return statisticRevenueChart(fromDate, toDate);
+        return statisticByDateRange(from, to);
     }
 
-    // Statistic by YEAR
-    public RevenueYearChartResponseDto statisticRevenueByYear(int year)
+    public RevenueYearChartWithOrdersResponseDto statisticByYear(int year)
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
@@ -430,12 +420,10 @@ public class OrderService {
         LocalDate toDate = LocalDate.of(year, 12, 31);
 
         Timestamp from = Timestamp.of(
-                Date.from(fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant()));
-
+                Date.from(fromDate.atStartOfDay(VN_ZONE).toInstant()));
         Timestamp to = Timestamp.of(
-                Date.from(toDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                Date.from(toDate.plusDays(1).atStartOfDay(VN_ZONE).toInstant()));
 
-        // Query orders trong năm
         ApiFuture<QuerySnapshot> future = db.collection("orders")
                 .whereGreaterThanOrEqualTo("createdAt", from)
                 .whereLessThan("createdAt", to)
@@ -444,39 +432,31 @@ public class OrderService {
 
         List<QueryDocumentSnapshot> documents = future.get().getDocuments();
 
-        // Init 12 tháng = 0
         Map<String, Double> revenueByMonth = new LinkedHashMap<>();
         for (int i = 1; i <= 12; i++) {
             revenueByMonth.put(String.format("%02d", i), 0.0);
         }
 
-        // Group theo tháng
-        for (QueryDocumentSnapshot doc : documents) {
-            Order order;
-            try {
-                order = doc.toObject(Order.class);
-            } catch (Exception e) {
-                continue;
-            }
+        List<OrderResponseDto> orders = new ArrayList<>();
 
-            if (order == null || order.getCreatedAt() == null) {
+        for (QueryDocumentSnapshot doc : documents) {
+            Order order = doc.toObject(Order.class);
+            if (order == null || order.getCreatedAt() == null)
                 continue;
-            }
 
             int month = order.getCreatedAt()
                     .toDate()
                     .toInstant()
-                    .atZone(ZoneId.systemDefault())
+                    .atZone(VN_ZONE)
                     .getMonthValue();
 
             String key = String.format("%02d", month);
+            revenueByMonth.put(key, revenueByMonth.get(key) + order.getSummary());
 
-            revenueByMonth.put(
-                    key,
-                    revenueByMonth.get(key) + order.getSummary());
+            orders.add(orderMapper.toOrderResponseDto(order));
         }
 
-        return new RevenueYearChartResponseDto(revenueByMonth);
+        return new RevenueYearChartWithOrdersResponseDto(revenueByMonth, orders);
     }
 
 }

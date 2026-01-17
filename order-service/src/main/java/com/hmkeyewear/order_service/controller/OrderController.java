@@ -144,13 +144,11 @@ public class OrderController {
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
             @RequestParam("year") int year,
-            @RequestParam("month") int month) throws ExecutionException, InterruptedException {
-        if (role == null || userId == null) {
-            return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
-        }
+            @RequestParam("month") int month)
+            throws ExecutionException, InterruptedException {
 
-        if (!role.equalsIgnoreCase("ROLE_ADMIN")) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền xem thống kê");
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
         }
 
         return ResponseEntity.ok(orderService.statisticByMonth(year, month));
@@ -162,12 +160,9 @@ public class OrderController {
             @RequestHeader("X-User-Id") String userId,
             @RequestParam("localDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate localDate)
             throws ExecutionException, InterruptedException {
-        if (role == null || userId == null) {
-            return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
-        }
 
-        if (!role.equalsIgnoreCase("ROLE_ADMIN")) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền xem thống kê");
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
         }
 
         return ResponseEntity.ok(orderService.statisticByWeek(localDate));
@@ -177,15 +172,14 @@ public class OrderController {
     public ResponseEntity<?> statisticByYear(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam("year") int year) throws ExecutionException, InterruptedException {
-        if (role == null || userId == null) {
-            return ResponseEntity.status(403).body("Bạn cần đăng nhập để xóa đơn hàng");
+            @RequestParam("year") int year)
+            throws ExecutionException, InterruptedException {
+
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
         }
 
-        if (!role.equalsIgnoreCase("ROLE_ADMIN")) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền xem thống kê");
-        }
-
-        return ResponseEntity.ok(orderService.statisticRevenueByYear(year));
+        return ResponseEntity.ok(orderService.statisticByYear(year));
     }
+
 }
