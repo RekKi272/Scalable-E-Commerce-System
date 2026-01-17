@@ -26,12 +26,16 @@ public class OrderStatusUpdateConsumer {
      */
     @RabbitListener(queues = "${app.rabbitmq.order-status.queue}")
     public void orderStatusUpdateReceive(OrderPaymentStatusUpdateDto orderPaymentStatusUpdateDto) throws ExecutionException, InterruptedException {
-        if (orderPaymentStatusUpdateDto.getStatus().equals("DELIVERING")) {
-            OrderResponseDto orderResponseDto = orderService.getOrder(orderPaymentStatusUpdateDto.getOrderId());
-            InvoiceEmailEvent invoiceEmailEvent = new InvoiceEmailEvent(orderResponseDto.getOrderId(), orderResponseDto.getEmail(), orderResponseDto.getSummary(), null);
-            invoiceEmailProducer.sendEmailRequest(invoiceEmailEvent);
-        }
 
+        if (orderPaymentStatusUpdateDto.getStatus().equals("PAID")) {
+            OrderResponseDto orderResponseDto = orderService.getOrder(orderPaymentStatusUpdateDto.getOrderId());
+
+            if(orderResponseDto.getEmail() != null) {
+                InvoiceEmailEvent invoiceEmailEvent = new InvoiceEmailEvent(orderResponseDto.getOrderId(), orderResponseDto.getEmail(), orderResponseDto.getSummary(), null);
+                invoiceEmailProducer.sendEmailRequest(invoiceEmailEvent);
+            }
+
+        }
         orderService.updateOrderStatus(orderPaymentStatusUpdateDto);
     }
 }
