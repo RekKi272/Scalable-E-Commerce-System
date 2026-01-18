@@ -67,7 +67,7 @@ public class ProductController {
     public ResponseEntity<?> updateProduct(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @PathVariable String productId,
+            @PathVariable("productId") String productId,
             @Valid @RequestBody ProductRequestDto productRequestDto)
             throws InterruptedException, ExecutionException {
 
