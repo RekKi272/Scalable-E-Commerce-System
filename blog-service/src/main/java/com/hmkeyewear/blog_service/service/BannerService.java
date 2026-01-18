@@ -112,7 +112,7 @@ public class BannerService {
             return null;
 
         banner.setTitle(dto.getTitle());
-        banner.setImageBase64(dto.getImageBase64());
+        banner.setThumbnail(dto.getThumbnail());
         banner.setStatus(dto.getStatus());
         banner.setUpdatedBy(updatedBy);
         banner.setUpdatedAt(Timestamp.now());

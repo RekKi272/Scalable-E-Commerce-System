@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 public class BannerResponseDto {
     private String bannerId;
     private String title;
-    private String imageBase64;
+    private String thumbnail;
     private String status;
     private Timestamp createdAt;
     private String createdBy;

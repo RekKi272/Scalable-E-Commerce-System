@@ -3,11 +3,10 @@ package com.hmkeyewear.file_service.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hmkeyewear.file_service.dto.FileResponseDto;
-import com.hmkeyewear.file_service.dto.FileRequestDto;
 import com.hmkeyewear.file_service.messaging.FileEventProducer;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.charset.StandardCharsets;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
@@ -19,7 +18,6 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Base64;
 
 @Service
 public class FileService {
@@ -72,19 +70,29 @@ public class FileService {
         return String.format("%s/storage/v1/object/public/%s/%s", supabaseUrl, bucket, encodePath(objectPath));
     }
 
-    public FileResponseDto uploadFile(FileRequestDto request) throws Exception {
-        String fileNameToUse = request.getFileName();
-        String folder = request.getFolder();
-        String bucket = request.getBucket();
-        String userId = request.getUserId();
+    public FileResponseDto uploadFile(
+            MultipartFile file,
+            String bucket,
+            String folder,
+            String userId) throws Exception {
 
-        if (folder == null || folder.isBlank() || folder.equals(bucket)) folder = "";
-        String objectPath = (folder.isBlank() ? "" : folder + "/") + fileNameToUse;
+        if (folder == null || folder.isBlank() || folder.equals(bucket)) {
+            folder = "";
+        }
 
-        byte[] fileBytes = Base64.getDecoder().decode(request.getFile().getData());
-        String contentType = Optional.ofNullable(request.getFile().getMime()).orElse("application/octet-stream");
+        String fileName = file.getOriginalFilename();
+        String objectPath = (folder.isBlank() ? "" : folder + "/") + fileName;
 
-        String url = String.format("%s/storage/v1/object/%s/%s", supabaseUrl, bucket, encodePath(objectPath));
+        byte[] fileBytes = file.getBytes();
+        String contentType = Optional.ofNullable(file.getContentType())
+                .orElse("application/octet-stream");
+
+        String url = String.format(
+                "%s/storage/v1/object/%s/%s",
+                supabaseUrl,
+                bucket,
+                encodePath(objectPath));
+
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Authorization", "Bearer " + serviceRoleKey)
@@ -94,30 +102,38 @@ public class FileService {
                 .build();
 
         HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
         if (response.statusCode() >= 200 && response.statusCode() < 300) {
             String publicUrl = buildPublicUrl(bucket, objectPath);
-            FileResponseDto dto = new FileResponseDto(
-                    publicUrl, fileNameToUse, fileBytes.length, Instant.now(), userId, folder
-            );
 
-            Map<String, String> event = new HashMap<>();
-            event.put("action", "UPLOAD");
-            event.put("url", publicUrl);
-            event.put("fileName", fileNameToUse);
-            if (userId != null) event.put("userId", userId);
-            eventProducer.sendMessage(event);
+            FileResponseDto dto = new FileResponseDto(
+                    publicUrl,
+                    fileName,
+                    fileBytes.length,
+                    Instant.now(),
+                    userId,
+                    folder);
+
+            eventProducer.sendMessage(Map.of(
+                    "action", "UPLOAD",
+                    "url", publicUrl,
+                    "fileName", fileName));
 
             return dto;
-        } else {
-            throw new RuntimeException("Upload failed: HTTP " + response.statusCode() + " - " + response.body());
         }
+
+        throw new RuntimeException(
+                "Upload failed: HTTP " + response.statusCode() + " - " + response.body());
     }
 
-    // FIXED: dùng FileRequestDto
-    public List<FileResponseDto> uploadMultipleFiles(List<FileRequestDto> requests) throws Exception {
+    public List<FileResponseDto> uploadMultipleFiles(
+            List<MultipartFile> files,
+            String bucket,
+            String folder,
+            String userId) throws Exception {
         List<FileResponseDto> result = new ArrayList<>();
-        for (FileRequestDto request : requests) {
-            result.add(uploadFile(request));
+        for (MultipartFile file : files) {
+            result.add(uploadFile(file, bucket, folder, userId));
         }
         return result;
     }

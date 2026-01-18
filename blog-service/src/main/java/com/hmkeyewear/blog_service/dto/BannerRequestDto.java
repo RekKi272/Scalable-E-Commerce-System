@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class BannerRequestDto {
     private String title;
-    private String imageBase64;
+    private String thumbnail;
     private String status; // ACTIVE | INACTIVE
 }

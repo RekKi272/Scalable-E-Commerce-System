@@ -10,13 +10,13 @@ import org.mapstruct.Mapping;
 public interface BannerMapper {
 
     @Mapping(source = "title", target = "title")
-    @Mapping(source = "imageBase64", target = "imageBase64")
+    @Mapping(source = "thumbnail", target = "thumbnail")
     @Mapping(source = "status", target = "status")
     Banner toBanner(BannerRequestDto dto);
 
     @Mapping(source = "bannerId", target = "bannerId")
     @Mapping(source = "title", target = "title")
-    @Mapping(source = "imageBase64", target = "imageBase64")
+    @Mapping(source = "thumbnail", target = "thumbnail")
     @Mapping(source = "status", target = "status")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "createdBy", target = "createdBy")

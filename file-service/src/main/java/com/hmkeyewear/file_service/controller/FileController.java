@@ -5,6 +5,7 @@ import com.hmkeyewear.file_service.dto.FileRequestDto;
 import com.hmkeyewear.file_service.service.FileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,27 +19,33 @@ public class FileController {
         this.fileService = fileService;
     }
 
-    // Upload single file
-    @PostMapping("/upload")
-    public ResponseEntity<FileResponseDto> uploadSingle(@RequestBody FileRequestDto request) throws Exception {
-        return ResponseEntity.ok(fileService.uploadFile(request));
+    @PostMapping(value = "/upload", consumes = "multipart/form-data")
+    public ResponseEntity<FileResponseDto> uploadSingle(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam String bucket,
+            @RequestParam(required = false) String folder,
+            @RequestParam(required = false) String userId) throws Exception {
+        return ResponseEntity.ok(
+                fileService.uploadFile(file, bucket, folder, userId));
     }
 
-    // Upload multiple files
-    @PostMapping("/upload/multiple")
-    public ResponseEntity<List<FileResponseDto>> uploadMultiple(@RequestBody List<FileRequestDto> requests) throws Exception {
-        return ResponseEntity.ok(fileService.uploadMultipleFiles(requests));
+    @PostMapping(value = "/upload/multiple", consumes = "multipart/form-data")
+    public ResponseEntity<List<FileResponseDto>> uploadMultiple(
+            @RequestPart("files") List<MultipartFile> files,
+            @RequestParam String bucket,
+            @RequestParam(required = false) String folder,
+            @RequestParam(required = false) String userId) throws Exception {
+        return ResponseEntity.ok(
+                fileService.uploadMultipleFiles(files, bucket, folder, userId));
     }
 
-    // Delete file by public url
     @DeleteMapping
     public ResponseEntity<String> deleteByUrl(@RequestParam("url") String url) throws Exception {
         return ResponseEntity.ok(fileService.deleteByUrl(url));
     }
 
-    // Get file info by public url
     @GetMapping
-    public ResponseEntity<FileResponseDto> getByUrl(@RequestParam("url") String url) throws Exception {
+    public ResponseEntity<FileResponseDto> getByUrl(@RequestParam("url") String url) {
         return ResponseEntity.ok(fileService.getByUrl(url));
     }
 }
