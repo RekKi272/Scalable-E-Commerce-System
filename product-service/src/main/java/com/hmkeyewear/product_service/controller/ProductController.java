@@ -82,27 +82,33 @@ public class ProductController {
 
     // SEARCH Product by Name
     @GetMapping("/search")
-    public ResponseEntity<List<ProductInforResponseDto>> searchProductsByName(@RequestParam String keyword)
+    public ResponseEntity<List<ProductInforResponseDto>> searchProductsByName(
+            @RequestParam("keyword") String keyword)
             throws InterruptedException, ExecutionException {
+
         return ResponseEntity.ok(productService.searchProductByName(keyword));
     }
 
     // FILTER Product
     @GetMapping("/filter")
     public ResponseEntity<List<ProductInforResponseDto>> filterProducts(
-            @RequestParam(required = false) String brandId,
-            @RequestParam(required = false) String categoryId,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice) throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(productService.filterProducts(brandId, categoryId, minPrice, maxPrice));
+            @RequestParam(value = "brandId", required = false) String brandId,
+            @RequestParam(value = "categoryId", required = false) String categoryId,
+            @RequestParam(value = "minPrice", required = false) Double minPrice,
+            @RequestParam(value = "maxPrice", required = false) Double maxPrice)
+            throws ExecutionException, InterruptedException {
+
+        return ResponseEntity.ok(
+                productService.filterProducts(brandId, categoryId, minPrice, maxPrice));
     }
 
     // DELETE Product
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteProduct(
             @RequestHeader("X-User-Role") String role,
-            @RequestParam String productId)
+            @RequestParam("productId") String productId)
             throws InterruptedException, ExecutionException {
+
         if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền xóa sản phẩm");
         }
