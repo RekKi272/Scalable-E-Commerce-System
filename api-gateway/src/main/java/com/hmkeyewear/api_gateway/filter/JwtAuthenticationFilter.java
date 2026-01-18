@@ -23,6 +23,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // Các endpoint public không cần token
     private static final String[] OPEN_ENDPOINTS = {
             "/auth/login",
+            "/auth/refresh",
             "/auth/register-customer",
             "/auth/forgot-password",
             "/auth/verify-otp",
