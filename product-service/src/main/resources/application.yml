@@ -10,6 +10,10 @@ spring:
     stream:
       username: guest
       password: guest
+  spring:
+    elasticsearch:
+      uris: http://elasticsearch:9200
+
 
 eureka:
   client:
@@ -42,3 +46,7 @@ app:
     stock-update-request:
       queue: stock_update_queue
       routing-key: stock_update_routing_key
+
+logging:
+  level:
+    org.elasticsearch: warn
