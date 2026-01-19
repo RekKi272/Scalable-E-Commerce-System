@@ -86,7 +86,7 @@ public class ProductController {
             @RequestParam("keyword") String keyword)
             throws InterruptedException, ExecutionException {
 
-        return ResponseEntity.ok(productService.searchProductByName(keyword));
+        return ResponseEntity.ok(productService.searchProduct(keyword));
     }
 
     // FILTER Product

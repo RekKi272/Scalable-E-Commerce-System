@@ -54,6 +54,25 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: redis-server --appendonly yes
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks: [ backend ]
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
   auth-service:
     build: ./auth-service
     container_name: auth-service
@@ -141,10 +160,14 @@ services:
       - ALGOLIA_APP_ID=${ALGOLIA_APP_ID}
       - ALGOLIA_API_KEY=${ALGOLIA_API_KEY}
       - ALGOLIA_API_WRITE_KEY=${ALGOLIA_API_WRITE_KEY}
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
     volumes:
       - ./secrets/firebase-product.json:/app/firebase-product.json
+      - esdata:/usr/share/elasticsearch/data
     depends_on:
       service-registry:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
 
   user-service:
@@ -159,25 +182,6 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
     volumes:
       - ./secrets/firebase-user.json:/app/firebase-user.json
-    depends_on:
-      service-registry:
-        condition: service_healthy
-
-  inventory-service:
-    build:
-      context: ./inventory-service
-      dockerfile: Dockerfile
-    container_name: inventory-service
-    ports:
-      - "8088:8088"
-    networks: [backend]
-    environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-inventory.json
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
-      - SPRING_APPLICATION_NAME=inventory-service
-      - SERVER_PORT=8088
-    volumes:
-      - ./secrets/firebase-inventory.json:/app/firebase-inventory.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -235,3 +239,5 @@ services:
       service-registry:
         condition: service_healthy
 
+volumes:
+  esdata:

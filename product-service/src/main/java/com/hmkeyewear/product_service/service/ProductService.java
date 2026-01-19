@@ -1,7 +1,5 @@
 package com.hmkeyewear.product_service.service;
 
-import com.algolia.api.SearchClient;
-import com.algolia.model.search.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
@@ -11,9 +9,10 @@ import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
 import com.hmkeyewear.product_service.dto.ItemRequestDto;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
+import com.hmkeyewear.product_service.mapper.ProductSearchMapper;
 import com.hmkeyewear.product_service.messaging.ProductEventProducer;
 import com.hmkeyewear.product_service.model.Product;
-import com.hmkeyewear.product_service.model.ProductLite;
+import com.hmkeyewear.product_service.model.ProductDocument;
 import com.hmkeyewear.product_service.model.Variant;
 import org.springframework.stereotype.Service;
 
@@ -29,22 +28,24 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductMapper productMapper;
-    private final SearchClient searchClient;
     private final ProductEventProducer productEventProducer;
+    private final ProductSearchService productSearchService;
+    private final ProductSearchMapper productSearchMapper;
 
     private static final String COLLECTION_NAME = "products";
     private static final String COUNTER_COLLECTION = "counters";
     private static final String PRODUCT_COUNTER_DOC = "productCounter";
     private static final String VARIANT_COUNTER_DOC = "variantCounter";
-    private static final String ALGOLIA_INDEX_NAME = "products";
 
     // Constructor
     public ProductService(ProductMapper productMapper,
-                          SearchClient searchClient,
-                          ProductEventProducer productEventProducer) {
+                          ProductEventProducer productEventProducer,
+                          ProductSearchService productSearchService,
+                          ProductSearchMapper productSearchMapper) {
         this.productMapper = productMapper;
-        this.searchClient = searchClient;
         this.productEventProducer = productEventProducer;
+        this.productSearchService = productSearchService;
+        this.productSearchMapper = productSearchMapper;
     }
 
     // ------------------- UTIL: Remove Vietnamese Diacritics -------------------
@@ -57,61 +58,7 @@ public class ProductService {
     }
 
     // ----------------------------- SYNC EXISTING DATA ----------------------------
-    // @PostConstruct
-    public void syncAllProductsToAlgolia() {
-        try {
-            Firestore db = FirestoreClient.getFirestore();
 
-            // Lấy danh sách productId hiện có trong Algolia
-            SearchResponse<ProductLite> existing = searchClient.searchSingleIndex(
-                    ALGOLIA_INDEX_NAME,
-                    new SearchParamsObject().setQuery(""), // truy vấn rỗng để lấy toàn bộ
-                    ProductLite.class);
-
-            List<String> existingIds = existing.getHits().stream()
-                    .map(ProductLite::getProductId)
-                    .toList();
-
-            // Lấy toàn bộ dữ liệu từ Firestore
-            List<QueryDocumentSnapshot> docs = db.collection(COLLECTION_NAME)
-                    .get()
-                    .get()
-                    .getDocuments();
-
-            if (docs.isEmpty()) {
-                System.out.println("Không có sản phẩm nào để đồng bộ lên Algolia.");
-                return;
-            }
-
-            // Tạo danh sách sản phẩm mới chưa có trong Algolia
-            List<ProductLite> newProducts = new ArrayList<>();
-
-            for (QueryDocumentSnapshot doc : docs) {
-                Product product = doc.toObject(Product.class);
-
-                String productId = product.getProductId();
-                if (existingIds.contains(productId))
-                    continue; // đã tồn tại thì bỏ qua
-
-                ProductLite lite = new ProductLite();
-                lite.setProductId(productId);
-                lite.setProductName(removeVietnameseDiacritics(product.getProductName()));
-
-                newProducts.add(lite);
-            }
-
-            // Sync lên Algolia nếu có sản phẩm mới
-            if (!newProducts.isEmpty()) {
-                searchClient.saveObjects(ALGOLIA_INDEX_NAME, newProducts);
-                System.out.println("Đã đồng bộ " + newProducts.size() + " sản phẩm mới lên Algolia.");
-            } else {
-                System.out.println("Không có sản phẩm mới cần đồng bộ.");
-            }
-
-        } catch (Exception e) {
-            System.err.println("Lỗi khi đồng bộ dữ liệu lên Algolia: " + e.getMessage());
-        }
-    }
 
     private String generateProductId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(PRODUCT_COUNTER_DOC);
@@ -204,6 +151,12 @@ public class ProductService {
         }
 
         db.collection(COLLECTION_NAME).document(product.getProductId()).set(product).get();
+
+        // index Elasticsearch
+        ProductDocument productDoc = productSearchMapper.toDocument(product);
+        productDoc.setProductName(removeVietnameseDiacritics(product.getProductName()));
+        productSearchService.save(productDoc);
+
         productEventProducer.sendMessage(product);
 
         return productMapper.toProductResponseDto(product);
@@ -307,43 +260,7 @@ public class ProductService {
     }
 
     // SEARCH PRODUCT NAME BY KEYWORD
-    public List<ProductInforResponseDto> searchProductByName(String keyword)
-            throws ExecutionException, InterruptedException {
 
-        String normalizedKeyword = removeVietnameseDiacritics(keyword);
-
-        // Tìm kiếm trên Algolia (chỉ lấy productId)
-        SearchResponse<ProductLite> response = searchClient.searchSingleIndex(
-                ALGOLIA_INDEX_NAME,
-                new SearchParamsObject()
-                        .setQuery(normalizedKeyword)
-                        .setRestrictSearchableAttributes(List.of("productName"))
-                        .setAttributesToRetrieve(List.of("productId")), // chỉ lấy ID
-                ProductLite.class);
-
-        // Lấy danh sách productId từ kết quả Algolia
-        List<String> productIds = response.getHits().stream()
-                .map(ProductLite::getProductId)
-                .toList();
-
-        // Lấy chi tiết sản phẩm từ Firestore dựa trên ID
-        Firestore firestore = FirestoreClient.getFirestore();
-        List<ProductInforResponseDto> result = new ArrayList<>();
-
-        for (String id : productIds) {
-            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(id);
-            ApiFuture<DocumentSnapshot> future = docRef.get();
-            DocumentSnapshot doc = future.get();
-
-            if (doc.exists()) {
-                Product product = doc.toObject(Product.class);
-                ProductInforResponseDto dto = productMapper.toProductInforResponseDto(product);
-                result.add(dto);
-            }
-        }
-
-        return result;
-    }
 
     // Filter Product
     public List<ProductInforResponseDto> filterProducts(
@@ -484,6 +401,11 @@ public class ProductService {
         // Lưu vào DB
         // ------------------------
         productRef.set(updatedProduct).get();
+
+        // Update in Elasticsearch
+        ProductDocument productDoc = productSearchMapper.toDocument(updatedProduct);
+        productDoc.setProductName(removeVietnameseDiacritics(updatedProduct.getProductName()));
+        productSearchService.save(productDoc);
         productEventProducer.sendMessage(updatedProduct);
 
         return productMapper.toProductResponseDto(updatedProduct);
@@ -511,8 +433,8 @@ public class ProductService {
         Firestore db = FirestoreClient.getFirestore();
         db.collection(COLLECTION_NAME).document(productId).delete().get();
 
-        // --- Xóa khỏi Algolia ---
-        // searchClient.deleteObjects(ALGOLIA_INDEX_NAME, List.of(productId));
+        // Delete from Elasticsearch
+        productSearchService.deleteById(productId);
 
         // --- Send message to RabbitMQ ---
         productEventProducer.sendMessage(productId);
@@ -601,4 +523,43 @@ public class ProductService {
 
         return results;
     }
+
+    // SEARCH PRODUCT
+    public List<ProductInforResponseDto> searchProduct(String keyword)
+            throws ExecutionException, InterruptedException {
+
+        keyword = removeVietnameseDiacritics(keyword);
+        // search từ Elasticsearch
+        List<ProductDocument> docs =
+                productSearchService.searchByName(keyword);
+
+        // nếu ES down hoặc không có kết quả
+        if (docs.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Firestore db = FirestoreClient.getFirestore();
+        List<ProductInforResponseDto> result = new ArrayList<>();
+
+        // lấy dữ liệu đầy đủ từ Firestore
+        for (ProductDocument doc : docs) {
+
+            DocumentSnapshot snapshot = db.collection("products")
+                    .document(doc.getProductId())
+                    .get()
+                    .get();
+
+            if (snapshot.exists()) {
+                Product product = snapshot.toObject(Product.class);
+                if (product != null && "ACTIVE".equals(product.getStatus())) {
+                    result.add(
+                            productMapper.toProductInforResponseDto(product)
+                    );
+                }
+            }
+        }
+
+        return result;
+    }
+
 }
