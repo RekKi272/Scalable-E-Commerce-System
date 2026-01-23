@@ -34,7 +34,7 @@ public class BrandController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<BrandResponseDto> getBrand(@RequestParam String brandId)
+    public ResponseEntity<BrandResponseDto> getBrand(@RequestParam("brandId") String brandId)
             throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(brandService.getBrandById(brandId));
     }
@@ -62,10 +62,10 @@ public class BrandController {
     @DeleteMapping("/delete")
     public ResponseEntity<String> deleteBrand(
             @RequestHeader("X-User-Role") String role,
-            @RequestParam String brandId)
+            @RequestParam("brandId") String brandId)
             throws ExecutionException, InterruptedException {
 
-        if(!"ROLE_ADMIN".equalsIgnoreCase(role)) {
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền xóa brand");
         }
 

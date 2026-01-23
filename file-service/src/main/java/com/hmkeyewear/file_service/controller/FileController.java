@@ -22,7 +22,7 @@ public class FileController {
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<FileResponseDto> uploadSingle(
             @RequestPart("file") MultipartFile file,
-            @RequestParam String bucket,
+            @RequestParam("bucket") String bucket,
             @RequestParam(required = false) String folder,
             @RequestParam(required = false) String userId) throws Exception {
         return ResponseEntity.ok(
@@ -32,7 +32,7 @@ public class FileController {
     @PostMapping(value = "/upload/multiple", consumes = "multipart/form-data")
     public ResponseEntity<List<FileResponseDto>> uploadMultiple(
             @RequestPart("files") List<MultipartFile> files,
-            @RequestParam String bucket,
+            @RequestParam("bucket") String bucket,
             @RequestParam(required = false) String folder,
             @RequestParam(required = false) String userId) throws Exception {
         return ResponseEntity.ok(

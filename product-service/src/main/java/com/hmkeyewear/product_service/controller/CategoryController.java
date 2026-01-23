@@ -34,7 +34,7 @@ public class CategoryController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<CategoryResponseDto> getCategory(@RequestParam String categoryId)
+    public ResponseEntity<CategoryResponseDto> getCategory(@RequestParam("categoryId") String categoryId)
             throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(categoryService.getCategoryById(categoryId));
     }
@@ -63,9 +63,9 @@ public class CategoryController {
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteCategory(
             @RequestHeader("X-User-Role") String role,
-            @RequestParam String categoryId)
+            @RequestParam("categoryId") String categoryId)
             throws ExecutionException, InterruptedException {
-        if(!"ROLE_ADMIN".equalsIgnoreCase(role)){
+        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền xóa danh mục sản phẩm");
         }
         return ResponseEntity.ok(categoryService.deleteCategory(categoryId));

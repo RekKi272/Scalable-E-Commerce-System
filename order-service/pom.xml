@@ -160,6 +160,9 @@
 					</execution>
 				</executions>
 				<configuration>
+					<mainClass>
+						com.hmkeyewear.order_service.OrderServiceApplication
+					</mainClass>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>

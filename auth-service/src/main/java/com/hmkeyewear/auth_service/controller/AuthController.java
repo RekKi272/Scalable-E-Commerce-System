@@ -4,7 +4,6 @@ import com.hmkeyewear.auth_service.dto.*;
 import com.hmkeyewear.auth_service.model.RefreshToken;
 import com.hmkeyewear.auth_service.model.User;
 import com.hmkeyewear.auth_service.service.*;
-import com.hmkeyewear.auth_service.dto.ChangePasswordRequestDto;
 import com.hmkeyewear.common_dto.dto.ForgotPasswordRequestDto;
 import com.hmkeyewear.common_dto.dto.ResetPasswordRequestDto;
 import com.hmkeyewear.common_dto.dto.VerifyOtpRequestDto;
@@ -138,7 +137,7 @@ public class AuthController {
     }
 
     @GetMapping("/validate")
-    public String validateToken(@RequestParam String token) {
+    public String validateToken(@RequestParam("token") String token) {
         authService.validateToken(token);
         return "Token is valid";
     }

@@ -22,7 +22,7 @@ eureka:
 
 firebase:
   credentials:
-    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-hmk-database.json}
+    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-product.json}
 
 
 app:

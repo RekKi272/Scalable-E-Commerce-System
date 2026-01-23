@@ -20,6 +20,7 @@ public class UserController {
     public UserController(UserService userService) {
         this.userService = userService;
     }
+
     /** ==================== COMMON UTILS ==================== */
 
     private boolean isAdmin(String role) {
@@ -74,7 +75,8 @@ public class UserController {
     @GetMapping("/getByRole")
     public ResponseEntity<?> getUsersByRole(
             @RequestHeader("X-User-Role") String roleHeader,
-            @RequestParam String role) throws ExecutionException, InterruptedException {
+            @RequestParam("role") String role)
+            throws ExecutionException, InterruptedException {
 
         if (!isAdmin(roleHeader))
             return ResponseEntity.status(403).body("Access denied: Admin only");
@@ -91,7 +93,7 @@ public class UserController {
     @GetMapping("/getByPhone")
     public ResponseEntity<?> getUserByPhone(
             @RequestHeader("X-User-Role") String roleHeader,
-            @RequestParam String phone) throws ExecutionException, InterruptedException {
+            @RequestParam("phone") String phone) throws ExecutionException, InterruptedException {
 
         if (!isAdmin(roleHeader))
             return ResponseEntity.status(403).body("Access denied: Admin only");
@@ -108,7 +110,7 @@ public class UserController {
     @GetMapping("/getById")
     public ResponseEntity<?> getUser(
             @RequestHeader("X-User-Role") String roleHeader,
-            @RequestParam String userId) throws ExecutionException, InterruptedException {
+            @RequestParam("userId") String userId) throws ExecutionException, InterruptedException {
 
         if (!isAdmin(roleHeader) && !"EMPLOYER".equalsIgnoreCase(roleHeader)) {
             return ResponseEntity.status(403).body("Access denied: Admin or Employer only");
@@ -126,7 +128,7 @@ public class UserController {
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(
             @RequestHeader("X-User-Role") String roleHeader,
-            @RequestParam String userId,
+            @RequestParam("userId") String userId,
             @Valid @RequestBody UserRequestDto dto,
             @RequestHeader("X-User-Id") String updatedBy) throws ExecutionException, InterruptedException {
 

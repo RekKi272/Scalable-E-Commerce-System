@@ -25,7 +25,7 @@ eureka:
 
 firebase:
   credentials:
-    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-hmk-database.json}
+    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-user.json}
 
 jwt:
   secret: ${JWT_SECRET:defaultFallbackSecretKey1234567890}

@@ -1,7 +1,6 @@
 # =========================================
-# 🚀 Clean + Unit Test + Build + Docker (Single Service)
-# Usage:
-#   ./test-build-service.ps1 -ServiceName "product-service"
+# 🚀 Script PowerShell: Clean + Test + Rebuild Single Service
+# Sử dụng: ./build-service.ps1 -ServiceName "product-service"
 # =========================================
 
 param (
@@ -9,77 +8,45 @@ param (
     [string]$ServiceName
 )
 
-Write-Host "====================================="
-Write-Host "SERVICE PIPELINE: $ServiceName"
-Write-Host "====================================="
-
-# 1️⃣ Kiểm tra thư mục service
+# 1️⃣ Kiểm tra thư mục service có tồn tại không
 $serviceFolder = Join-Path -Path (Get-Location) -ChildPath $ServiceName
+
 if (-Not (Test-Path $serviceFolder)) {
-    Write-Error "❌ Folder '$ServiceName' does not exist."
+    Write-Error "Folder '$ServiceName' does not exist. Exiting."
     exit 1
 }
 
-# 2️⃣ CLEAN
-Write-Host ""
-Write-Host "====================================="
-Write-Host "STEP 1: CLEAN SERVICE"
-Write-Host "====================================="
-mvn -pl $ServiceName -am clean
+# 2️⃣ Clean Maven build (xóa toàn bộ dữ liệu test cũ)
+Write-Host "==> Cleaning Maven target for $ServiceName ..."
+mvn -f $serviceFolder clean
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "❌ Maven clean failed."
-    exit 1
+    Write-Error "Maven clean failed for $ServiceName. Exiting."
+    exit $LASTEXITCODE
 }
 
-# 3️⃣ UNIT TEST
-Write-Host ""
-Write-Host "====================================="
-Write-Host "STEP 2: RUN UNIT TEST"
-Write-Host "====================================="
-mvn -pl $ServiceName -am test -DskipITs
-
+# 3️⃣ Run unit tests
+Write-Host "==> Running unit tests for $ServiceName ..."
+mvn -f $serviceFolder test
 if ($LASTEXITCODE -ne 0) {
-    Write-Host ""
-    Write-Host "❌ UNIT TEST FAILED – STOP PIPELINE"
-    Write-Host "[FAIL] $ServiceName"
-    exit 1
+    Write-Error "Unit tests failed for $ServiceName. Exiting."
+    exit $LASTEXITCODE
 }
 
-Write-Host ""
-Write-Host "✅ UNIT TEST PASSED"
-
-# 4️⃣ BUILD (SKIP TEST)
-Write-Host ""
-Write-Host "====================================="
-Write-Host "STEP 3: BUILD SERVICE (SKIP TEST)"
-Write-Host "====================================="
+# 4️⃣ Build Maven package (sau khi test pass)
+Write-Host "==> Building Maven package for $ServiceName ..."
 mvn -f $serviceFolder package -DskipTests
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "❌ Maven build failed."
-    exit 1
+    Write-Error "Maven build failed for $ServiceName. Exiting."
+    exit $LASTEXITCODE
 }
 
-# 5️⃣ DOCKER BUILD & UP (ONLY THIS SERVICE)
-Write-Host ""
-Write-Host "====================================="
-Write-Host "STEP 4: DOCKER BUILD & RUN"
-Write-Host "====================================="
+# 5️⃣ Docker Compose build & up cho service này
+Write-Host "==> Rebuilding and starting Docker for $ServiceName ..."
+docker-compose build $ServiceName
+docker-compose up -d $ServiceName
 
+Write-Host "==> Rebuilding and starting Docker for $ServiceName (local)..."
 docker-compose -f docker-compose.local.yml build $ServiceName
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "❌ Docker build failed."
-    exit 1
-}
-
 docker-compose -f docker-compose.local.yml up -d $ServiceName
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "❌ Docker up failed."
-    exit 1
-}
 
-Write-Host ""
-Write-Host "====================================="
-Write-Host "🎉 SERVICE READY"
-Write-Host "$ServiceName tested, built and deployed"
-Write-Host "====================================="
-exit 0
+Write-Host "✅ Service '$ServiceName' rebuilt and running."
