@@ -2,6 +2,12 @@ networks:
   backend:
     driver: bridge
 
+
+volumes:
+  esdata:
+  redisdata:
+  rabbitmqdata:
+
 services:
   service-registry:
     build:
@@ -49,6 +55,8 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    volumes:
+      - redisdata:/data
     networks: [backend]
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -81,10 +89,10 @@ services:
     networks: [backend]
     environment:
       - JWT_SECRET=${JWT_SECRET}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-user.json:/app/firebase-user.json
+      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -95,6 +103,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
     networks: [backend]
 
   blog-service:
@@ -106,9 +116,10 @@ services:
       - "8084:8084"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-blog.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-blog.json:/app/firebase-blog.json
+      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -124,9 +135,10 @@ services:
       - "8083:8083"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-cart.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-cart.json:/app/firebase-cart.json
+      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -140,9 +152,10 @@ services:
       - "8082:8082"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-order.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-order.json:/app/firebase-order.json
+      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -156,13 +169,14 @@ services:
       - "8081:8081"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-product.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
       - ALGOLIA_APP_ID=${ALGOLIA_APP_ID}
       - ALGOLIA_API_KEY=${ALGOLIA_API_KEY}
       - ALGOLIA_API_WRITE_KEY=${ALGOLIA_API_WRITE_KEY}
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-product.json:/app/firebase-product.json
+      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
       - esdata:/usr/share/elasticsearch/data
     depends_on:
       service-registry:
@@ -179,9 +193,10 @@ services:
       - "8085:8085"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-user.json:/app/firebase-user.json
+      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -202,6 +217,7 @@ services:
       - VNP_VERSION=${VNP_VERSION}
       - VNP_COMMAND=${VNP_COMMAND}
       - VNP_ORDER_TYPE=${VNP_ORDER_TYPE}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     depends_on:
       service-registry:
         condition: service_healthy
@@ -216,6 +232,7 @@ services:
     networks: [backend]
     environment:
       - SUPABASE_SECRETS_PATH=/app/supabase-secrets.json
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
       - ./secrets/supabase-secrets.json:/app/supabase-secrets.json
     depends_on:
@@ -233,11 +250,10 @@ services:
     environment:
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_APP_PASSWORD=${MAIL_APP_PASSWORD}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     env_file:
       - .env
     depends_on:
       service-registry:
         condition: service_healthy
 
-volumes:
-  esdata:

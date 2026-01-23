@@ -23,7 +23,7 @@ public class ElasticsearchSyncScheduler {
         if (synced) return;
 
         if (healthChecker.isReady()) {
-            log.info("Elasticsearch READY → start syncing");
+            log.info("Elasticsearch READY -> start syncing");
             syncService.syncAll();
             synced = true;
         } else {

@@ -14,11 +14,11 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://service-registry:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
 
 firebase:
   credentials:
-    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-cart.json}
+    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-hmk-database.json}
 
 app:
   rabbitmq:
