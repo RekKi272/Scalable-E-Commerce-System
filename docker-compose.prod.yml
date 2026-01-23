@@ -3,8 +3,11 @@ networks:
     driver: bridge
 
 volumes:
-  redis_data:
-  rabbitmq_data:
+  esdata:
+  redisdata:
+  rabbitmqdata:
+  certbot-web:
+  certbot-etc:
 
 services:
 
@@ -13,23 +16,42 @@ services:
     container_name: service-registry
     networks: [backend]
     restart: always
+    environment:
+      SERVER_PORT: 8761
+      SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 350m
+
 
   api-gateway:
     image: rekki27204/api-gateway:latest
     container_name: api-gateway
     networks: [backend]
     restart: always
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     depends_on:
       service-registry:
         condition: service_healthy
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
-      JWT_SECRET: ${JWT_SECRET}
+    mem_limit: 350m
+
 
   nginx:
     image: nginx:1.25
@@ -45,6 +67,8 @@ services:
     depends_on:
       - api-gateway
     networks: [backend]
+    restart: always
+
 
   redis:
     image: redis:7.2
@@ -52,19 +76,44 @@ services:
     restart: always
     command: >
       redis-server
-      --appendonly yes
       --requirepass ${REDIS_PASSWORD}
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
     volumes:
-      - redis_data:/data
+      - redisdata:/data
     networks: [backend]
+    mem_limit: 150m
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks: [backend]
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 600m
+
 
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmqdata:/var/lib/rabbitmq
     networks: [backend]
+    mem_limit: 300m
 
   auth-service:
     image: rekki27204/auth-service:latest
@@ -72,16 +121,26 @@ services:
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8090
+      SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-user.json
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     volumes:
-      - ./secrets/firebase-user.json:/secrets/firebase-user.json
+      - ./secrets/firebase-user.json:/secrets/firebase-user.json:ro
     depends_on:
       service-registry:
         condition: service_healthy
       redis:
         condition: service_started
+    mem_limit: 350m
+
+
 
   blog-service:
     image: rekki27204/blog-service:latest
@@ -89,39 +148,67 @@ services:
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8084
+      SPRING_PROFILES_ACTIVE: prod
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-blog.json
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     volumes:
-      - ./secrets/firebase-blog.json:/secrets/firebase-blog.json
+      - ./secrets/firebase-blog.json:/secrets/firebase-blog.json:ro
     depends_on:
       service-registry:
         condition: service_healthy
       rabbitmq:
         condition: service_started
+    mem_limit: 350m
+
+
 
   cart-service:
     image: rekki27204/cart-service:latest
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8083
+      SPRING_PROFILES_ACTIVE: prod
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-cart.json
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     volumes:
-      - ./secrets/firebase-cart.json:/secrets/firebase-cart.json
+      - ./secrets/firebase-cart.json:/secrets/firebase-cart.json:ro
     depends_on:
       service-registry:
         condition: service_healthy
+    mem_limit: 350m
 
   order-service:
     image: rekki27204/order-service:latest
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8082
+      SPRING_PROFILES_ACTIVE: prod
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-order.json
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     volumes:
-      - ./secrets/firebase-order.json:/secrets/firebase-order.json
+      - ./secrets/firebase-order.json:/secrets/firebase-order.json:ro
     depends_on:
       service-registry:
         condition: service_healthy
+    mem_limit: 350m
 
   product-service:
     image: rekki27204/product-service:latest
@@ -129,29 +216,42 @@ services:
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-product.json
-      ALGOLIA_APP_ID: ${ALGOLIA_APP_ID}
-      ALGOLIA_API_KEY: ${ALGOLIA_API_KEY}
-      ALGOLIA_API_WRITE_KEY: ${ALGOLIA_API_WRITE_KEY}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     volumes:
-      - ./secrets/firebase-product.json:/secrets/firebase-product.json
+      - ./secrets/firebase-product.json:/secrets/firebase-product.json:ro
     depends_on:
       service-registry:
         condition: service_healthy
-
+    mem_limit: 350m
 
   user-service:
     image: rekki27204/user-service:latest
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8085
+      SPRING_PROFILES_ACTIVE: prod
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-user.json
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     volumes:
-      - ./secrets/firebase-user.json:/secrets/firebase-user.json
+      - ./secrets/firebase-user.json:/secrets/firebase-user.json:ro
     depends_on:
       service-registry:
         condition: service_healthy
+    mem_limit: 350m
 
   payment-service:
     image: rekki27204/payment-service:latest
@@ -159,6 +259,8 @@ services:
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8089
+      SPRING_PROFILES_ACTIVE: prod
       VNP_URL: ${VNP_URL}
       VNP_TMN_CODE: ${VNP_TMN_CODE}
       VNP_SECRET_KEY: ${VNP_SECRET_KEY}
@@ -168,22 +270,36 @@ services:
       VNP_ORDER_TYPE: ${VNP_ORDER_TYPE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       SPRING_APPLICATION_NAME: payment-service
-      SERVER_PORT: 8089
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     depends_on:
       service-registry:
         condition: service_healthy
+    mem_limit: 350m
 
   file-service:
     image: rekki27204/file-service:latest
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8091
+      SPRING_PROFILES_ACTIVE: prod
       SUPABASE_SECRETS_PATH: /secrets/supabase.json
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     volumes:
-      - ./secrets/supabase-secrets.json:/secrets/supabase.json
+      - ./secrets/supabase-secrets.json:/secrets/supabase.json:ro
     depends_on:
       service-registry:
         condition: service_healthy
+    mem_limit: 350m
 
   notification-service:
     image: rekki27204/notification-service:latest
@@ -191,13 +307,19 @@ services:
     restart: always
     networks: [backend]
     environment:
+      SERVER_PORT: 8092
+      SPRING_PROFILES_ACTIVE: prod
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_APP_PASSWORD: ${MAIL_APP_PASSWORD}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
     depends_on:
       service-registry:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-
-
+    mem_limit: 350m
