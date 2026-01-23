@@ -89,10 +89,10 @@ services:
     networks: [backend]
     environment:
       - JWT_SECRET=${JWT_SECRET}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
+      - ./secrets/firebase-user.json:/app/firebase-user.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -116,10 +116,10 @@ services:
       - "8084:8084"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-blog.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
+      - ./secrets/firebase-blog.json:/app/firebase-blog.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -135,10 +135,10 @@ services:
       - "8083:8083"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-cart.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
+      - ./secrets/firebase-cart.json:/app/firebase-cart.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -152,10 +152,10 @@ services:
       - "8082:8082"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-order.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
+      - ./secrets/firebase-order.json:/app/firebase-order.json
     depends_on:
       service-registry:
         condition: service_healthy
@@ -169,14 +169,14 @@ services:
       - "8081:8081"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-product.json
       - ALGOLIA_APP_ID=${ALGOLIA_APP_ID}
       - ALGOLIA_API_KEY=${ALGOLIA_API_KEY}
       - ALGOLIA_API_WRITE_KEY=${ALGOLIA_API_WRITE_KEY}
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
+      - ./secrets/firebase-product.json:/app/firebase-product.json
       - esdata:/usr/share/elasticsearch/data
     depends_on:
       service-registry:
@@ -193,10 +193,10 @@ services:
       - "8085:8085"
     networks: [backend]
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-hmk-database.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     volumes:
-      - ./secrets/firebase-hmk-database.json:/app/firebase-hmk-database.json
+      - ./secrets/firebase-user.json:/app/firebase-user.json
     depends_on:
       service-registry:
         condition: service_healthy
