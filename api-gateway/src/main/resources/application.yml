@@ -31,7 +31,7 @@ spring:
                         - RemoveRequestHeader=Cookie
 
                     # Banner Service
-                    - id: blog-service
+                    - id: banner-route
                       uri: lb://blog-service
                       predicates:
                         - Path=/banner/**
@@ -130,7 +130,7 @@ spring:
 #                name: Cookie
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:defaultFallbackSecretKey1234567890}
 
 auth:
   service:
@@ -139,7 +139,8 @@ auth:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://service-registry:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+
 
 logging:
   level:
