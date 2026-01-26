@@ -1,9 +1,14 @@
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
 FROM eclipse-temurin:17-jdk
+WORKDIR /app
 
-ARG FILE_JAR=target/*.jar
-
-ADD ${FILE_JAR} order-service.jar
-
-ENTRYPOINT ["java", "-jar", "/order-service.jar"]
+COPY --from=build /app/target/*.jar order-service.jar
 
 EXPOSE 8082
+ENTRYPOINT ["java", "-jar", "order-service.jar"]

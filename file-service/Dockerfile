@@ -1,13 +1,14 @@
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
 FROM eclipse-temurin:17-jdk
+WORKDIR /app
 
-# Build jar name
-ARG FILE_JAR=target/*.jar
+COPY --from=build /app/target/*.jar file-service.jar
 
-# Add jar file
-ADD ${FILE_JAR} file-service.jar
-
-# Set entrypoint
-ENTRYPOINT ["java", "-jar", "/file-service.jar"]
-
-# Expose service port
 EXPOSE 8091
+ENTRYPOINT ["java", "-jar", "file-service.jar"]

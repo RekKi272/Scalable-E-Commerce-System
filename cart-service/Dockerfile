@@ -1,9 +1,14 @@
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
 FROM eclipse-temurin:17-jdk
+WORKDIR /app
 
-ARG FILE_JAR=target/*.jar
-
-ADD ${FILE_JAR} cart-service.jar
-
-ENTRYPOINT ["java", "-jar", "/cart-service.jar"]
+COPY --from=build /app/target/*.jar cart-service.jar
 
 EXPOSE 8083
+ENTRYPOINT ["java", "-jar", "cart-service.jar"]
