@@ -136,4 +136,5 @@ jobs:
             chmod 644 nginx/ssl/prod/server.crt
             
             docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d
