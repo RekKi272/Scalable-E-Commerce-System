@@ -8,8 +8,8 @@ spring:
     host: rabbitmq
     port: 5672
     stream:
-      username: guest
-      password: guest
+      username: ${RABBITMQ_USER}
+      password: ${RABBITMQ_PASSWORD}
   elasticsearch:
     uris: http://elasticsearch:9200
 

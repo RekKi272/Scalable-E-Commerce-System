@@ -97,8 +97,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    mem_limit: 600m
-
 
   rabbitmq:
     image: rabbitmq:3-management
