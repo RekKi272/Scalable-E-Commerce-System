@@ -12,7 +12,7 @@ volumes:
 services:
 
   service-registry:
-    image: rekki27204/service-registry:latest
+    image: rekki27204/service_registry:latest
     container_name: service-registry
     networks: [backend]
     restart: always
