@@ -140,8 +140,6 @@ services:
         condition: service_started
     mem_limit: 350m
 
-
-
   blog-service:
     image: rekki27204/blog-service:latest
     container_name: blog-service
@@ -165,8 +163,6 @@ services:
       rabbitmq:
         condition: service_started
     mem_limit: 350m
-
-
 
   cart-service:
     image: rekki27204/cart-service:latest
