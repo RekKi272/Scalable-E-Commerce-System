@@ -124,6 +124,7 @@ services:
       SERVER_PORT: 8090
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-user.json
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
