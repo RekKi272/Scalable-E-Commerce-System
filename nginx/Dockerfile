@@ -1,10 +1,11 @@
 FROM nginx:1.25
 
-# copy base config
-COPY nginx.conf /etc/nginx/nginx.conf
+# Xóa config mặc định của nginx
+RUN rm /etc/nginx/conf.d/default.conf
 
-# copy prod config
+# Copy nginx config production
 COPY nginx.prod.conf /etc/nginx/conf.d/default.conf
 
-# copy SSL cert for prod
-COPY ssl/prod /etc/nginx/ssl
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

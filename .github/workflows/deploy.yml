@@ -12,7 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-
       # ===============================
       # 1. SETUP JAVA
       # ===============================
@@ -23,7 +22,7 @@ jobs:
           java-version: '17'
 
       # ===============================
-      # 2. BUILD ALL SERVICES (ROOT)
+      # 2. BUILD MAVEN MULTI-MODULE
       # ===============================
       - name: Build Maven multi-module
         run: mvn clean install -DskipTests
@@ -62,7 +61,15 @@ jobs:
           done
 
       # ===============================
-      # 5. CREATE .env FILE
+      # 5. BUILD & PUSH NGINX IMAGE
+      # ===============================
+      - name: Build & push nginx image
+        run: |
+          docker build -t rekki27204/nginx-prod:latest ./nginx
+          docker push rekki27204/nginx-prod:latest
+
+      # ===============================
+      # 6. CREATE .env FILE
       # ===============================
       - name: Create .env
         run: |
@@ -84,7 +91,7 @@ jobs:
           EOF
 
       # ===============================
-      # 6. CREATE SECRETS JSON FILES
+      # 7. CREATE SECRETS JSON FILES
       # ===============================
       - name: Create firebase & supabase secrets
         run: |
@@ -98,7 +105,7 @@ jobs:
           echo '${{ secrets.SUPABASE_SECRET_JSON }}' > secrets/supabase-secrets.json
 
       # ===============================
-      # 7. CREATE NGINX SSL FILES
+      # 8. CREATE NGINX SSL FILES
       # ===============================
       - name: Create Nginx SSL
         run: |
@@ -109,7 +116,7 @@ jobs:
       
 
       # ===============================
-      # 8. COPY ALL TO EC2
+      # 9. COPY ALL TO EC2
       # ===============================
       - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -121,7 +128,7 @@ jobs:
           target: "/home/ubuntu/app"
 
       # ===============================
-      # 9. DEPLOY
+      # 10. DEPLOY
       # ===============================
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
