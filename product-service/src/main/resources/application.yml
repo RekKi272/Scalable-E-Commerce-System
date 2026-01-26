@@ -10,9 +10,8 @@ spring:
     stream:
       username: guest
       password: guest
-  spring:
-    elasticsearch:
-      uris: http://elasticsearch:9200
+  elasticsearch:
+    uris: http://elasticsearch:9200
 
 
 eureka:
