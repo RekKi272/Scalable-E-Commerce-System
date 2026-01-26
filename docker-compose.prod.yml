@@ -54,18 +54,15 @@ services:
 
 
   nginx:
-    image: nginx:1.25
+    image: rekki27204/nginx-prod:latest
     container_name: nginx
     ports:
       - "80:80"
       - "443:443"
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf
-      - ./nginx/ssl/prod:/etc/nginx/ssl
-      - certbot-web:/var/www/certbot
     depends_on:
       - api-gateway
-    networks: [ backend ]
+    networks:
+      - backend
     restart: always
 
   redis:
