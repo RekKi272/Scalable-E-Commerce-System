@@ -15,7 +15,7 @@ services:
     image: rekki27204/service-registry:latest
     container_name: service-registry
     networks: [backend]
-    restart: always
+    restart: unless-stopped
     environment:
       SERVER_PORT: 8761
       SPRING_PROFILES_ACTIVE: prod
@@ -36,7 +36,7 @@ services:
     image: rekki27204/api-gateway:latest
     container_name: api-gateway
     networks: [backend]
-    restart: always
+    restart: on-failure
     environment:
       SERVER_PORT: 8080
       SPRING_PROFILES_ACTIVE: prod
@@ -63,12 +63,12 @@ services:
       - api-gateway
     networks:
       - backend
-    restart: always
+    restart: unless-stopped
 
   redis:
     image: redis:7.2
     container_name: redis
-    restart: always
+    restart: unless-stopped
     command: >
       redis-server
       --requirepass ${REDIS_PASSWORD}
@@ -89,7 +89,7 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks: [ backend ]
-    restart: always
+    restart: unless-stopped
     ports:
       - "9200:9200"
     healthcheck:
@@ -101,7 +101,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
-    restart: always
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
@@ -113,7 +113,7 @@ services:
   auth-service:
     image: rekki27204/auth-service:latest
     container_name: auth-service
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8090
@@ -139,7 +139,7 @@ services:
   blog-service:
     image: rekki27204/blog-service:latest
     container_name: blog-service
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8084
@@ -162,7 +162,7 @@ services:
 
   cart-service:
     image: rekki27204/cart-service:latest
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8083
@@ -183,7 +183,7 @@ services:
 
   order-service:
     image: rekki27204/order-service:latest
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8082
@@ -205,7 +205,7 @@ services:
   product-service:
     image: rekki27204/product-service:latest
     container_name: product-service
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8081
@@ -229,7 +229,7 @@ services:
 
   user-service:
     image: rekki27204/user-service:latest
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8085
@@ -251,7 +251,7 @@ services:
   payment-service:
     image: rekki27204/payment-service:latest
     container_name: payment-service
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8089
@@ -277,7 +277,7 @@ services:
 
   file-service:
     image: rekki27204/file-service:latest
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8091
@@ -299,7 +299,7 @@ services:
   notification-service:
     image: rekki27204/notification-service:latest
     container_name: notification-service
-    restart: always
+    restart: on-failure
     networks: [backend]
     environment:
       SERVER_PORT: 8092

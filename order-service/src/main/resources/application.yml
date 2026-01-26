@@ -7,9 +7,8 @@ spring:
   rabbitmq:
     host: rabbitmq
     port: 5672
-    stream:
-      username: ${RABBITMQ_USER:guest}
-      password: ${RABBITMQ_PASSWORD:guest}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
 
 eureka:
   client:
