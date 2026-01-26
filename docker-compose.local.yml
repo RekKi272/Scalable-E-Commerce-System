@@ -11,7 +11,7 @@ volumes:
 services:
   service-registry:
     build:
-      context: ./service_registry
+      context: ./service-registry
       dockerfile: Dockerfile
     container_name: service-registry
     ports:

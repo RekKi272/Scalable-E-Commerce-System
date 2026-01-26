@@ -43,7 +43,7 @@ jobs:
       - name: Build & push images
         run: |
           services=(
-            service_registry
+            service-registry
             api-gateway
             auth-service
             product-service

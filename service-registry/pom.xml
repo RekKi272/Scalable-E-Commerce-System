@@ -13,7 +13,7 @@
 	<groupId>com.hmkeyewear</groupId>
 	<artifactId>service-registry</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>service_registry</name>
+	<name>service-registry</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
