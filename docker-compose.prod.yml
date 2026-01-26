@@ -36,7 +36,7 @@ services:
     image: rekki27204/api-gateway:latest
     container_name: api-gateway
     networks: [backend]
-    restart: on-failure
+    restart: unless-stopped
     environment:
       SERVER_PORT: 8080
       SPRING_PROFILES_ACTIVE: prod
@@ -47,6 +47,11 @@ services:
         -Xmx256m
         -XX:+UseG1GC
         -XX:MaxMetaspaceSize=128m
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       service-registry:
         condition: service_healthy
@@ -60,7 +65,8 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - api-gateway
+      api-gateway:
+        condition: service_healthy
     networks:
       - backend
     restart: unless-stopped
