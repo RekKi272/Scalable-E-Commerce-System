@@ -104,16 +104,10 @@ jobs:
         run: |
           mkdir -p nginx/ssl/prod
 
-          cat <<EOF > nginx/ssl/prod/server.key
-          ${{ secrets.NGINX_SSL_KEY }}
-          EOF
+          echo "${{ secrets.NGINX_SSL_KEY }}" > nginx/ssl/prod/server.key
+          echo "${{ secrets.NGINX_SSL_CRT }}" > nginx/ssl/prod/server.crt
+      
 
-          cat <<EOF > nginx/ssl/prod/server.crt
-          ${{ secrets.NGINX_SSL_CRT }}
-          EOF
-
-          chmod 600 nginx/ssl/prod/server.key
-          
       # ===============================
       # 8. COPY ALL TO EC2
       # ===============================
@@ -137,5 +131,9 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/app
+            
+            chmod 600 nginx/ssl/prod/server.key
+            chmod 644 nginx/ssl/prod/server.crt
+            
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
