@@ -1,9 +1,6 @@
 package com.hmkeyewear.user_service.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -27,12 +24,13 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue userQueue() {
-        return new Queue(userQueueName, true, false, false);
+        return QueueBuilder
+                .durable(userQueueName).build();
     }
 
     @Bean
     public TopicExchange exchange() {
-        return new TopicExchange(exchangeName);
+        return new TopicExchange(exchangeName, true, false);
     }
 
     @Bean

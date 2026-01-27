@@ -1,10 +1,7 @@
 package com.hmkeyewear.notificationservice.config;
 
 import lombok.Data;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -34,18 +31,22 @@ public class RabbitMQConfig {
     // ---- Queues ----
     @Bean
     public Queue orderMailQueue() {
-        return new Queue(orderMailQueue);
+        return QueueBuilder
+                .durable(orderMailQueue)   // tồn tại khi restart RabbitMQ
+                .build();
     }
 
     @Bean
     public Queue forgotPasswordQueue() {
-        return new Queue(forgotPasswordQueue);
+        return QueueBuilder
+                .durable(forgotPasswordQueue)
+                .build();
     }
 
     // ---- Exchange ----
     @Bean
     public TopicExchange exchange() {
-        return new TopicExchange(exchangeName);
+        return new TopicExchange(exchangeName,true, false);
     }
 
     // ---- Bindings ----

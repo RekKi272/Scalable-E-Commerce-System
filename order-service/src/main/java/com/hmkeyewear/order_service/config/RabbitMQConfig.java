@@ -1,9 +1,6 @@
 package com.hmkeyewear.order_service.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -58,38 +55,44 @@ public class RabbitMQConfig {
     // ---- Queues ----
     @Bean
     public Queue orderQueue() {
-        return new Queue(orderQueueName, true, false, false);
+        return QueueBuilder
+                .durable(orderQueueName).build();
     }
 
 
     @Bean
     public Queue orderCheckoutQueue() {
-        return new Queue(orderCheckoutQueueName, true, false, false);
+        return QueueBuilder
+                .durable(orderCheckoutQueueName).build();
     }
 
     @Bean
     public Queue orderSaveListenerQueue() {
-        return new Queue(orderSaveListenerQueueName, true, false, false);
+        return QueueBuilder
+                .durable(orderSaveListenerQueueName).build();
     }
 
-    @Bean
-    public Queue stockUpdateRequestQueue() {
-        return new Queue(stockUpdateRequestQueueName, true, false, false);
-    }
+//    @Bean
+//    public Queue stockUpdateRequestQueue() {
+//        return QueueBuilder
+//                .durable(stockUpdateRequestQueueName).build();
+//    }
 
     @Bean
     public Queue orderStatusQueue() {
-        return new Queue(orderStatusQueueName, true, false, false);
+        return QueueBuilder
+                .durable(orderStatusQueueName).build();
     }
 
-    @Bean
-    public Queue orderMailQueue() {
-        return new Queue(orderMailQueue);
-    }
+//    @Bean
+//    public Queue orderMailQueue() {
+//        return QueueBuilder
+//                .durable(orderMailQueue).build();
+//    }
 
     @Bean
     public TopicExchange exchange() {
-        return new TopicExchange(exchangeName);
+        return new TopicExchange(exchangeName, true, false);
     }
 
 
@@ -119,13 +122,13 @@ public class RabbitMQConfig {
                 .with(orderSaveListenerRoutingKey);
     }
 
-    @Bean
-    public Binding stockUpdateRequestBinding() {
-        return BindingBuilder
-                .bind(stockUpdateRequestQueue())
-                .to(exchange())
-                .with(stockUpdateRequestRoutingKey);
-    }
+//    @Bean
+//    public Binding stockUpdateRequestBinding() {
+//        return BindingBuilder
+//                .bind(stockUpdateRequestQueue())
+//                .to(exchange())
+//                .with(stockUpdateRequestRoutingKey);
+//    }
 
     @Bean
     public Binding orderStatusBinding() {
@@ -135,13 +138,13 @@ public class RabbitMQConfig {
                 .with(orderStatusRoutingKey);
     }
 
-    @Bean
-    public Binding orderMailBinding() {
-        return BindingBuilder
-                .bind(orderMailQueue())
-                .to(exchange())
-                .with(orderMailRoutingKey);
-    }
+//    @Bean
+//    public Binding orderMailBinding() {
+//        return BindingBuilder
+//                .bind(orderMailQueue())
+//                .to(exchange())
+//                .with(orderMailRoutingKey);
+//    }
 
     @Bean
     public MessageConverter messageConverter() {

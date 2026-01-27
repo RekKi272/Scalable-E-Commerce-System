@@ -3,10 +3,7 @@ package com.hmkeyewear.payment_service.config;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -42,22 +39,25 @@ public class RabbitMQConfig {
     // ---- Queues ----
     @Bean
     public Queue paymentRequestQueue() {
-        return new Queue(paymentRequestQueue);
+        return QueueBuilder
+                .durable(paymentRequestQueue).build();
     }
 
-    @Bean
-    public Queue orderQueue() {
-        return new Queue(orderQueue);
-    }
+//    @Bean
+//    public Queue orderQueue() {
+//        return QueueBuilder
+//                .durable(orderQueue).build();
+//    }
 
-    @Bean
-    public Queue orderStatusQueue() {
-        return new Queue(orderStatusQueue);
-    }
+//    @Bean
+//    public Queue orderStatusQueue() {
+//        return QueueBuilder
+//                .durable(orderStatusQueue).build();
+//    }
 
     @Bean
     public TopicExchange exchange() {
-        return new TopicExchange(exchangeName);
+        return new TopicExchange(exchangeName, true, false);
     }
 
     // ---- Bindings ----
@@ -69,21 +69,21 @@ public class RabbitMQConfig {
                 .with(paymentRequestRoutingKey);
     }
 
-    @Bean
-    public Binding orderBinding() {
-        return BindingBuilder
-                .bind(orderQueue())
-                .to(exchange())
-                .with(orderRoutingKey);
-    }
+//    @Bean
+//    public Binding orderBinding() {
+//        return BindingBuilder
+//                .bind(orderQueue())
+//                .to(exchange())
+//                .with(orderRoutingKey);
+//    }
 
-    @Bean
-    public Binding orderStatusBinding() {
-        return BindingBuilder
-                .bind(orderStatusQueue())
-                .to(exchange())
-                .with(orderStatusRoutingKey);
-    }
+//    @Bean
+//    public Binding orderStatusBinding() {
+//        return BindingBuilder
+//                .bind(orderStatusQueue())
+//                .to(exchange())
+//                .with(orderStatusRoutingKey);
+//    }
 
     // ---- Message Converter & RabbitTemplate ----
     @Bean

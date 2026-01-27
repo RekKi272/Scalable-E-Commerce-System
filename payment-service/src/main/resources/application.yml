@@ -9,6 +9,7 @@ spring:
     port: 5672
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
+    dynamic: true
 
 eureka:
   client:
