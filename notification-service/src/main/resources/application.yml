@@ -7,9 +7,9 @@ spring:
   rabbitmq:
     host: rabbitmq
     port: 5672
-    stream:
-      username: guest
-      password: guest
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    dynamic: true
   mail:
     host: smtp.gmail.com
     port: 587
@@ -37,6 +37,9 @@ app:
     forgot-password:
       queue: forgot_pass_queue
       routing_key: forgot_pass_routing_key
+
+  mail:
+    from: ${MAIL_USERNAME}
 
 
 

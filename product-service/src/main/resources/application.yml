@@ -7,12 +7,11 @@ spring:
   rabbitmq:
     host: rabbitmq
     port: 5672
-    stream:
-      username: guest
-      password: guest
-  spring:
-    elasticsearch:
-      uris: http://elasticsearch:9200
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    dynamic: true
+  elasticsearch:
+    uris: http://elasticsearch:9200
 
 
 eureka:

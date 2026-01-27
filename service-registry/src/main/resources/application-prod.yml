@@ -2,8 +2,6 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
-  profiles:
-    active: prod
 
   main:
     lazy-initialization: true

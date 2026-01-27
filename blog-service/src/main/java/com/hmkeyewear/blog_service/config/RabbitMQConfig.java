@@ -1,9 +1,6 @@
 package com.hmkeyewear.blog_service.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -32,17 +29,19 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue blogQueue() {
-        return new Queue(blogQueueName);
+        return QueueBuilder
+                .durable(blogQueueName).build();
     }
 
     @Bean
     public Queue bannerQueue() {
-        return new Queue(bannerQueueName);
+        return QueueBuilder
+                .durable(bannerQueueName).build();
     }
 
     @Bean
     public TopicExchange exchange() {
-        return new TopicExchange(exchangeName);
+        return new TopicExchange(exchangeName, true, false);
     }
 
     @Bean

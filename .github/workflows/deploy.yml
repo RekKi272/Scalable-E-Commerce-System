@@ -13,7 +13,22 @@ jobs:
         uses: actions/checkout@v4
 
       # ===============================
-      # 1. LOGIN DOCKER HUB
+      # 1. SETUP JAVA
+      # ===============================
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ===============================
+      # 2. BUILD MAVEN MULTI-MODULE
+      # ===============================
+      - name: Build Maven multi-module
+        run: mvn clean install -DskipTests
+
+      # ===============================
+      # 3. LOGIN DOCKER HUB
       # ===============================
       - name: Login DockerHub
         uses: docker/login-action@v3
@@ -22,12 +37,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # ===============================
-      # 2. BUILD & PUSH IMAGES
+      # 4. BUILD & PUSH IMAGES
       # ===============================
       - name: Build & push images
         run: |
           services=(
-            service_registry
+            service-registry
             api-gateway
             auth-service
             product-service
@@ -46,7 +61,15 @@ jobs:
           done
 
       # ===============================
-      # 3. CREATE .env FILE
+      # 5. BUILD & PUSH NGINX IMAGE
+      # ===============================
+      - name: Build & push nginx image
+        run: |
+          docker build -t rekki27204/nginx-prod:latest ./nginx
+          docker push rekki27204/nginx-prod:latest
+
+      # ===============================
+      # 6. CREATE .env FILE
       # ===============================
       - name: Create .env
         run: |
@@ -57,7 +80,9 @@ jobs:
           RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}
           MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
           MAIL_APP_PASSWORD=${{ secrets.MAIL_APP_PASSWORD }}
-
+          PROD_EMAIL_HOST=${{ secrets.PROD_EMAIL_HOST }}
+          PROD_EMAIL_USERNAME=${{ secrets.PROD_EMAIL_USERNAME }}
+          PROD_EMAIL_PASSWORD=${{ secrets.PROD_EMAIL_PASSWORD }}
           VNP_URL=${{ secrets.VNP_URL }}
           VNP_TMN_CODE=${{ secrets.VNP_TMN_CODE }}
           VNP_SECRET_KEY=${{ secrets.VNP_SECRET_KEY }}
@@ -68,7 +93,7 @@ jobs:
           EOF
 
       # ===============================
-      # 4. CREATE SECRETS JSON FILES
+      # 7. CREATE SECRETS JSON FILES
       # ===============================
       - name: Create firebase & supabase secrets
         run: |
@@ -82,45 +107,43 @@ jobs:
           echo '${{ secrets.SUPABASE_SECRET_JSON }}' > secrets/supabase-secrets.json
 
       # ===============================
-      # 5. CREATE NGINX SSL FILES
+      # 8. CREATE NGINX SSL FILES
       # ===============================
       - name: Create Nginx SSL
         run: |
           mkdir -p nginx/ssl/prod
 
-          cat <<EOF > nginx/ssl/prod/server.key
-          ${{ secrets.NGINX_SSL_KEY }}
-          EOF
+          echo "${{ secrets.NGINX_SSL_KEY }}" > nginx/ssl/prod/server.key
+          echo "${{ secrets.NGINX_SSL_CRT }}" > nginx/ssl/prod/server.crt
+      
 
-          cat <<EOF > nginx/ssl/prod/server.crt
-          ${{ secrets.NGINX_SSL_CRT }}
-          EOF
-
-          chmod 600 nginx/ssl/prod/server.key
-          
       # ===============================
-      # 6. COPY ALL TO EC2
+      # 9. COPY ALL TO EC2
       # ===============================
       - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
           source: ".env,secrets,nginx,docker-compose.prod.yml"
           target: "/home/ubuntu/app"
 
       # ===============================
-      # 7. DEPLOY
+      # 10. DEPLOY
       # ===============================
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/app
+            
+            chmod 600 nginx/ssl/prod/server.key
+            chmod 644 nginx/ssl/prod/server.crt
+            
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d
