@@ -19,6 +19,7 @@ spring:
       mail.smtp.starttls.enable: true
 
 
+
 eureka:
   client:
     serviceUrl:
@@ -36,6 +37,9 @@ app:
     forgot-password:
       queue: forgot_pass_queue
       routing_key: forgot_pass_routing_key
+
+  mail:
+    from: ${MAIL_USERNAME}
 
 
 

@@ -80,7 +80,9 @@ jobs:
           RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}
           MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
           MAIL_APP_PASSWORD=${{ secrets.MAIL_APP_PASSWORD }}
-
+          PROD_EMAIL_HOST=${{ secrets.PROD_EMAIL_HOST }}
+          PROD_EMAIL_USERNAME=${{ secrets.PROD_EMAIL_USERNAME }}
+          PROD_EMAIL_PASSWORD=${{ secrets.PROD_EMAIL_PASSWORD }}
           VNP_URL=${{ secrets.VNP_URL }}
           VNP_TMN_CODE=${{ secrets.VNP_TMN_CODE }}
           VNP_SECRET_KEY=${{ secrets.VNP_SECRET_KEY }}
