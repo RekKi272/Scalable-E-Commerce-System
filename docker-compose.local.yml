@@ -91,6 +91,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./secrets/firebase-user.json:/app/firebase-user.json
     depends_on:
@@ -100,6 +102,9 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -118,6 +123,8 @@ services:
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-blog.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./secrets/firebase-blog.json:/app/firebase-blog.json
     depends_on:
@@ -137,6 +144,8 @@ services:
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-cart.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./secrets/firebase-cart.json:/app/firebase-cart.json
     depends_on:
@@ -154,6 +163,8 @@ services:
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-order.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./secrets/firebase-order.json:/app/firebase-order.json
     depends_on:
@@ -175,6 +186,8 @@ services:
       - ALGOLIA_API_WRITE_KEY=${ALGOLIA_API_WRITE_KEY}
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./secrets/firebase-product.json:/app/firebase-product.json
       - esdata:/usr/share/elasticsearch/data
@@ -195,6 +208,8 @@ services:
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./secrets/firebase-user.json:/app/firebase-user.json
     depends_on:
@@ -218,6 +233,8 @@ services:
       - VNP_COMMAND=${VNP_COMMAND}
       - VNP_ORDER_TYPE=${VNP_ORDER_TYPE}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     depends_on:
       service-registry:
         condition: service_healthy
@@ -233,6 +250,8 @@ services:
     environment:
       - SUPABASE_SECRETS_PATH=/app/supabase-secrets.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./secrets/supabase-secrets.json:/app/supabase-secrets.json
     depends_on:
@@ -251,6 +270,8 @@ services:
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_APP_PASSWORD=${MAIL_APP_PASSWORD}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     env_file:
       - .env
     depends_on:
