@@ -147,6 +147,7 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   blog-service:
     image: rekki27204/blog-service:latest
@@ -172,6 +173,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   cart-service:
     image: rekki27204/cart-service:latest
@@ -196,6 +198,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   order-service:
     image: rekki27204/order-service:latest
@@ -220,6 +223,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   product-service:
     image: rekki27204/product-service:latest
@@ -248,6 +252,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   user-service:
     image: rekki27204/user-service:latest
@@ -272,6 +277,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   payment-service:
     image: rekki27204/payment-service:latest
@@ -302,6 +308,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   file-service:
     image: rekki27204/file-service:latest
@@ -326,6 +333,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    mem_limit: 350m
 
   notification-service:
     image: rekki27204/notification-service:latest
@@ -352,4 +360,5 @@ services:
       service-registry:
         condition: service_healthy
       rabbitmq:
-        condition: service_healthy
+        condition: service_started
+    mem_limit: 350m
