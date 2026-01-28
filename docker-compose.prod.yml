@@ -11,62 +11,9 @@ volumes:
 
 services:
 
-  service-registry:
-    image: rekki27204/service-registry:latest
-    container_name: service-registry
-    networks: [backend]
-    restart: always
-    environment:
-      SERVER_PORT: 8761
-      SPRING_PROFILES_ACTIVE: prod
-      JAVA_TOOL_OPTIONS: >
-        -Xms64m
-        -Xmx256m
-        -XX:+UseG1GC
-        -XX:MaxMetaspaceSize=128m
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  api-gateway:
-    image: rekki27204/api-gateway:latest
-    container_name: api-gateway
-    networks: [backend]
-    restart: always
-    environment:
-      SERVER_PORT: 8080
-      SPRING_PROFILES_ACTIVE: prod
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
-      JWT_SECRET: ${JWT_SECRET}
-      JAVA_TOOL_OPTIONS: >
-        -Xms64m
-        -Xmx256m
-        -XX:+UseG1GC
-        -XX:MaxMetaspaceSize=128m
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    depends_on:
-      service-registry:
-        condition: service_healthy
-
-  nginx:
-    image: rekki27204/nginx-prod:latest
-    container_name: nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      api-gateway:
-        condition: service_healthy
-    networks:
-      - backend
-    restart: always
-
+  # ========================
+  # INFRASTRUCTURE LAYER
+  # ========================
   redis:
     image: redis:7.2
     container_name: redis
@@ -118,6 +65,31 @@ services:
       timeout: 5s
       retries: 5
 
+  # ========================
+  # SERVICE DISCOVERY
+  # ========================
+
+  service-registry:
+    image: rekki27204/service-registry:latest
+    container_name: service-registry
+    networks: [backend]
+    restart: always
+    environment:
+      SERVER_PORT: 8761
+      SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # ========================
+  # BUSINESS SERVICES
+  # ========================
   auth-service:
     image: rekki27204/auth-service:latest
     container_name: auth-service
@@ -362,3 +334,45 @@ services:
       rabbitmq:
         condition: service_started
     mem_limit: 350m
+
+  # ========================
+  # ENTRY POINT
+  # ========================
+
+  api-gateway:
+    image: rekki27204/api-gateway:latest
+    container_name: api-gateway
+    networks: [backend]
+    restart: always
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+      JAVA_TOOL_OPTIONS: >
+        -Xms64m
+        -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxMetaspaceSize=128m
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    depends_on:
+      service-registry:
+        condition: service_healthy
+
+  nginx:
+    image: rekki27204/nginx-prod:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: always
