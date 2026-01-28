@@ -10,7 +10,15 @@ spring:
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     dynamic: true
-
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 5      # retry tối đa 5 lần
+          initial-interval: 2000   # 2s
+          multiplier: 2.0
+          max-interval: 10000
+        default-requeue-rejected: false
 eureka:
   client:
     serviceUrl:
