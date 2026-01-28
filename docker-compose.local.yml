@@ -2,11 +2,11 @@ networks:
   backend:
     driver: bridge
 
-
 volumes:
   esdata:
   redisdata:
   rabbitmqdata:
+
 
 services:
   service-registry:
@@ -16,7 +16,7 @@ services:
     container_name: service-registry
     ports:
       - "8761:8761"
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 10s
@@ -28,7 +28,7 @@ services:
     container_name: api-gateway
     ports:
       - "8080:8080"
-    networks: [backend]
+    networks: [ backend ]
     depends_on:
       service-registry:
         condition: service_healthy
@@ -48,7 +48,7 @@ services:
       - ./nginx/ssl/local:/etc/nginx/ssl
     depends_on:
       - api-gateway
-    networks: [backend]
+    networks: [ backend ]
 
   redis:
     image: redis:7.2
@@ -57,7 +57,7 @@ services:
       - "6379:6379"
     volumes:
       - redisdata:/data
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: redis-server --appendonly yes
@@ -80,13 +80,12 @@ services:
       timeout: 5s
       retries: 10
 
-
   auth-service:
     build: ./auth-service
     container_name: auth-service
     ports:
       - "8090:8090"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - JWT_SECRET=${JWT_SECRET}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
@@ -110,7 +109,7 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmqdata:/var/lib/rabbitmq
-    networks: [backend]
+    networks: [ backend ]
 
   blog-service:
     build:
@@ -119,7 +118,7 @@ services:
     container_name: blog-service
     ports:
       - "8084:8084"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-blog.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
@@ -140,7 +139,7 @@ services:
     container_name: cart-service
     ports:
       - "8083:8083"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-cart.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
@@ -159,7 +158,7 @@ services:
     container_name: order-service
     ports:
       - "8082:8082"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-order.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
@@ -178,7 +177,7 @@ services:
     container_name: product-service
     ports:
       - "8081:8081"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-product.json
       - ALGOLIA_APP_ID=${ALGOLIA_APP_ID}
@@ -204,7 +203,7 @@ services:
     container_name: user-service
     ports:
       - "8085:8085"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
@@ -223,7 +222,7 @@ services:
     container_name: payment-service
     ports:
       - "8089:8089"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - VNP_URL=${VNP_URL}
       - VNP_TMN_CODE=${VNP_TMN_CODE}
@@ -246,7 +245,7 @@ services:
     container_name: file-service
     ports:
       - "8091:8091"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - SUPABASE_SECRETS_PATH=/app/supabase-secrets.json
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
@@ -265,7 +264,7 @@ services:
     container_name: notification-service
     ports:
       - "8092:8092"
-    networks: [backend]
+    networks: [ backend ]
     environment:
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_APP_PASSWORD=${MAIL_APP_PASSWORD}
@@ -277,4 +276,3 @@ services:
     depends_on:
       service-registry:
         condition: service_healthy
-
