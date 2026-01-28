@@ -2,9 +2,6 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
-  profiles:
-    active: prod
-
   main:
     lazy-initialization: true
 
@@ -12,7 +9,20 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
-
+  mail:
+    host: ${PROD_EMAIL_HOST}
+    port: 587
+    username: ${PROD_EMAIL_USERNAME}
+    password: ${PROD_EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+app:
+  mail:
+    from: ${MAIL_USERNAME}
 logging:
   level:
     root: INFO

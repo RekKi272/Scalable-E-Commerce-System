@@ -1,9 +1,6 @@
 package com.hmkeyewear.cart_service.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -50,32 +47,37 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue cartQueue() {
-        return new Queue(cartQueueName, true, false, false);
+        return QueueBuilder
+                .durable(cartQueueName).build();
     }
 
-    @Bean
-    public Queue paymentRequestQueue() {
-        return new Queue(paymentRequestQueueName, true, false, false);
-    }
+//    @Bean
+//    public Queue paymentRequestQueue() {
+//        return QueueBuilder
+//                .durable(paymentRequestQueueName).build();
+//    }
 
-    @Bean
-    public Queue orderCheckoutQueue() {
-        return new Queue(orderCheckoutQueueName, true, false, false);
-    }
+//    @Bean
+//    public Queue orderCheckoutQueue() {
+//        return QueueBuilder
+//                .durable(orderCheckoutQueueName).build();
+//    }
 
-    @Bean
-    public Queue discountQueue() {
-        return new Queue(discountQueueName, true, false, false);
-    }
+//    @Bean
+//    public Queue discountQueue() {
+//        return QueueBuilder
+//                .durable(discountQueueName).build();
+//    }
 
-    @Bean
-    public Queue orderSaveQueue() {
-        return new Queue(orderSaveQueueName, true, false, false);
-    }
+//    @Bean
+//    public Queue orderSaveQueue() {
+//        return QueueBuilder
+//                .durable(orderSaveQueueName).build();
+//    }
 
     @Bean
     public TopicExchange exchange() {
-        return new TopicExchange(exchangeName);
+        return new TopicExchange(exchangeName, true, false);
     }
 
     @Bean
@@ -86,37 +88,37 @@ public class RabbitMQConfig {
                 .with(cartRoutingKey);
     }
 
-    @Bean
-    public Binding paymentRequestBinding() {
-        return BindingBuilder
-                .bind(paymentRequestQueue())
-                .to(exchange())
-                .with(paymentRequestRoutingKey);
-    }
+//    @Bean
+//    public Binding paymentRequestBinding() {
+//        return BindingBuilder
+//                .bind(paymentRequestQueue())
+//                .to(exchange())
+//                .with(paymentRequestRoutingKey);
+//    }
 
-    @Bean
-    public Binding orderCheckoutBinding() {
-        return BindingBuilder
-                .bind(orderCheckoutQueue())
-                .to(exchange())
-                .with(orderCheckoutRoutingKey);
-    }
+//    @Bean
+//    public Binding orderCheckoutBinding() {
+//        return BindingBuilder
+//                .bind(orderCheckoutQueue())
+//                .to(exchange())
+//                .with(orderCheckoutRoutingKey);
+//    }
 
-    @Bean
-    public Binding discountBinding() {
-        return BindingBuilder
-                .bind(discountQueue())
-                .to(exchange())
-                .with(discountRoutingKey);
-    }
+//    @Bean
+//    public Binding discountBinding() {
+//        return BindingBuilder
+//                .bind(discountQueue())
+//                .to(exchange())
+//                .with(discountRoutingKey);
+//    }
 
-    @Bean
-    public Binding orderSaveBinding() {
-        return BindingBuilder
-                .bind(orderSaveQueue())
-                .to(exchange())
-                .with(orderSaveRoutingKey);
-    }
+//    @Bean
+//    public Binding orderSaveBinding() {
+//        return BindingBuilder
+//                .bind(orderSaveQueue())
+//                .to(exchange())
+//                .with(orderSaveRoutingKey);
+//    }
 
     @Bean
     public MessageConverter messageConverter() {
