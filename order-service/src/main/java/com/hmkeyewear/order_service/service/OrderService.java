@@ -67,7 +67,7 @@ public class OrderService {
         // BASIC INFO
         order.setUserId(dto.getUserId());
         order.setEmail(dto.getEmail());
-        order.setFullname(dto.getFullname());
+        order.setFullName(dto.getFullName());
         order.setPhone(dto.getPhone());
         order.setPaymentMethod(dto.getPaymentMethod());
         order.setDiscount(dto.getDiscount()); // object
@@ -121,7 +121,7 @@ public class OrderService {
 
         order.setUserId(dto.getUserId());
         order.setEmail(dto.getEmail());
-        order.setFullname(dto.getFullname());
+        order.setFullName(dto.getFullName());
         order.setPhone(dto.getPhone());
         order.setPaymentMethod(dto.getPaymentMethod());
         order.setNote(dto.getNote());
@@ -252,7 +252,7 @@ public class OrderService {
 
         // -------- UPDATE BASIC INFO --------
         order.setEmail(dto.getEmail());
-        order.setFullname(dto.getFullname());
+        order.setFullName(dto.getFullName());
         order.setPhone(dto.getPhone());
         order.setNote(dto.getNote());
 
