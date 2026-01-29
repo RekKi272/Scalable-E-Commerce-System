@@ -15,10 +15,12 @@ public class OrderStatusUpdateConsumer {
 
     private final OrderService orderService;
     private final InvoiceEmailProducer invoiceEmailProducer;
+    private final StockRefundRequestProducer stockRefundRequestProducer;
 
-    public OrderStatusUpdateConsumer(OrderService orderService, InvoiceEmailProducer invoiceEmailProducer) {
+    public OrderStatusUpdateConsumer(OrderService orderService, InvoiceEmailProducer invoiceEmailProducer, StockRefundRequestProducer stockRefundRequestProducer) {
         this.orderService = orderService;
         this.invoiceEmailProducer = invoiceEmailProducer;
+        this.stockRefundRequestProducer = stockRefundRequestProducer;
     }
 
     /**
@@ -43,7 +45,31 @@ public class OrderStatusUpdateConsumer {
         if (orderResponseDto == null || orderResponseDto.getEmail() == null) {
             return;
         }
+    public void orderStatusUpdateReceive(OrderPaymentStatusUpdateDto orderPaymentStatusUpdateDto) throws ExecutionException, InterruptedException {
+        OrderResponseDto orderResponseDto = orderService.getOrder(orderPaymentStatusUpdateDto.getOrderId());
+        if (orderPaymentStatusUpdateDto.getStatus().equals("PAID")) {
+            if(orderResponseDto.getEmail() != null) {
+                InvoiceEmailEvent invoiceEmailEvent = new InvoiceEmailEvent(orderResponseDto.getOrderId(), orderResponseDto.getEmail(), orderResponseDto.getSummary(), null);
+                invoiceEmailProducer.sendEmailRequest(invoiceEmailEvent);
+            }
 
+        }
+        // IF ORDER WAS CANCELED OR REFUND
+        else {
+            List<OrderDetailRequestDto> orderDetailRequestDtos = new ArrayList<>();
+
+            for (OrderDetail orderDetail : orderResponseDto.getDetails()) {
+                OrderDetailRequestDto orderDetailRequestDto = new OrderDetailRequestDto();
+                orderDetailRequestDto.setProductId(orderDetail.getProductId());
+                orderDetailRequestDto.setVariantId(orderDetail.getVariantId());
+                orderDetailRequestDto.setProductName(orderDetail.getProductName());
+                orderDetailRequestDto.setUnitPrice(orderDetail.getUnitPrice());
+                orderDetailRequestDto.setQuantity(orderDetail.getQuantity());
+                // Add to list
+                orderDetailRequestDtos.add(orderDetailRequestDto);
+            }
+
+            stockRefundRequestProducer.sendStockRefundRequest(orderDetailRequestDtos);
         // 4. MAP ORDER DETAIL
         List<InvoiceEmailEvent.OrderDetail> details = orderResponseDto.getDetails() == null
                 ? List.of()

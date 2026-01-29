@@ -39,7 +39,7 @@ public class OrderSaveRequestProducer {
             LOGGER.info("Sending order save request JSON: {}", json);
 
             // Gửi JSON string
-            Object response = rabbitTemplate.convertSendAndReceive(exchangeName, routingKey, json);
+            Object response = rabbitTemplate.convertSendAndReceive(exchangeName, routingKey, orderSaveRequestDto);
             return response != null ? response.toString() : null;
 
         } catch (JsonProcessingException e) {

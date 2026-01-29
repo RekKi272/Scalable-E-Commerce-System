@@ -1,5 +1,6 @@
 package com.hmkeyewear.cart_service.messaging;
 
+import com.hmkeyewear.cart_service.model.Cart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

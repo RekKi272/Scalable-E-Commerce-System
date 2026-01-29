@@ -17,7 +17,7 @@ public class OrderRequestDto {
 
     private String userId;
     private String email;
-    private String fullname;
+    private String fullName;
     private String phone;
 
     private String paymentMethod; // CASH, COD, BANK_TRANSFER

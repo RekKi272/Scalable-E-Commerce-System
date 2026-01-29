@@ -52,6 +52,11 @@ app:
       queue: stock_update_queue
       routing-key: stock_update_routing_key
 
+    stock-refund-request:
+      queue: stock-refund-queue
+      routing-key: stock-refund-routing-key
+
     order-mail:
       queue: order_mail_queue
       routing-key: order_mail_routing_key
+
