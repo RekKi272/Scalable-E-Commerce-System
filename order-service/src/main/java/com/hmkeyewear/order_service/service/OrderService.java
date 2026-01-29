@@ -250,7 +250,10 @@ public class OrderService {
             throw new RuntimeException("Cannot parse order data");
         }
 
-        // -------- UPDATE BASIC INFO --------
+        // ===== LƯU STATUS CŨ =====
+        String oldStatus = order.getStatus();
+
+        // ===== UPDATE DATA =====
         order.setEmail(dto.getEmail());
         order.setFullname(dto.getFullname());
         order.setPhone(dto.getPhone());
@@ -260,45 +263,24 @@ public class OrderService {
             order.setPaymentMethod(dto.getPaymentMethod());
         }
 
-        // -------- UPDATE DETAILS / DISCOUNT / SHIP --------
         if (dto.getDetails() != null) {
             order.setDetails(dto.getDetails());
         }
 
-        order.setDiscount(dto.getDiscount()); // object
-        order.setShip(dto.getShip()); // object
+        order.setDiscount(dto.getDiscount());
+        order.setShip(dto.getShip());
 
-        // ---- RECALCULATE PRICE ----
-        double priceTemp = priceCalculator.calculatePriceTemp(order.getDetails());
-
-        double priceDecreased = 0;
-        if (order.getDiscount() != null) {
-            priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp, order.getDiscount());
-        }
-
-        double shippingFee = 0;
-        if (order.getShip() != null) {
-            shippingFee = priceCalculator.calculateShippingFee(order.getShip());
-        }
-
-        double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased, shippingFee);
-
-        order.setPriceTemp(priceTemp);
-        order.setPriceDecreased(priceDecreased);
-        order.setSummary(summary);
-
-        // -------- UPDATE STATUS --------
         if (dto.getStatus() != null) {
             order.setStatus(dto.getStatus());
         }
 
-        // ---- AUDIT ----
+        // ===== AUDIT =====
         OrderAuditUtil.setUpdateAudit(order, updatedBy);
 
-        // -------- SAVE --------
+        // ===== SAVE =====
         docRef.set(order).get();
 
-        // -------- SEND EVENT --------
+        // ===== EVENT UPDATE ORDER =====
         orderEventProducer.sendMessage(order);
 
         return orderMapper.toOrderResponseDto(order);
