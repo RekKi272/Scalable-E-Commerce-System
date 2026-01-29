@@ -303,13 +303,24 @@ public class CartService {
         db.collection(COLLECTION_NAME).document(userId).delete();
     }
 
-    public VNPayResponseDto createPayment(PaymentRequestDto request) throws ExecutionException, InterruptedException {
-        // Send message to payment-service and wait for reply
+    public VNPayResponseDto createPayment(
+            OrderResponseDto order,
+            String ipAddress) throws ExecutionException, InterruptedException {
+
+        // ===== BUILD PaymentRequestDto (CHỈ FIELD PAYMENT-SERVICE CẦN) =====
+        PaymentRequestDto request = new PaymentRequestDto();
+
+        request.setOrderId(order.getOrderId());
+        request.setTotal(order.getSummary());
+        request.setIpAddress(ipAddress);
+
+        // ===== RPC CALL =====
         VNPayResponseDto response = paymentRequestEventProducer.sendPaymentRequest(request);
 
         if (response == null) {
             throw new RuntimeException("Failed to send payment request");
         }
+
         return response;
     }
 
