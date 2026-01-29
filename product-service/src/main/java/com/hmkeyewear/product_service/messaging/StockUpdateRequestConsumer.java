@@ -14,14 +14,9 @@ public class StockUpdateRequestConsumer {
 
     private final ProductService productService;
 
-
     // Handler stock update request from ORDER-SERVICE
-    @RabbitListener(queues = "${app.rabbitmq.stock-update-request.queue}")
+    @RabbitListener(queues = "${app.rabbitmq.stock-update-request.queue}", containerFactory = "rabbitListenerContainerFactory")
     public void receiveStockUpdateRequest(List<OrderDetailRequestDto> orderDetailRequestDtoList) {
-        try {
-            productService.updateStock(orderDetailRequestDtoList);
-        } catch (Exception e) {
-            System.err.println("Error updating stock: " + e.getMessage());
-        }
+        productService.updateStock(orderDetailRequestDtoList);
     }
 }

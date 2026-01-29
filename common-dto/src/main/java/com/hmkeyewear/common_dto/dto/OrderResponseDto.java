@@ -9,23 +9,24 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderSaveRequestDto {
-
+public class OrderResponseDto {
+    private String orderId;
     private String userId;
-    private String createdBy;
-
     private String email;
     private String fullname;
     private String phone;
 
     private String paymentMethod;
-    private String note;
 
-    private Double priceTemp;
-    private Double priceDecreased;
-    private Double summary;
+    private double priceTemp;
+    private double priceDecreased;
+    private double summary;
+
+    private String status;
 
     private List<CartItemDto> items;
     private ShipInfoDto ship;
     private DiscountDto discount;
+
+    private String note;
 }

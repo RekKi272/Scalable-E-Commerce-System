@@ -51,14 +51,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.order-mail.routing-key}")
     private String orderMailRoutingKey;
 
-
     // ---- Queues ----
     @Bean
     public Queue orderQueue() {
         return QueueBuilder
                 .durable(orderQueueName).build();
     }
-
 
     @Bean
     public Queue orderCheckoutQueue() {
@@ -72,11 +70,11 @@ public class RabbitMQConfig {
                 .durable(orderSaveListenerQueueName).build();
     }
 
-//    @Bean
-//    public Queue stockUpdateRequestQueue() {
-//        return QueueBuilder
-//                .durable(stockUpdateRequestQueueName).build();
-//    }
+    @Bean
+    public Queue stockUpdateRequestQueue() {
+        return QueueBuilder
+                .durable(stockUpdateRequestQueueName).build();
+    }
 
     @Bean
     public Queue orderStatusQueue() {
@@ -84,17 +82,16 @@ public class RabbitMQConfig {
                 .durable(orderStatusQueueName).build();
     }
 
-//    @Bean
-//    public Queue orderMailQueue() {
-//        return QueueBuilder
-//                .durable(orderMailQueue).build();
-//    }
+    // @Bean
+    // public Queue orderMailQueue() {
+    // return QueueBuilder
+    // .durable(orderMailQueue).build();
+    // }
 
     @Bean
     public TopicExchange exchange() {
         return new TopicExchange(exchangeName, true, false);
     }
-
 
     // ---- Bindings ----
     @Bean
@@ -104,7 +101,6 @@ public class RabbitMQConfig {
                 .to(exchange())
                 .with(orderRoutingKey);
     }
-
 
     @Bean
     public Binding orderCheckoutBinding() {
@@ -122,13 +118,13 @@ public class RabbitMQConfig {
                 .with(orderSaveListenerRoutingKey);
     }
 
-//    @Bean
-//    public Binding stockUpdateRequestBinding() {
-//        return BindingBuilder
-//                .bind(stockUpdateRequestQueue())
-//                .to(exchange())
-//                .with(stockUpdateRequestRoutingKey);
-//    }
+    @Bean
+    public Binding stockUpdateRequestBinding() {
+        return BindingBuilder
+                .bind(stockUpdateRequestQueue())
+                .to(exchange())
+                .with(stockUpdateRequestRoutingKey);
+    }
 
     @Bean
     public Binding orderStatusBinding() {
@@ -138,13 +134,13 @@ public class RabbitMQConfig {
                 .with(orderStatusRoutingKey);
     }
 
-//    @Bean
-//    public Binding orderMailBinding() {
-//        return BindingBuilder
-//                .bind(orderMailQueue())
-//                .to(exchange())
-//                .with(orderMailRoutingKey);
-//    }
+    // @Bean
+    // public Binding orderMailBinding() {
+    // return BindingBuilder
+    // .bind(orderMailQueue())
+    // .to(exchange())
+    // .with(orderMailRoutingKey);
+    // }
 
     @Bean
     public MessageConverter messageConverter() {

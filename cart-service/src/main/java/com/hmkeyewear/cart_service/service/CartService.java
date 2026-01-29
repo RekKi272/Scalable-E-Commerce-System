@@ -16,6 +16,8 @@ import com.hmkeyewear.cart_service.messaging.PaymentRequestEventProducer;
 import com.hmkeyewear.cart_service.model.Cart;
 import com.hmkeyewear.cart_service.model.CartItem;
 import com.hmkeyewear.cart_service.model.Discount;
+import com.hmkeyewear.common_dto.dto.OrderRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
 import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -390,16 +392,9 @@ public class CartService {
         return cartMapper.toResponseDto(cart);
     }
 
-    public String createOrderForCheckout(PaymentRequestDto request) throws ExecutionException, InterruptedException {
-        OrderSaveRequestDto orderSaveRequestDto = new OrderSaveRequestDto();
+    public OrderResponseDto sendCreateOrder(OrderRequestDto orderRequest, String userId) {
 
-        // Mapping
-        orderSaveRequestDto.setUserId(request.getUserId());
-        orderSaveRequestDto.setEmail(request.getEmail());
-        orderSaveRequestDto.setDiscountId(request.getDiscountId());
-        orderSaveRequestDto.setSummary(request.getTotal());
-        orderSaveRequestDto.setItems(request.getItems());
-
-        return orderSaveRequestProducer.sendSaveRequest(orderSaveRequestDto);
+        return (OrderResponseDto) orderCheckoutRequestEventProducer.convertSendAndReceive(orderRequest, userId);
     }
+
 }

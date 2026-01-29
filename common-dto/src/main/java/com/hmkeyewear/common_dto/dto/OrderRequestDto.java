@@ -9,23 +9,17 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderSaveRequestDto {
-
-    private String userId;
-    private String createdBy;
-
+public class OrderRequestDto {
     private String email;
     private String fullname;
     private String phone;
 
-    private String paymentMethod;
+    // ===== ORDER INFO =====
+    private String paymentMethod; // COD | BANK_TRANSFER | CASH
     private String note;
 
-    private Double priceTemp;
-    private Double priceDecreased;
-    private Double summary;
-
-    private List<CartItemDto> items;
+    // ===== ORDER DATA =====
+    private List<OrderDetailRequestDto> details;
     private ShipInfoDto ship;
     private DiscountDto discount;
 }
