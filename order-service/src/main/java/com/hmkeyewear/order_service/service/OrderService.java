@@ -213,7 +213,7 @@ public class OrderService {
                 order.setStatus(status.name());
 
                 log.info(
-                        "🔄 Order status update | orderId={} | {} -> {}",
+                        "Order status update | orderId={} | {} -> {}",
                         order.getOrderId(),
                         oldStatus,
                         status.name());
@@ -223,7 +223,7 @@ public class OrderService {
                     invoiceEmailProducer.sendEmailRequest(event);
                 } else {
                     log.warn(
-                            "⚠️ Order {} already COMPLETED – skip sending invoice email",
+                            "Order {} already COMPLETED – skip sending invoice email",
                             order.getOrderId());
                 }
                 break;
