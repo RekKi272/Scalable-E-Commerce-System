@@ -17,8 +17,11 @@ public class StockUpdateRequestProducer {
     @Value("${app.rabbitmq.exchange}")
     private String exchangeName;
 
-    @Value("${app.rabbitmq.stock-update-request.routing-key}")
-    private String routingKey;
+    @Value("${app.rabbitmq.stock-update-increase.routing-key}")
+    private String increaseRoutingKey;
+
+    @Value("${app.rabbitmq.stock-update-decrease.routing-key}")
+    private String decreaseRoutingKey;
 
     private final RabbitTemplate rabbitTemplate;
 
@@ -26,12 +29,15 @@ public class StockUpdateRequestProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    /**
-     * Producing queue: stock_update_queue
-     * Message sent to product-service WHEN ORDER IS CREATED
-     */
-    public void sendMessage(List<OrderDetailRequestDto> items) {
-        LOGGER.info("Send stock update request: {}", items);
-        rabbitTemplate.convertAndSend(exchangeName, routingKey, items);
+    // Khi tạo đơn / bán thành công
+    public void sendIncreaseQuantitySell(List<OrderDetailRequestDto> items) {
+        LOGGER.info("Send INCREASE quantitySell: {}", items);
+        rabbitTemplate.convertAndSend(exchangeName, increaseRoutingKey, items);
+    }
+
+    // Khi huỷ đơn / payment fail / khách không nhận
+    public void sendDecreaseQuantitySell(List<OrderDetailRequestDto> items) {
+        LOGGER.info("Send DECREASE quantitySell: {}", items);
+        rabbitTemplate.convertAndSend(exchangeName, decreaseRoutingKey, items);
     }
 }

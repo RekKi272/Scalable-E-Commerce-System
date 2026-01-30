@@ -27,17 +27,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.order-checkout.routing-key}")
     private String orderCheckoutRoutingKey;
 
-    // Order save request handler
-    @Value("${app.rabbitmq.order-save-listener.queue}")
-    private String orderSaveListenerQueueName;
-    @Value("${app.rabbitmq.order-save-listener.routing-key}")
-    private String orderSaveListenerRoutingKey;
-
     // Update stock in product
-    @Value("${app.rabbitmq.stock-update-request.queue}")
-    private String stockUpdateRequestQueueName;
-    @Value("${app.rabbitmq.stock-update-request.routing-key}")
-    private String stockUpdateRequestRoutingKey;
+    @Value("${app.rabbitmq.stock-update-increase.routing-key}")
+    private String stockUpdateIncreaseRoutingKey;
+
+    @Value("${app.rabbitmq.stock-update-decrease.routing-key}")
+    private String stockUpdateDecreaseRoutingKey;
 
     // Update order status after payment
     @Value("${app.rabbitmq.order-status.queue}")
@@ -62,18 +57,6 @@ public class RabbitMQConfig {
     public Queue orderCheckoutQueue() {
         return QueueBuilder
                 .durable(orderCheckoutQueueName).build();
-    }
-
-    @Bean
-    public Queue orderSaveListenerQueue() {
-        return QueueBuilder
-                .durable(orderSaveListenerQueueName).build();
-    }
-
-    @Bean
-    public Queue stockUpdateRequestQueue() {
-        return QueueBuilder
-                .durable(stockUpdateRequestQueueName).build();
     }
 
     @Bean
@@ -108,22 +91,6 @@ public class RabbitMQConfig {
                 .bind(orderCheckoutQueue())
                 .to(exchange())
                 .with(orderCheckoutRoutingKey);
-    }
-
-    @Bean
-    public Binding orderSaveListenerBinding() {
-        return BindingBuilder
-                .bind(orderSaveListenerQueue())
-                .to(exchange())
-                .with(orderSaveListenerRoutingKey);
-    }
-
-    @Bean
-    public Binding stockUpdateRequestBinding() {
-        return BindingBuilder
-                .bind(stockUpdateRequestQueue())
-                .to(exchange())
-                .with(stockUpdateRequestRoutingKey);
     }
 
     @Bean

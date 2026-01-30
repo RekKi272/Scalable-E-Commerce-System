@@ -35,11 +35,17 @@ public class RabbitMQConfig {
     private String categoryRoutingKey;
 
     // Stock update request queue
-    @Value("${app.rabbitmq.stock-update-request.queue}")
-    private String stockUpdateRequestQueueName;
+    @Value("${app.rabbitmq.stock-update-increase.queue}")
+    private String stockUpdateIncreaseQueueName;
 
-    @Value("${app.rabbitmq.stock-update-request.routing-key}")
-    private String stockUpdateRequestRoutingKey;
+    @Value("${app.rabbitmq.stock-update-decrease.queue}")
+    private String stockUpdateDecreaseQueueName;
+
+    @Value("${app.rabbitmq.stock-update-increase.routing-key}")
+    private String stockUpdateIncreaseRoutingKey;
+
+    @Value("${app.rabbitmq.stock-update-decrease.routing-key}")
+    private String stockUpdateDecreaseRoutingKey;
 
     // ---- Queues ----
     @Bean
@@ -61,9 +67,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue stockUpdateRequestQueue() {
-        return QueueBuilder
-                .durable(stockUpdateRequestQueueName).build();
+    public Queue stockUpdateIncreaseQueue() {
+        return QueueBuilder.durable(stockUpdateIncreaseQueueName).build();
+    }
+
+    @Bean
+    public Queue stockUpdateDecreaseQueue() {
+        return QueueBuilder.durable(stockUpdateDecreaseQueueName).build();
     }
 
     // ---- Exchange ----
@@ -98,11 +108,19 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding stockUpdateRequestBinding() {
+    public Binding stockUpdateIncreaseBinding() {
         return BindingBuilder
-                .bind(stockUpdateRequestQueue())
+                .bind(stockUpdateIncreaseQueue())
                 .to(exchange())
-                .with(stockUpdateRequestRoutingKey);
+                .with(stockUpdateIncreaseRoutingKey);
+    }
+
+    @Bean
+    public Binding stockUpdateDecreaseBinding() {
+        return BindingBuilder
+                .bind(stockUpdateDecreaseQueue())
+                .to(exchange())
+                .with(stockUpdateDecreaseRoutingKey);
     }
 
     // ---- Message Converter & RabbitTemplate ----

@@ -3,22 +3,19 @@ package com.hmkeyewear.order_service.service;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
-import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import com.hmkeyewear.common_dto.dto.OrderRequestDto;
 import com.hmkeyewear.common_dto.dto.OrderResponseDto;
 
 import com.hmkeyewear.order_service.constant.PaymentMethod;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
-
-import com.hmkeyewear.common_dto.dto.OrderPaymentStatusUpdateDto;
+import com.hmkeyewear.order_service.constant.OrderStatus;
 import com.hmkeyewear.order_service.messaging.OrderEventProducer;
 import com.hmkeyewear.order_service.messaging.StockUpdateRequestProducer;
+import com.hmkeyewear.order_service.messaging.InvoiceEmailProducer;
 import com.hmkeyewear.order_service.model.Order;
 import com.hmkeyewear.order_service.util.OrderAuditUtil;
 
 import org.springframework.stereotype.Service;
-
-import com.google.cloud.Timestamp;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -29,6 +26,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderEventProducer orderEventProducer;
     private final StockUpdateRequestProducer stockUpdateRequestProducer;
+    private final InvoiceEmailProducer invoiceEmailProducer;
 
     private final OrderPriceCalculator priceCalculator;
     private final OrderStatusResolver statusResolver;
@@ -39,6 +37,7 @@ public class OrderService {
             OrderMapper orderMapper,
             OrderEventProducer orderEventProducer,
             StockUpdateRequestProducer stockUpdateRequestProducer,
+            InvoiceEmailProducer invoiceEmailProducer,
             OrderPriceCalculator priceCalculator,
             OrderStatusResolver statusResolver) {
 
@@ -47,6 +46,7 @@ public class OrderService {
         this.stockUpdateRequestProducer = stockUpdateRequestProducer;
         this.priceCalculator = priceCalculator;
         this.statusResolver = statusResolver;
+        this.invoiceEmailProducer = invoiceEmailProducer;
     }
 
     // ===== CREATE ORDER =====
@@ -104,7 +104,7 @@ public class OrderService {
         docRef.set(order).get();
 
         // ===== TRỪ KHO =====
-        stockUpdateRequestProducer.sendMessage(order.getDetails());
+        stockUpdateRequestProducer.sendIncreaseQuantitySell(order.getDetails());
 
         // ===== EVENT =====
         orderEventProducer.sendMessage(order);
@@ -171,97 +171,58 @@ public class OrderService {
     }
 
     // UPDATE ORDER STATUS AFTER PAYMENT
-    public void updateOrderStatus(OrderPaymentStatusUpdateDto dto)
+    public OrderResponseDto updateOrderStatus(
+            String orderId,
+            String newStatus,
+            String userId)
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
-        DocumentReference docRef = db.collection(COLLECTION_NAME).document(dto.getOrderId());
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document(orderId);
 
-        DocumentSnapshot snapshot = docRef.get().get();
-        if (!snapshot.exists()) {
-            throw new RuntimeException("Order with ID " + dto.getOrderId() + " not found");
-        }
+        Order order = docRef.get().get().toObject(Order.class);
 
-        Order order = snapshot.toObject(Order.class);
         if (order == null) {
-            throw new RuntimeException("Cannot parse order data");
+            throw new RuntimeException("Order not found");
         }
 
-        order.setStatus(dto.getStatus());
-        order.setUpdatedAt(Timestamp.now());
+        OrderStatus status;
+        try {
+            status = OrderStatus.valueOf(newStatus);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Trạng thái không hợp lệ");
+        }
+
+        switch (status) {
+
+            case PAID:
+            case DELIVERING:
+                order.setStatus(status.name());
+                break;
+
+            case COMPLETED:
+                order.setStatus(status.name());
+                // FIX
+                // invoiceEmailProducer.sendEmailRequest(order);
+                break;
+
+            case FAILD:
+            case CANCEL:
+                stockUpdateRequestProducer
+                        .sendDecreaseQuantitySell(order.getDetails());
+
+                order.setStatus(status.name());
+                break;
+
+            default:
+                throw new RuntimeException("Không hỗ trợ trạng thái này");
+        }
+
+        // audit
+        OrderAuditUtil.setUpdateAudit(order, userId);
 
         docRef.set(order).get();
 
-        orderEventProducer.sendMessage(order);
+        return orderMapper.toOrderResponseDto(order);
     }
-
-    // public String saveOrder(OrderRequestDto dto)
-    // throws ExecutionException, InterruptedException {
-
-    // Firestore db = FirestoreClient.getFirestore();
-    // DocumentReference docRef = db.collection(COLLECTION_NAME).document();
-
-    // Order order = new Order();
-    // order.setOrderId(docRef.getId());
-
-    // order.setUserId(dto.getUserId());
-    // order.setEmail(dto.getEmail());
-    // order.setFullname(dto.getFullname());
-    // order.setPhone(dto.getPhone());
-    // order.setPaymentMethod(dto.getPaymentMethod());
-    // order.setNote(dto.getNote());
-    // order.setDiscount(dto.getDiscount()); // object
-    // order.setDetails(dto.getDetails());
-    // order.setShip(dto.getShip()); // object
-
-    // // ---- CALCULATE PRICE ----
-    // double priceTemp = priceCalculator.calculatePriceTemp(dto.getDetails());
-
-    // double priceDecreased = 0;
-    // if (dto.getDiscount() != null) {
-    // priceDecreased = priceCalculator.calculatePriceDecreased(priceTemp,
-    // dto.getDiscount());
-    // }
-
-    // double shippingFee = 0;
-    // if (dto.getShip() != null) {
-    // shippingFee = priceCalculator.calculateShippingFee(dto.getShip());
-    // }
-
-    // double summary = priceCalculator.calculateSummary(priceTemp, priceDecreased,
-    // shippingFee);
-
-    // order.setPriceTemp(priceTemp);
-    // order.setPriceDecreased(priceDecreased);
-    // order.setSummary(summary);
-
-    // // ---- SET STATUS ----
-    // PaymentMethod method = PaymentMethod.valueOf(dto.getPaymentMethod());
-    // order.setStatus(statusResolver.resolveInitStatus(method));
-
-    // // ---- AUDIT ----
-    // OrderAuditUtil.setCreateAudit(order, dto.getCreatedBy());
-
-    // // ---- SAVE ----
-    // docRef.set(order).get();
-
-    // // ---- SEND EVENT ----
-    // orderEventProducer.sendMessage(order);
-
-    // // ---- PREPARE STOCK MESSAGE ----
-    // List<OrderDetailRequestDto> items = new ArrayList<>();
-    // for (OrderDetail detail : order.getDetails()) {
-    // OrderDetailRequestDto item = new OrderDetailRequestDto();
-    // item.setProductId(detail.getProductId());
-    // item.setVariantId(detail.getVariantId());
-    // item.setProductName(detail.getProductName());
-    // item.setQuantity(detail.getQuantity());
-    // item.setUnitPrice(detail.getUnitPrice());
-    // items.add(item);
-    // }
-
-    // stockUpdateRequestProducer.sendMessage(items);
-
-    // return order.getOrderId();
-    // }
 }

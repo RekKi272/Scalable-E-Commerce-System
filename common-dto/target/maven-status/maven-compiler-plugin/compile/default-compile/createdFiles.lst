@@ -14,5 +14,6 @@ com\hmkeyewear\common_dto\dto\OrderRequestDto.class
 com\hmkeyewear\common_dto\dto\AddToCartRequestDto.class
 com\hmkeyewear\common_dto\dto\DiscountDto.class
 com\hmkeyewear\common_dto\dto\OrderPaymentStatusUpdateDto.class
+com\hmkeyewear\common_dto\dto\OrderStatusUpdateRequestDto.class
 com\hmkeyewear\common_dto\dto\ShipInfoDto.class
 com\hmkeyewear\common_dto\dto\OrderDetailRequestDto.class

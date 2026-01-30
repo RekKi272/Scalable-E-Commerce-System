@@ -39,9 +39,9 @@ public class ProductService {
 
     // Constructor
     public ProductService(ProductMapper productMapper,
-                          ProductEventProducer productEventProducer,
-                          ProductSearchService productSearchService,
-                          ProductSearchMapper productSearchMapper) {
+            ProductEventProducer productEventProducer,
+            ProductSearchService productSearchService,
+            ProductSearchMapper productSearchMapper) {
         this.productMapper = productMapper;
         this.productEventProducer = productEventProducer;
         this.productSearchService = productSearchService;
@@ -58,7 +58,6 @@ public class ProductService {
     }
 
     // ----------------------------- SYNC EXISTING DATA ----------------------------
-
 
     private String generateProductId(Firestore db) throws ExecutionException, InterruptedException {
         DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(PRODUCT_COUNTER_DOC);
@@ -162,19 +161,31 @@ public class ProductService {
         return productMapper.toProductResponseDto(product);
     }
 
-    // Update Product stock
-    public void updateStock(List<OrderDetailRequestDto> items) {
+    // Khi tạo đơn hàng thành công -> cộng số lượng đã bán
+    public void increaseQuantitySell(List<OrderDetailRequestDto> items) {
+        updateQuantitySell(items, true);
+    }
+
+    // Khi đơn bị huỷ / thanh toán thất bại -> trừ lại số lượng đã bán
+    public void decreaseQuantitySell(List<OrderDetailRequestDto> items) {
+        updateQuantitySell(items, false);
+    }
+
+    private void updateQuantitySell(
+            List<OrderDetailRequestDto> items,
+            boolean isIncrease) {
         Firestore db = FirestoreClient.getFirestore();
 
-        // Gom các items theo productId
+        // Gom theo productId
         Map<String, List<OrderDetailRequestDto>> grouped = items.stream()
                 .collect(Collectors.groupingBy(OrderDetailRequestDto::getProductId));
 
-        // Mỗi product sẽ chạy 1 transaction
+        // Mỗi product chạy 1 transaction
         for (String productId : grouped.keySet()) {
 
             db.runTransaction(transaction -> {
                 DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
+
                 DocumentSnapshot snapshot = transaction.get(productRef).get();
 
                 if (!snapshot.exists()) {
@@ -182,50 +193,44 @@ public class ProductService {
                 }
 
                 Product product = snapshot.toObject(Product.class);
-                if (product == null) {
-                    throw new RuntimeException("Product data null for: " + productId);
+                if (product == null || product.getVariants() == null) {
+                    throw new RuntimeException("Invalid product data: " + productId);
                 }
 
                 List<Variant> variants = product.getVariants();
-                if (variants == null) {
-                    throw new RuntimeException("Product has no variants: " + productId);
-                }
-
-                // Lấy danh sách order items thuộc product này
                 List<OrderDetailRequestDto> productDetails = grouped.get(productId);
 
-                // Cập nhật tồn kho cho từng order detail
                 for (OrderDetailRequestDto detail : productDetails) {
+
                     Variant variant = variants.stream()
                             .filter(v -> v.getVariantId().equals(detail.getVariantId()))
                             .findFirst()
-                            .orElse(null);
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Variant " + detail.getVariantId()
+                                            + " not found in product " + productId));
 
-                    if (variant == null) {
-                        throw new RuntimeException(
-                                "Variant " + detail.getVariantId() + " not found in product " + productId);
+                    long currentSell = variant.getQuantitySell() != null
+                            ? variant.getQuantitySell()
+                            : 0L;
+
+                    long newSell;
+
+                    if (isIncrease) {
+                        // BÁN HÀNG
+                        newSell = currentSell + detail.getQuantity();
+                    } else {
+                        // HUỶ / FAIL -> TRỪ LẠI
+                        newSell = currentSell - detail.getQuantity();
+                        if (newSell < 0) {
+                            newSell = 0L; // bảo vệ dữ liệu
+                        }
                     }
 
-                    // Kiểm tra tồn kho
-                    long currentStock = (variant.getQuantityImport() != null ? variant.getQuantityImport() : 0L)
-                            - (variant.getQuantitySell() != null ? variant.getQuantitySell() : 0L);
-
-                    if (currentStock < detail.getQuantity()) {
-                        throw new RuntimeException(
-                                "Không đủ hàng cho variant " + variant.getVariantId() +
-                                        " (còn: " + currentStock +
-                                        ", yêu cầu: " + detail.getQuantity() + ")");
-                    }
-
-                    // Cập nhật quantitySell (giả sử đây là bán hàng)
-                    Long newSellQty = (variant.getQuantitySell() != null ? variant.getQuantitySell() : 0L)
-                            + detail.getQuantity();
-                    variant.setQuantitySell(newSellQty);
+                    variant.setQuantitySell(newSell);
                 }
 
-                // Lưu lại danh sách variants mới
+                // Lưu lại variants
                 transaction.update(productRef, "variants", variants);
-
                 return null;
             });
         }
@@ -260,7 +265,6 @@ public class ProductService {
     }
 
     // SEARCH PRODUCT NAME BY KEYWORD
-
 
     // Filter Product
     public List<ProductInforResponseDto> filterProducts(
@@ -530,8 +534,7 @@ public class ProductService {
 
         keyword = removeVietnameseDiacritics(keyword);
         // search từ Elasticsearch
-        List<ProductDocument> docs =
-                productSearchService.searchByName(keyword);
+        List<ProductDocument> docs = productSearchService.searchByName(keyword);
 
         // nếu ES down hoặc không có kết quả
         if (docs.isEmpty()) {
@@ -553,8 +556,7 @@ public class ProductService {
                 Product product = snapshot.toObject(Product.class);
                 if (product != null && "ACTIVE".equals(product.getStatus())) {
                     result.add(
-                            productMapper.toProductInforResponseDto(product)
-                    );
+                            productMapper.toProductInforResponseDto(product));
                 }
             }
         }

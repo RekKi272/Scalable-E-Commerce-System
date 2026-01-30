@@ -2,6 +2,7 @@ package com.hmkeyewear.order_service.controller;
 
 import com.hmkeyewear.common_dto.dto.OrderRequestDto;
 import com.hmkeyewear.common_dto.dto.OrderResponseDto;
+import com.hmkeyewear.common_dto.dto.OrderStatusUpdateRequestDto;
 import com.hmkeyewear.order_service.service.OrderService;
 
 import org.springframework.http.ResponseEntity;
@@ -103,23 +104,23 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    // @PutMapping("/update/{orderId}")
-    // public ResponseEntity<?> updateOrder(
-    // @RequestHeader("X-User-Role") String role,
-    // @RequestHeader("X-User-Id") String userId,
-    // @PathVariable("orderId") String orderId,
-    // @RequestBody OrderRequestDto orderRequestDto)
-    // throws ExecutionException, InterruptedException {
+    @PutMapping("/update/{orderId}")
+    public ResponseEntity<?> updateOrder(
+            @RequestHeader(name = "X-User-Role") String role,
+            @RequestHeader(name = "X-User-Id") String userId,
+            @PathVariable(name = "orderId") String orderId,
+            @RequestBody OrderStatusUpdateRequestDto request)
+            throws ExecutionException, InterruptedException {
 
-    // if (role == null || userId == null) {
-    // return ResponseEntity.status(403).body("Bạn cần đăng nhập để sửa đơn ");
-    // }
+        if (role == null || userId == null) {
+            return ResponseEntity.status(403)
+                    .body("Bạn cần đăng nhập để cập nhật trạng thái đơn");
+        }
 
-    // OrderResponseDto orderResponseDto = orderService.updateOrder(orderId,
-    // orderRequestDto, userId);
+        OrderResponseDto response = orderService.updateOrderStatus(orderId, request.getStatus(), userId);
 
-    // return ResponseEntity.ok(orderResponseDto);
-    // }
+        return ResponseEntity.ok(response);
+    }
 
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteOrder(

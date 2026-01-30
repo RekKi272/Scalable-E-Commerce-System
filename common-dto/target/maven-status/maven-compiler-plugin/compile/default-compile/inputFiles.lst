@@ -11,6 +11,7 @@ D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\commo
 D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\common_dto\dto\OrderItemDto.java
 D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\common_dto\dto\OrderSaveRequestDto.java
 D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\common_dto\dto\ApiResponse.java
+D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\common_dto\dto\OrderStatusUpdateRequestDto.java
 D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\common_dto\dto\ShipInfoDto.java
 D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\common_dto\dto\ForgotPasswordRequestDto.java
 D:\KLTN\Scalable-E-Commerce-System\common-dto\src\main\java\com\hmkeyewear\common_dto\dto\ResetPasswordRequestDto.java
