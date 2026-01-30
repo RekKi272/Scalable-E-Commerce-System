@@ -54,6 +54,11 @@ app:
     stock-update-decrease:
       routing-key: stock.update.decrease
 
+    stock-refund-request:
+      queue: stock-refund-queue
+      routing-key: stock-refund-routing-key
+
     order-mail:
       queue: order_mail_queue
       routing-key: order_mail_routing_key
+

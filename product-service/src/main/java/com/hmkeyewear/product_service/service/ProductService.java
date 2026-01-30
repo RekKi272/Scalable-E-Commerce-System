@@ -236,6 +236,76 @@ public class ProductService {
         }
     }
 
+    // REFUND / CANCEL ORDER -> return stock
+    public void refundStock(List<OrderDetailRequestDto> items) {
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Gom item theo productId
+        Map<String, List<OrderDetailRequestDto>> grouped =
+                items.stream()
+                        .collect(Collectors.groupingBy(OrderDetailRequestDto::getProductId));
+
+        for (String productId : grouped.keySet()) {
+            db.runTransaction(transaction -> {
+
+                DocumentReference productRef =
+                        db.collection(COLLECTION_NAME).document(productId);
+
+                DocumentSnapshot snapshot = transaction.get(productRef).get();
+
+                if (!snapshot.exists()) {
+                    throw new RuntimeException("Product not found: " + productId);
+                }
+
+                Product product = snapshot.toObject(Product.class);
+                if (product == null || product.getVariants() == null) {
+                    throw new RuntimeException("Invalid product data: " + productId);
+                }
+
+                List<Variant> variants = product.getVariants();
+                List<OrderDetailRequestDto> productDetails = grouped.get(productId);
+
+                for (OrderDetailRequestDto detail : productDetails) {
+
+                    Variant variant = variants.stream()
+                            .filter(v -> v.getVariantId().equals(detail.getVariantId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (variant == null) {
+                        throw new RuntimeException(
+                                "Variant " + detail.getVariantId() +
+                                        " not found in product " + productId
+                        );
+                    }
+
+                    Long sellQty =
+                            variant.getQuantitySell() != null
+                                    ? variant.getQuantitySell()
+                                    : 0L;
+
+                    // không cho refund vượt quá số đã bán
+                    if (sellQty < detail.getQuantity()) {
+                        throw new RuntimeException(
+                                "Refund quantity exceeds sold quantity for variant "
+                                        + variant.getVariantId()
+                                        + " (sold: " + sellQty
+                                        + ", refund: " + detail.getQuantity() + ")"
+                        );
+                    }
+
+                    // trả hàng -> giảm quantitySell
+                    variant.setQuantitySell(sellQty - detail.getQuantity());
+                }
+
+                // cập nhật lại variants
+                transaction.update(productRef, "variants", variants);
+
+                return null;
+            });
+        }
+    }
+
     // GET Product by Id
     public ProductResponseDto getProductById(String productId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
