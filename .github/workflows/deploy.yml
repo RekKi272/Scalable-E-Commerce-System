@@ -2,7 +2,7 @@ name: Deploy Microservices to EC2
 
 on:
   push:
-    branches: [ "production" ]
+    branches: [ "main" ]
 
 jobs:
   deploy:
@@ -67,83 +67,3 @@ jobs:
         run: |
           docker build -t rekki27204/nginx-prod:latest ./nginx
           docker push rekki27204/nginx-prod:latest
-
-      # ===============================
-      # 6. CREATE .env FILE
-      # ===============================
-      - name: Create .env
-        run: |
-          cat <<EOF > .env
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-          RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
-          RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}
-          MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-          MAIL_APP_PASSWORD=${{ secrets.MAIL_APP_PASSWORD }}
-          PROD_EMAIL_HOST=${{ secrets.PROD_EMAIL_HOST }}
-          PROD_EMAIL_USERNAME=${{ secrets.PROD_EMAIL_USERNAME }}
-          PROD_EMAIL_PASSWORD=${{ secrets.PROD_EMAIL_PASSWORD }}
-          VNP_URL=${{ secrets.VNP_URL }}
-          VNP_TMN_CODE=${{ secrets.VNP_TMN_CODE }}
-          VNP_SECRET_KEY=${{ secrets.VNP_SECRET_KEY }}
-          VNP_RETURN_URL=${{ secrets.VNP_RETURN_URL }}
-          VNP_VERSION=${{ secrets.VNP_VERSION }}
-          VNP_COMMAND=${{ secrets.VNP_COMMAND }}
-          VNP_ORDER_TYPE=${{ secrets.VNP_ORDER_TYPE }}
-          EOF
-
-      # ===============================
-      # 7. CREATE SECRETS JSON FILES
-      # ===============================
-      - name: Create firebase & supabase secrets
-        run: |
-          mkdir -p secrets
-
-          echo '${{ secrets.FIREBASE_USER_JSON }}' > secrets/firebase-user.json
-          echo '${{ secrets.FIREBASE_PRODUCT_JSON }}' > secrets/firebase-product.json
-          echo '${{ secrets.FIREBASE_ORDER_JSON }}' > secrets/firebase-order.json
-          echo '${{ secrets.FIREBASE_CART_JSON }}' > secrets/firebase-cart.json
-          echo '${{ secrets.FIREBASE_BLOG_JSON }}' > secrets/firebase-blog.json
-          echo '${{ secrets.SUPABASE_SECRET_JSON }}' > secrets/supabase-secrets.json
-
-      # ===============================
-      # 8. CREATE NGINX SSL FILES
-      # ===============================
-      - name: Create Nginx SSL
-        run: |
-          mkdir -p nginx/ssl/prod
-
-          echo "${{ secrets.NGINX_SSL_KEY }}" > nginx/ssl/prod/server.key
-          echo "${{ secrets.NGINX_SSL_CRT }}" > nginx/ssl/prod/server.crt
-      
-
-      # ===============================
-      # 9. COPY ALL TO EC2
-      # ===============================
-      - name: Copy files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: ".env,secrets,nginx,docker-compose.prod.yml"
-          target: "/home/ubuntu/app"
-
-      # ===============================
-      # 10. DEPLOY
-      # ===============================
-      - name: Deploy on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/app
-            
-            chmod 600 nginx/ssl/prod/server.key
-            chmod 644 nginx/ssl/prod/server.crt
-            
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d
