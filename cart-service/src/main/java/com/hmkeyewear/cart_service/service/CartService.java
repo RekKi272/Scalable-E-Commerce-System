@@ -11,12 +11,12 @@ import com.hmkeyewear.cart_service.dto.*;
 import com.hmkeyewear.cart_service.mapper.CartMapper;
 import com.hmkeyewear.cart_service.messaging.CartEventProducer;
 import com.hmkeyewear.cart_service.messaging.OrderCheckoutRequestEventProducer;
-import com.hmkeyewear.cart_service.messaging.OrderSaveRequestProducer;
 import com.hmkeyewear.cart_service.messaging.PaymentRequestEventProducer;
 import com.hmkeyewear.cart_service.model.Cart;
 import com.hmkeyewear.cart_service.model.CartItem;
 import com.hmkeyewear.cart_service.model.Discount;
-import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,8 +41,6 @@ public class CartService {
     private final PaymentRequestEventProducer paymentRequestEventProducer;
 
     private final OrderCheckoutRequestEventProducer orderCheckoutRequestEventProducer;
-
-    private final OrderSaveRequestProducer orderSaveRequestProducer;
 
     private final DiscountService discountService;
 
@@ -109,7 +107,7 @@ public class CartService {
         writeResult.get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -131,7 +129,7 @@ public class CartService {
         writeResult.get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -171,7 +169,7 @@ public class CartService {
         writeResult.get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -234,7 +232,7 @@ public class CartService {
         docRef.set(cart).get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -276,7 +274,7 @@ public class CartService {
         docRef.set(cart).get();
 
         // --- Gửi message RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -301,13 +299,24 @@ public class CartService {
         db.collection(COLLECTION_NAME).document(userId).delete();
     }
 
-    public VNPayResponseDto createPayment(PaymentRequestDto request) throws ExecutionException, InterruptedException {
-        // Send message to payment-service and wait for reply
+    public VNPayResponseDto createPayment(
+            OrderResponseDto order,
+            String ipAddress) throws ExecutionException, InterruptedException {
+
+        // ===== BUILD PaymentRequestDto (CHỈ FIELD PAYMENT-SERVICE CẦN) =====
+        PaymentRequestDto request = new PaymentRequestDto();
+
+        request.setOrderId(order.getOrderId());
+        request.setTotal(order.getSummary());
+        request.setIpAddress(ipAddress);
+
+        // ===== RPC CALL =====
         VNPayResponseDto response = paymentRequestEventProducer.sendPaymentRequest(request);
 
         if (response == null) {
             throw new RuntimeException("Failed to send payment request");
         }
+
         return response;
     }
 
@@ -385,21 +394,14 @@ public class CartService {
         discountService.updateDiscountUsage(discount);
 
         // --- Gửi message RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
 
-    public String createOrderForCheckout(PaymentRequestDto request) throws ExecutionException, InterruptedException {
-        OrderSaveRequestDto orderSaveRequestDto = new OrderSaveRequestDto();
+    public OrderResponseDto sendCreateOrder(OrderRequestDto orderRequest, String userId) {
 
-        // Mapping
-        orderSaveRequestDto.setUserId(request.getUserId());
-        orderSaveRequestDto.setEmail(request.getEmail());
-        orderSaveRequestDto.setDiscountId(request.getDiscountId());
-        orderSaveRequestDto.setSummary(request.getTotal());
-        orderSaveRequestDto.setItems(request.getItems());
-
-        return orderSaveRequestProducer.sendSaveRequest(orderSaveRequestDto);
+        return (OrderResponseDto) orderCheckoutRequestEventProducer.convertSendAndReceive(orderRequest, userId);
     }
+
 }

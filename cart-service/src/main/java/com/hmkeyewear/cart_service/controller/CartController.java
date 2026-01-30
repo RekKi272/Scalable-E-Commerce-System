@@ -2,8 +2,11 @@ package com.hmkeyewear.cart_service.controller;
 
 import com.hmkeyewear.cart_service.dto.*;
 import com.hmkeyewear.cart_service.service.CartService;
+import com.hmkeyewear.common_dto.dto.OrderRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
 import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
 import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
+import com.hmkeyewear.cart_service.messaging.OrderCheckoutRequestEventProducer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -147,45 +150,22 @@ public class CartController {
     public ResponseEntity<?> checkout(
             @RequestHeader("X-User-Id") String userId,
             @RequestHeader("X-User-Name") String email,
-            HttpServletRequest request,
-            @RequestBody(required = false) PaymentRequestDto checkoutRequest)
-            throws ExecutionException, InterruptedException {
-        if (userId == null || userId.isEmpty()) {
-            return ResponseEntity.status(401).body("Bạn cần đăng nhập để thanh toán");
+            @RequestBody OrderRequestDto orderRequest,
+            HttpServletRequest request) throws ExecutionException, InterruptedException {
+
+        OrderResponseDto order = cartService.sendCreateOrder(orderRequest, userId);
+
+        if ("BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())) {
+
+            String ipAddress = request.getRemoteAddr();
+
+            VNPayResponseDto payment = cartService.createPayment(order, ipAddress);
+
+            return ResponseEntity.ok(payment);
         }
 
-        if (checkoutRequest == null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        checkoutRequest.setUserId(userId);
-        checkoutRequest.setEmail(email);
-        checkoutRequest.setIpAddress(request.getRemoteAddr());
-        // Create Order
-        String orderId = cartService.createOrderForCheckout(checkoutRequest);
-        checkoutRequest.setOrderId(orderId);
-        // sent Payment Request
-        VNPayResponseDto response = cartService.createPayment(checkoutRequest);
-
-        return ResponseEntity.ok(response); // FE redirect to response.getPaymentUrl
-    }
-
-    // APPLY Discount
-    @PostMapping("/applyDiscount")
-    public ResponseEntity<?> applyDiscount(
-            @RequestHeader("X-User-Id") String userId,
-            @RequestBody String discountCode) throws ExecutionException, InterruptedException {
-
-        if (userId == null || userId.isEmpty()) {
-            return ResponseEntity.status(401).body("Bạn cần đăng nhập để áp dụng mã giảm giá");
-        }
-
-        try {
-            CartResponseDto updatedCart = cartService.applyDiscount(userId, discountCode);
-            return ResponseEntity.ok(updatedCart);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        cartService.clearCart(userId);
+        return ResponseEntity.ok(order);
     }
 
 }

@@ -4,32 +4,29 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
 import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class InvoiceEmailEvent {
-
+public class OrderResponseDto {
     private String orderId;
     private String userId;
-    private String createdBy;
     private String email;
     private String fullname;
     private String phone;
 
     private String paymentMethod;
+
+    private double priceTemp;
+    private double priceDecreased;
+    private double summary;
+
     private String status;
 
-    private Double priceTemp;
-    private Double priceDecreased;
-    private Double summary;
-
-    private List<OrderItemDto> details;
+    private List<CartItemDto> items;
     private ShipInfoDto ship;
     private DiscountDto discount;
 
     private String note;
-    private Instant updatedAt;
 }

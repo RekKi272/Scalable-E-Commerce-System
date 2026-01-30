@@ -359,7 +359,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 20
-      start_period: 180s
     depends_on:
       service-registry:
         condition: service_healthy

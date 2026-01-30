@@ -1,14 +1,13 @@
 package com.hmkeyewear.order_service.controller;
 
-import com.hmkeyewear.order_service.dto.OrderRequestDto;
-import com.hmkeyewear.order_service.dto.OrderResponseDto;
+import com.hmkeyewear.common_dto.dto.OrderRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
+import com.hmkeyewear.common_dto.dto.OrderStatusUpdateRequestDto;
 import com.hmkeyewear.order_service.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -33,9 +32,7 @@ public class OrderController {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để tạo đơn hàng");
         }
 
-        orderRequestDto.setCreatedBy(userId);
-
-        OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto, role);
+        OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto, userId);
 
         return ResponseEntity.ok(orderResponseDto);
     }
@@ -109,18 +106,20 @@ public class OrderController {
 
     @PutMapping("/update/{orderId}")
     public ResponseEntity<?> updateOrder(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @PathVariable("orderId") String orderId,
-            @RequestBody OrderRequestDto orderRequestDto)
+            @RequestHeader(name = "X-User-Role") String role,
+            @RequestHeader(name = "X-User-Id") String userId,
+            @PathVariable(name = "orderId") String orderId,
+            @RequestBody OrderStatusUpdateRequestDto request)
             throws ExecutionException, InterruptedException {
 
         if (role == null || userId == null) {
-            return ResponseEntity.status(403).body("Bạn cần đăng nhập để sửa đơn ");
+            return ResponseEntity.status(403)
+                    .body("Bạn cần đăng nhập để cập nhật trạng thái đơn");
         }
 
-        OrderResponseDto orderResponseDto = orderService.updateOrder(orderId, orderRequestDto, userId);
-        return ResponseEntity.ok(orderResponseDto);
+        OrderResponseDto response = orderService.updateOrderStatus(orderId, request.getStatus(), userId);
+
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/delete")
@@ -136,50 +135,4 @@ public class OrderController {
 
         return ResponseEntity.ok(orderService.deleteOrder(orderId));
     }
-
-    // ----- STATISTIC -----
-
-    @GetMapping("/statistic/month")
-    public ResponseEntity<?> statisticByMonth(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam("year") int year,
-            @RequestParam("month") int month)
-            throws ExecutionException, InterruptedException {
-
-        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-        }
-
-        return ResponseEntity.ok(orderService.statisticByMonth(year, month));
-    }
-
-    @GetMapping("/statistic/week")
-    public ResponseEntity<?> statisticByWeek(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam("localDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate localDate)
-            throws ExecutionException, InterruptedException {
-
-        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-        }
-
-        return ResponseEntity.ok(orderService.statisticByWeek(localDate));
-    }
-
-    @GetMapping("/statistic/year")
-    public ResponseEntity<?> statisticByYear(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam("year") int year)
-            throws ExecutionException, InterruptedException {
-
-        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-        }
-
-        return ResponseEntity.ok(orderService.statisticByYear(year));
-    }
-
 }

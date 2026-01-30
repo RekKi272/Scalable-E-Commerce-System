@@ -1,8 +1,6 @@
 package com.hmkeyewear.order_service.messaging;
 
 import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
-import com.hmkeyewear.order_service.mapper.OrderMapper;
-import com.hmkeyewear.order_service.model.OrderDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -19,24 +17,27 @@ public class StockUpdateRequestProducer {
     @Value("${app.rabbitmq.exchange}")
     private String exchangeName;
 
-    @Value("${app.rabbitmq.stock-update-request.routing-key}")
-    private String orderRoutingKey;
+    @Value("${app.rabbitmq.stock-update-increase.routing-key}")
+    private String increaseRoutingKey;
+
+    @Value("${app.rabbitmq.stock-update-decrease.routing-key}")
+    private String decreaseRoutingKey;
 
     private final RabbitTemplate rabbitTemplate;
 
-    private final OrderMapper orderMapper;
-
-    public StockUpdateRequestProducer(RabbitTemplate rabbitTemplate, OrderMapper orderMapper) {
+    public StockUpdateRequestProducer(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
-        this.orderMapper = orderMapper;
     }
 
-    /**
-     * Producing queue: stock_update_queue
-     * Message sent to product-service WHEN DOING Payment
-     */
-    public void sendMessage(List<OrderDetailRequestDto> orderDetailList) {
-        LOGGER.info("Message sent -> {}", orderDetailList.toString());
-        rabbitTemplate.convertAndSend(exchangeName, orderRoutingKey, orderDetailList);
+    // Khi tạo đơn / bán thành công
+    public void sendIncreaseQuantitySell(List<OrderDetailRequestDto> items) {
+        LOGGER.info("Send INCREASE quantitySell: {}", items);
+        rabbitTemplate.convertAndSend(exchangeName, increaseRoutingKey, items);
+    }
+
+    // Khi huỷ đơn / payment fail / khách không nhận
+    public void sendDecreaseQuantitySell(List<OrderDetailRequestDto> items) {
+        LOGGER.info("Send DECREASE quantitySell: {}", items);
+        rabbitTemplate.convertAndSend(exchangeName, decreaseRoutingKey, items);
     }
 }
