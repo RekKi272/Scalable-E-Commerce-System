@@ -3,10 +3,12 @@ package com.hmkeyewear.order_service.service;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.common_dto.dto.InvoiceEmailEvent;
 import com.hmkeyewear.common_dto.dto.OrderRequestDto;
 import com.hmkeyewear.common_dto.dto.OrderResponseDto;
 
 import com.hmkeyewear.order_service.constant.PaymentMethod;
+import com.hmkeyewear.order_service.mapper.InvoiceEmailMapper;
 import com.hmkeyewear.order_service.mapper.OrderMapper;
 import com.hmkeyewear.order_service.constant.OrderStatus;
 import com.hmkeyewear.order_service.messaging.OrderEventProducer;
@@ -15,11 +17,14 @@ import com.hmkeyewear.order_service.messaging.InvoiceEmailProducer;
 import com.hmkeyewear.order_service.model.Order;
 import com.hmkeyewear.order_service.util.OrderAuditUtil;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+@Slf4j
 @Service
 public class OrderService {
 
@@ -27,6 +32,7 @@ public class OrderService {
     private final OrderEventProducer orderEventProducer;
     private final StockUpdateRequestProducer stockUpdateRequestProducer;
     private final InvoiceEmailProducer invoiceEmailProducer;
+    private final InvoiceEmailMapper invoiceEmailMapper;
 
     private final OrderPriceCalculator priceCalculator;
     private final OrderStatusResolver statusResolver;
@@ -38,6 +44,7 @@ public class OrderService {
             OrderEventProducer orderEventProducer,
             StockUpdateRequestProducer stockUpdateRequestProducer,
             InvoiceEmailProducer invoiceEmailProducer,
+            InvoiceEmailMapper invoiceEmailMapper,
             OrderPriceCalculator priceCalculator,
             OrderStatusResolver statusResolver) {
 
@@ -47,6 +54,7 @@ public class OrderService {
         this.priceCalculator = priceCalculator;
         this.statusResolver = statusResolver;
         this.invoiceEmailProducer = invoiceEmailProducer;
+        this.invoiceEmailMapper = invoiceEmailMapper;
     }
 
     // ===== CREATE ORDER =====
@@ -201,12 +209,26 @@ public class OrderService {
                 break;
 
             case COMPLETED:
+                String oldStatus = order.getStatus();
                 order.setStatus(status.name());
-                // FIX
-                // invoiceEmailProducer.sendEmailRequest(order);
+
+                log.info(
+                        "🔄 Order status update | orderId={} | {} -> {}",
+                        order.getOrderId(),
+                        oldStatus,
+                        status.name());
+
+                if (!OrderStatus.COMPLETED.name().equals(oldStatus)) {
+                    InvoiceEmailEvent event = invoiceEmailMapper.toEvent(order);
+                    invoiceEmailProducer.sendEmailRequest(event);
+                } else {
+                    log.warn(
+                            "⚠️ Order {} already COMPLETED – skip sending invoice email",
+                            order.getOrderId());
+                }
                 break;
 
-            case FAILD:
+            case FAILED:
             case CANCEL:
                 stockUpdateRequestProducer
                         .sendDecreaseQuantitySell(order.getDetails());

@@ -11,14 +11,12 @@ import com.hmkeyewear.cart_service.dto.*;
 import com.hmkeyewear.cart_service.mapper.CartMapper;
 import com.hmkeyewear.cart_service.messaging.CartEventProducer;
 import com.hmkeyewear.cart_service.messaging.OrderCheckoutRequestEventProducer;
-import com.hmkeyewear.cart_service.messaging.OrderSaveRequestProducer;
 import com.hmkeyewear.cart_service.messaging.PaymentRequestEventProducer;
 import com.hmkeyewear.cart_service.model.Cart;
 import com.hmkeyewear.cart_service.model.CartItem;
 import com.hmkeyewear.cart_service.model.Discount;
 import com.hmkeyewear.common_dto.dto.OrderRequestDto;
 import com.hmkeyewear.common_dto.dto.OrderResponseDto;
-import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,8 +41,6 @@ public class CartService {
     private final PaymentRequestEventProducer paymentRequestEventProducer;
 
     private final OrderCheckoutRequestEventProducer orderCheckoutRequestEventProducer;
-
-    private final OrderSaveRequestProducer orderSaveRequestProducer;
 
     private final DiscountService discountService;
 

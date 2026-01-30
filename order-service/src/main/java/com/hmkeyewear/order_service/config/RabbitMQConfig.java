@@ -65,11 +65,11 @@ public class RabbitMQConfig {
                 .durable(orderStatusQueueName).build();
     }
 
-    // @Bean
-    // public Queue orderMailQueue() {
-    // return QueueBuilder
-    // .durable(orderMailQueue).build();
-    // }
+    @Bean
+    public Queue orderMailQueue() {
+        return QueueBuilder
+                .durable(orderMailQueue).build();
+    }
 
     @Bean
     public TopicExchange exchange() {
@@ -101,13 +101,13 @@ public class RabbitMQConfig {
                 .with(orderStatusRoutingKey);
     }
 
-    // @Bean
-    // public Binding orderMailBinding() {
-    // return BindingBuilder
-    // .bind(orderMailQueue())
-    // .to(exchange())
-    // .with(orderMailRoutingKey);
-    // }
+    @Bean
+    public Binding orderMailBinding() {
+        return BindingBuilder
+                .bind(orderMailQueue())
+                .to(exchange())
+                .with(orderMailRoutingKey);
+    }
 
     @Bean
     public MessageConverter messageConverter() {
