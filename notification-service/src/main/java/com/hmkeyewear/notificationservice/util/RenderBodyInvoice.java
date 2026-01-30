@@ -1,6 +1,7 @@
 package com.hmkeyewear.notificationservice.util;
 
 import com.hmkeyewear.common_dto.dto.InvoiceEmailEvent;
+import com.hmkeyewear.common_dto.dto.OrderItemDto;
 
 public class RenderBodyInvoice {
 
@@ -56,20 +57,28 @@ public class RenderBodyInvoice {
 
   private static String renderProductTable(InvoiceEmailEvent e) {
     StringBuilder rows = new StringBuilder();
+
     if (e.getDetails() != null) {
-      for (InvoiceEmailEvent.OrderDetail d : e.getDetails()) {
+      for (OrderItemDto d : e.getDetails()) {
         rows.append("""
             <tr>
               <td style="padding:12px; border-bottom:1px solid #f0f0f0;">
-                <strong>%s</strong><br/><span style="font-size:12px; color:#888;">Mã SP: %s</span>
+                <strong>%s</strong><br/>
+                <span style="font-size:12px; color:#888;">Mã SP: %s</span>
               </td>
               <td align="center" style="padding:12px; border-bottom:1px solid #f0f0f0;">%d</td>
               <td align="right" style="padding:12px; border-bottom:1px solid #f0f0f0;">%,.0f ₫</td>
               <td align="right" style="padding:12px; border-bottom:1px solid #f0f0f0;">%,.0f ₫</td>
             </tr>
-            """.formatted(d.getProductName(), d.getProductId(), d.getQuantity(), d.getUnitPrice(), d.getTotalPrice()));
+            """.formatted(
+            d.getProductName(),
+            d.getProductId(),
+            d.getQuantity(),
+            d.getUnitPrice(),
+            d.getTotalPrice()));
       }
     }
+
     return """
         <tr>
           <td style="padding:0 28px 24px;">

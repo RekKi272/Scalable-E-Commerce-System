@@ -48,9 +48,11 @@ app:
       queue: order_status_update_queue
       routing-key: order_status_update_routing_key
 
-    stock-update-request:
-      queue: stock_update_queue
-      routing-key: stock_update_routing_key
+    stock-update-increase:
+      routing-key: stock.update.increase
+
+    stock-update-decrease:
+      routing-key: stock.update.decrease
 
     stock-refund-request:
       queue: stock-refund-queue

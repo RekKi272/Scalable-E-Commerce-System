@@ -1,5 +1,9 @@
 package com.hmkeyewear.order_service.model;
 
+import com.hmkeyewear.common_dto.dto.DiscountDto;
+import com.hmkeyewear.common_dto.dto.ShipInfoDto;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,9 +28,9 @@ public class Order {
 
     private String status;
 
-    private DiscountDetail discount;
-    private List<OrderDetail> details;
-    private ShipInfo ship;
+    private DiscountDto discount;
+    private List<OrderDetailRequestDto> details;
+    private ShipInfoDto ship;
 
     private String note;
 

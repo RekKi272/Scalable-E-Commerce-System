@@ -1,6 +1,7 @@
 package com.hmkeyewear.product_service.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -34,11 +35,17 @@ public class RabbitMQConfig {
     private String categoryRoutingKey;
 
     // Stock update request queue
-    @Value("${app.rabbitmq.stock-update-request.queue}")
-    private String stockUpdateRequestQueueName;
+    @Value("${app.rabbitmq.stock-update-increase.queue}")
+    private String stockUpdateIncreaseQueueName;
 
-    @Value("${app.rabbitmq.stock-update-request.routing-key}")
-    private String stockUpdateRequestRoutingKey;
+    @Value("${app.rabbitmq.stock-update-decrease.queue}")
+    private String stockUpdateDecreaseQueueName;
+
+    @Value("${app.rabbitmq.stock-update-increase.routing-key}")
+    private String stockUpdateIncreaseRoutingKey;
+
+    @Value("${app.rabbitmq.stock-update-decrease.routing-key}")
+    private String stockUpdateDecreaseRoutingKey;
 
     // Stock refund request queue
     @Value("${app.rabbitmq.stock-refund-request.queue}")
@@ -66,9 +73,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue stockUpdateRequestQueue() {
-        return QueueBuilder
-                .durable(stockUpdateRequestQueueName).build();
+    public Queue stockUpdateIncreaseQueue() {
+        return QueueBuilder.durable(stockUpdateIncreaseQueueName).build();
+    }
+
+    @Bean
+    public Queue stockUpdateDecreaseQueue() {
+        return QueueBuilder.durable(stockUpdateDecreaseQueueName).build();
     }
 
     @Bean
@@ -109,11 +120,19 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding stockUpdateRequestBinding() {
+    public Binding stockUpdateIncreaseBinding() {
         return BindingBuilder
-                .bind(stockUpdateRequestQueue())
+                .bind(stockUpdateIncreaseQueue())
                 .to(exchange())
-                .with(stockUpdateRequestRoutingKey);
+                .with(stockUpdateIncreaseRoutingKey);
+    }
+
+    @Bean
+    public Binding stockUpdateDecreaseBinding() {
+        return BindingBuilder
+                .bind(stockUpdateDecreaseQueue())
+                .to(exchange())
+                .with(stockUpdateDecreaseRoutingKey);
     }
 
     @Bean
@@ -136,5 +155,14 @@ public class RabbitMQConfig {
         rabbitTemplate.setMessageConverter(messageConverter());
         return rabbitTemplate;
     }
-}
 
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory) {
+
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(messageConverter());
+        return factory;
+    }
+}
