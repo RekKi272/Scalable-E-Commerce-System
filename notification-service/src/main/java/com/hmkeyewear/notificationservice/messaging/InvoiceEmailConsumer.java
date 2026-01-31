@@ -19,21 +19,9 @@ public class InvoiceEmailConsumer {
     @RabbitListener(queues = "${app.rabbitmq.order-mail.queue}")
     public void handle(InvoiceEmailEvent event) {
 
-        log.info(
-                "📥 [NOTIFICATION-SERVICE] Received InvoiceEmailEvent | orderId={} | email={}",
-                event.getOrderId(),
-                event.getEmail());
-
         String body = RenderBodyInvoice.render(event);
         String html = RenderForm.wrapBody(body);
 
-        emailSender.sendHtml(
-                event.getEmail(),
-                "Xác nhận đơn hàng - HMK Eyewear",
-                html);
-
-        log.info(
-                "📧 [NOTIFICATION-SERVICE] Invoice email SENT successfully | orderId={}",
-                event.getOrderId());
+        emailSender.sendHtml(event.getEmail(), "Xác nhận đơn hàng - HMK Eyewear", html);
     }
 }

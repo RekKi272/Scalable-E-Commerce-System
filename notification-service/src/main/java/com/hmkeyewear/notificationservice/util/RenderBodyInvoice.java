@@ -49,7 +49,7 @@ public class RenderBodyInvoice {
         </tr>
         """.formatted(
         e.getOrderId(),
-        e.getFullname(),
+        e.getFullName(),
         e.getPhone(),
         address,
         e.getNote() == null ? "-" : e.getNote());
@@ -137,6 +137,6 @@ public class RenderBodyInvoice {
             </p>
           </td>
         </tr>
-        """.formatted(e.getFullname());
+        """.formatted(e.getFullName());
   }
 }

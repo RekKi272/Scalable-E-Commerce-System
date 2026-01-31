@@ -21,7 +21,7 @@ public class InvoiceEmailMapper {
         e.setCreatedBy(order.getCreatedBy());
 
         e.setEmail(order.getEmail());
-        e.setFullname(order.getFullname());
+        e.setFullName(order.getFullName());
         e.setPhone(order.getPhone());
 
         e.setPaymentMethod(order.getPaymentMethod());

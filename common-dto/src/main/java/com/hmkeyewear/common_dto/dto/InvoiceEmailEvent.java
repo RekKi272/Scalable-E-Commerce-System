@@ -16,7 +16,7 @@ public class InvoiceEmailEvent {
     private String userId;
     private String createdBy;
     private String email;
-    private String fullname;
+    private String fullName;
     private String phone;
 
     private String paymentMethod;

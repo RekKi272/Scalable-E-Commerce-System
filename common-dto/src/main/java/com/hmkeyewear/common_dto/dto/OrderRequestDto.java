@@ -11,7 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 public class OrderRequestDto {
     private String email;
-    private String fullname;
+    private String fullName;
     private String phone;
 
     // ===== ORDER INFO =====

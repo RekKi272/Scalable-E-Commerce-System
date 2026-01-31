@@ -1,8 +1,9 @@
 package com.hmkeyewear.order_service.constant;
 
 public enum OrderStatus {
-    PAID,
+    PENDING,
     DELIVERING,
+    PAID,
     COMPLETED,
     FAILED,
     CANCEL

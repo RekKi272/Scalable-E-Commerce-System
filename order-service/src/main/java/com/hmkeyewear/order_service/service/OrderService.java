@@ -16,6 +16,7 @@ import com.hmkeyewear.order_service.messaging.StockUpdateRequestProducer;
 import com.hmkeyewear.order_service.messaging.InvoiceEmailProducer;
 import com.hmkeyewear.order_service.model.Order;
 import com.hmkeyewear.order_service.util.OrderAuditUtil;
+import com.hmkeyewear.order_service.util.OrderStatusValidator;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,7 +71,7 @@ public class OrderService {
         order.setOrderId(docRef.getId());
         order.setUserId(userId);
         order.setEmail(dto.getEmail());
-        order.setFullname(dto.getFullname());
+        order.setFullName(dto.getFullName());
         order.setPhone(dto.getPhone());
 
         order.setPaymentMethod(dto.getPaymentMethod());
@@ -141,6 +142,7 @@ public class OrderService {
         Firestore db = FirestoreClient.getFirestore();
         ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME)
                 .whereEqualTo("email", email)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get();
 
         List<OrderResponseDto> result = new ArrayList<>();
@@ -156,6 +158,7 @@ public class OrderService {
         Firestore db = FirestoreClient.getFirestore();
         ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME)
                 .whereEqualTo("phone", phone)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get();
 
         List<OrderResponseDto> result = new ArrayList<>();
@@ -194,57 +197,55 @@ public class OrderService {
             throw new RuntimeException("Order not found");
         }
 
-        OrderStatus status;
+        OrderStatus currentStatus;
+        OrderStatus nextStatus;
+
         try {
-            status = OrderStatus.valueOf(newStatus);
+            currentStatus = OrderStatus.valueOf(order.getStatus());
+            nextStatus = OrderStatus.valueOf(newStatus);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Trạng thái không hợp lệ");
         }
 
-        switch (status) {
+        // ===== VALIDATE FLOW =====
+        OrderStatusValidator.validateStatusTransition(currentStatus, nextStatus);
+
+        // ===== SIDE EFFECT THEO TRẠNG THÁI =====
+        switch (nextStatus) {
 
             case PAID:
             case DELIVERING:
-                order.setStatus(status.name());
+                order.setStatus(nextStatus.name());
                 break;
 
             case COMPLETED:
-                String oldStatus = order.getStatus();
-                order.setStatus(status.name());
+                order.setStatus(nextStatus.name());
 
-                log.info(
-                        "🔄 Order status update | orderId={} | {} -> {}",
-                        order.getOrderId(),
-                        oldStatus,
-                        status.name());
-
-                if (!OrderStatus.COMPLETED.name().equals(oldStatus)) {
+                if (currentStatus != OrderStatus.COMPLETED) {
                     InvoiceEmailEvent event = invoiceEmailMapper.toEvent(order);
                     invoiceEmailProducer.sendEmailRequest(event);
-                } else {
-                    log.warn(
-                            "⚠️ Order {} already COMPLETED – skip sending invoice email",
-                            order.getOrderId());
                 }
                 break;
 
-            case FAILED:
             case CANCEL:
                 stockUpdateRequestProducer
                         .sendDecreaseQuantitySell(order.getDetails());
 
-                order.setStatus(status.name());
+                order.setStatus(nextStatus.name());
                 break;
 
             default:
+                // FAILED đã bị chặn trong validator
                 throw new RuntimeException("Không hỗ trợ trạng thái này");
         }
 
-        // audit
+        // ===== AUDIT =====
         OrderAuditUtil.setUpdateAudit(order, userId);
 
+        // ===== SAVE =====
         docRef.set(order).get();
 
         return orderMapper.toOrderResponseDto(order);
     }
+
 }

@@ -28,7 +28,7 @@ public class OrderController {
             @RequestBody OrderRequestDto orderRequestDto)
             throws ExecutionException, InterruptedException {
 
-        if (role == null || userId == null) {
+        if ((!"ROLE_EMPLOYER".equals(role) && !"ROLE_ADMIN".equals(role))) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để tạo đơn hàng");
         }
 
@@ -104,7 +104,7 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    @PutMapping("/update/{orderId}")
+    @PutMapping("/update-status/{orderId}")
     public ResponseEntity<?> updateOrder(
             @RequestHeader(name = "X-User-Role") String role,
             @RequestHeader(name = "X-User-Id") String userId,
@@ -117,9 +117,12 @@ public class OrderController {
                     .body("Bạn cần đăng nhập để cập nhật trạng thái đơn");
         }
 
-        OrderResponseDto response = orderService.updateOrderStatus(orderId, request.getStatus(), userId);
-
-        return ResponseEntity.ok(response);
+        try {
+            OrderResponseDto response = orderService.updateOrderStatus(orderId, request.getStatus(), userId);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/delete")

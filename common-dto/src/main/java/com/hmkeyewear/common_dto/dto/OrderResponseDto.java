@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.google.cloud.Timestamp;
 import java.util.List;
 
 @Data
@@ -13,7 +14,7 @@ public class OrderResponseDto {
     private String orderId;
     private String userId;
     private String email;
-    private String fullname;
+    private String fullName;
     private String phone;
 
     private String paymentMethod;
@@ -29,4 +30,6 @@ public class OrderResponseDto {
     private DiscountDto discount;
 
     private String note;
+
+    private Timestamp createdAt;
 }
