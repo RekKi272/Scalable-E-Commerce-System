@@ -66,28 +66,6 @@ services:
       retries: 5
 
   # ========================
-  # SERVICE DISCOVERY
-  # ========================
-
-  service-registry:
-    image: rekki27204/service-registry:latest
-    container_name: service-registry
-    networks: [backend]
-    restart: always
-    environment:
-      SERVER_PORT: 8761
-      SPRING_PROFILES_ACTIVE: prod
-      JAVA_TOOL_OPTIONS: >
-        -Xms64m
-        -Xmx256m
-        -XX:+UseG1GC
-        -XX:MaxMetaspaceSize=128m
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-  # ========================
   # BUSINESS SERVICES
   # ========================
   auth-service:
@@ -104,7 +82,6 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-user.json
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
         -Xms64m
         -Xmx256m
@@ -113,8 +90,6 @@ services:
     volumes:
       - ./secrets/firebase-user.json:/secrets/firebase-user.json:ro
     depends_on:
-      service-registry:
-        condition: service_healthy
       redis:
         condition: service_started
       rabbitmq:
@@ -132,7 +107,6 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-blog.json
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
         -Xms64m
         -Xmx256m
@@ -141,8 +115,6 @@ services:
     volumes:
       - ./secrets/firebase-blog.json:/secrets/firebase-blog.json:ro
     depends_on:
-      service-registry:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     mem_limit: 350m
@@ -157,7 +129,6 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-cart.json
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
         -Xms64m
         -Xmx256m
@@ -166,8 +137,6 @@ services:
     volumes:
       - ./secrets/firebase-cart.json:/secrets/firebase-cart.json:ro
     depends_on:
-      service-registry:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     mem_limit: 350m
@@ -182,7 +151,6 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-order.json
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
         -Xms64m
         -Xmx256m
@@ -191,8 +159,6 @@ services:
     volumes:
       - ./secrets/firebase-order.json:/secrets/firebase-order.json:ro
     depends_on:
-      service-registry:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     mem_limit: 350m
@@ -209,7 +175,6 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-product.json
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
         -Xms64m
         -Xmx256m
@@ -218,8 +183,6 @@ services:
     volumes:
       - ./secrets/firebase-product.json:/secrets/firebase-product.json:ro
     depends_on:
-      service-registry:
-        condition: service_healthy
       elasticsearch:
         condition: service_healthy
       rabbitmq:
@@ -236,7 +199,6 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-user.json
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
         -Xms64m
         -Xmx256m
@@ -245,8 +207,6 @@ services:
     volumes:
       - ./secrets/firebase-user.json:/secrets/firebase-user.json:ro
     depends_on:
-      service-registry:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     mem_limit: 350m
@@ -268,7 +228,6 @@ services:
       VNP_VERSION: ${VNP_VERSION}
       VNP_COMMAND: ${VNP_COMMAND}
       VNP_ORDER_TYPE: ${VNP_ORDER_TYPE}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       SPRING_APPLICATION_NAME: payment-service
       JAVA_TOOL_OPTIONS: >
         -Xms64m
@@ -276,8 +235,6 @@ services:
         -XX:+UseG1GC
         -XX:MaxMetaspaceSize=128m
     depends_on:
-      service-registry:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     mem_limit: 350m
@@ -301,8 +258,6 @@ services:
     volumes:
       - ./secrets/supabase-secrets.json:/secrets/supabase.json:ro
     depends_on:
-      service-registry:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     mem_limit: 350m
@@ -322,15 +277,12 @@ services:
       PROD_EMAIL_HOST: ${PROD_EMAIL_HOST}
       PROD_EMAIL_USERNAME: ${PROD_EMAIL_USERNAME}
       PROD_EMAIL_PASSWORD: ${PROD_EMAIL_PASSWORD}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JAVA_TOOL_OPTIONS: >
         -Xms64m
         -Xmx256m
         -XX:+UseG1GC
         -XX:MaxMetaspaceSize=128m
     depends_on:
-      service-registry:
-        condition: service_healthy
       rabbitmq:
         condition: service_started
     mem_limit: 350m
@@ -347,7 +299,6 @@ services:
     environment:
       SERVER_PORT: 8080
       SPRING_PROFILES_ACTIVE: prod
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
       JWT_SECRET: ${JWT_SECRET}
       JAVA_TOOL_OPTIONS: >
         -Xms64m
@@ -359,19 +310,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 20
-    depends_on:
-      service-registry:
-        condition: service_healthy
-
-  nginx:
-    image: rekki27204/nginx-prod:latest
-    container_name: nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      api-gateway:
-        condition: service_healthy
-    networks:
-      - backend
-    restart: always
