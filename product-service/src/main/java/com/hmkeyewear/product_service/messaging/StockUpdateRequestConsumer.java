@@ -14,14 +14,17 @@ public class StockUpdateRequestConsumer {
 
     private final ProductService productService;
 
+    // Khi tạo đơn / bán thành công -> CỘNG quantitySell
+    @RabbitListener(queues = "${app.rabbitmq.stock-update-increase.queue}", containerFactory = "rabbitListenerContainerFactory")
+    public void receiveIncreaseQuantitySellRequest(
+            List<OrderDetailRequestDto> orderDetailRequestDtoList) {
+        productService.increaseQuantitySell(orderDetailRequestDtoList);
+    }
 
-    // Handler stock update request from ORDER-SERVICE
-    @RabbitListener(queues = "${app.rabbitmq.stock-update-request.queue}")
-    public void receiveStockUpdateRequest(List<OrderDetailRequestDto> orderDetailRequestDtoList) {
-        try {
-            productService.updateStock(orderDetailRequestDtoList);
-        } catch (Exception e) {
-            System.err.println("Error updating stock: " + e.getMessage());
-        }
+    // Khi huỷ đơn / thanh toán thất bại / khách không nhận -> TRỪ quantitySell
+    @RabbitListener(queues = "${app.rabbitmq.stock-update-decrease.queue}", containerFactory = "rabbitListenerContainerFactory")
+    public void receiveDecreaseQuantitySellRequest(
+            List<OrderDetailRequestDto> orderDetailRequestDtoList) {
+        productService.decreaseQuantitySell(orderDetailRequestDtoList);
     }
 }

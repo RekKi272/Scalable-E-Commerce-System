@@ -28,12 +28,6 @@ spring:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
 
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
-
 app:
   rabbitmq:
     exchange: main_exchange

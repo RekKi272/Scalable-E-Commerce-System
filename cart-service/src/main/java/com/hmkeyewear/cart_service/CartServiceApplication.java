@@ -5,15 +5,11 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.ComponentScan;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 
 @SpringBootApplication
-@EnableFeignClients
-@ComponentScan(basePackages = "com.hmkeyewear.cart_service")
 public class CartServiceApplication {
 
 	public static void main(String[] args) throws IOException {

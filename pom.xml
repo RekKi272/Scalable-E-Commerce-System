@@ -16,7 +16,6 @@
         <module>api-gateway</module>
         <module>auth-service</module>
         <module>common-dto</module>
-        <module>service-registry</module>
         <module>blog-service</module>
         <module>cart-service</module>
         <module>order-service</module>

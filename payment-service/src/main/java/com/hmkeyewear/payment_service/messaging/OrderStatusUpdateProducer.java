@@ -1,15 +1,20 @@
 package com.hmkeyewear.payment_service.messaging;
 
+import com.hmkeyewear.common_dto.dto.OrderStatusEventDto;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.hmkeyewear.common_dto.dto.OrderPaymentStatusUpdateDto;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class OrderStatusUpdateProducer {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderStatusUpdateProducer.class);
+
+    private final RabbitTemplate rabbitTemplate;
 
     @Value("${app.rabbitmq.exchange}")
     private String exchangeName;
@@ -17,19 +22,8 @@ public class OrderStatusUpdateProducer {
     @Value("${app.rabbitmq.order-status.routing-key}")
     private String routingKey;
 
-    private final RabbitTemplate rabbitTemplate;
-
-    public OrderStatusUpdateProducer(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
+    public void sendUpdateStatusRequest(OrderStatusEventDto event) {
+        LOGGER.info("Send ORDER STATUS update: {}", event);
+        rabbitTemplate.convertAndSend(exchangeName, routingKey, event);
     }
-
-    /**
-     * PRODUCER queue: order_status_update_queue
-     * Message sent TO notification-service WHEN PAYMENT DONE (FAILED, PAID, etc..)
-     */
-    public void sendUpdateStatusRequest(OrderPaymentStatusUpdateDto orderStatus) {
-        LOGGER.info("Sending update status {}at Order {}", orderStatus.getOrderId(), orderStatus.getStatus());
-        rabbitTemplate.convertAndSend(exchangeName, routingKey, orderStatus);
-    }
-
 }

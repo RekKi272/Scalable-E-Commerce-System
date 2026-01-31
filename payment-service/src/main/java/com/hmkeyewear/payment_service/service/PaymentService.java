@@ -5,7 +5,7 @@ import com.hmkeyewear.payment_service.config.VNPayConfig;
 import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
 import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
 import com.hmkeyewear.common_dto.dto.OrderPaymentStatusUpdateDto;
-import com.hmkeyewear.payment_service.messaging.OrderSaveRequestProducer;
+import com.hmkeyewear.common_dto.dto.OrderStatusEventDto;
 import com.hmkeyewear.payment_service.messaging.OrderStatusUpdateProducer;
 import com.hmkeyewear.payment_service.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,8 +19,6 @@ import java.util.Map;
 @AllArgsConstructor
 public class PaymentService {
     private final VNPayConfig vnPayConfig;
-    private final ObjectMapper objectMapper;
-    private final OrderSaveRequestProducer orderSaveRequestProducer;
     private final OrderStatusUpdateProducer orderStatusUpdateProducer;
 
     public VNPayResponseDto createVnPayment(HttpServletRequest request) {
@@ -133,10 +131,10 @@ public class PaymentService {
         // SEND to order-service to update order status
         if ("00".equals(responseCode)) {
             orderStatusUpdateProducer.sendUpdateStatusRequest(
-                    new OrderPaymentStatusUpdateDto(orderId, "PAID"));
+                    new OrderStatusEventDto(orderId, "PAID"));
         } else {
             orderStatusUpdateProducer.sendUpdateStatusRequest(
-                    new OrderPaymentStatusUpdateDto(orderId, "FAILED"));
+                    new OrderStatusEventDto(orderId, "FAILED"));
         }
 
         // Trả kết quả cho VNPay

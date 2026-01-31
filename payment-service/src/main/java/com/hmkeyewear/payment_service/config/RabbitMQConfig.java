@@ -1,8 +1,5 @@
 package com.hmkeyewear.payment_service.config;
 
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -24,43 +21,19 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.payment-request.routing-key}")
     private String paymentRequestRoutingKey;
 
-    @Value("${app.rabbitmq.order.queue}")
-    private String orderQueue;
-
-    @Value("${app.rabbitmq.order.routing-key}")
-    private String orderRoutingKey;
-
-    // Order status update
-    @Value("${app.rabbitmq.order-status.queue}")
-    private String orderStatusQueue;
     @Value("${app.rabbitmq.order-status.routing-key}")
     private String orderStatusRoutingKey;
 
-    // ---- Queues ----
     @Bean
     public Queue paymentRequestQueue() {
-        return QueueBuilder
-                .durable(paymentRequestQueue).build();
+        return QueueBuilder.durable(paymentRequestQueue).build();
     }
-
-//    @Bean
-//    public Queue orderQueue() {
-//        return QueueBuilder
-//                .durable(orderQueue).build();
-//    }
-
-//    @Bean
-//    public Queue orderStatusQueue() {
-//        return QueueBuilder
-//                .durable(orderStatusQueue).build();
-//    }
 
     @Bean
     public TopicExchange exchange() {
         return new TopicExchange(exchangeName, true, false);
     }
 
-    // ---- Bindings ----
     @Bean
     public Binding paymentRequestBinding() {
         return BindingBuilder
@@ -69,32 +42,15 @@ public class RabbitMQConfig {
                 .with(paymentRequestRoutingKey);
     }
 
-//    @Bean
-//    public Binding orderBinding() {
-//        return BindingBuilder
-//                .bind(orderQueue())
-//                .to(exchange())
-//                .with(orderRoutingKey);
-//    }
-
-//    @Bean
-//    public Binding orderStatusBinding() {
-//        return BindingBuilder
-//                .bind(orderStatusQueue())
-//                .to(exchange())
-//                .with(orderStatusRoutingKey);
-//    }
-
-    // ---- Message Converter & RabbitTemplate ----
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(messageConverter());
-        return rabbitTemplate;
+    public RabbitTemplate rabbitTemplate(ConnectionFactory cf) {
+        RabbitTemplate rt = new RabbitTemplate(cf);
+        rt.setMessageConverter(messageConverter());
+        return rt;
     }
 }
