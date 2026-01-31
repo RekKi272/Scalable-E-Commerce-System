@@ -42,7 +42,6 @@ jobs:
       - name: Build & push images
         run: |
           services=(
-            service-registry
             api-gateway
             auth-service
             product-service
@@ -59,11 +58,3 @@ jobs:
             docker build -t rekki27204/$svc:latest ./$svc
             docker push rekki27204/$svc:latest
           done
-
-      # ===============================
-      # 5. BUILD & PUSH NGINX IMAGE
-      # ===============================
-      - name: Build & push nginx image
-        run: |
-          docker build -t rekki27204/nginx-prod:latest ./nginx
-          docker push rekki27204/nginx-prod:latest
