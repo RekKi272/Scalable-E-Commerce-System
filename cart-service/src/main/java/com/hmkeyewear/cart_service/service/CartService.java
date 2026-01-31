@@ -107,7 +107,7 @@ public class CartService {
         writeResult.get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -129,7 +129,7 @@ public class CartService {
         writeResult.get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -169,7 +169,7 @@ public class CartService {
         writeResult.get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -232,7 +232,7 @@ public class CartService {
         docRef.set(cart).get();
 
         // --- Send message to RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -274,7 +274,7 @@ public class CartService {
         docRef.set(cart).get();
 
         // --- Gửi message RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
@@ -394,7 +394,7 @@ public class CartService {
         discountService.updateDiscountUsage(discount);
 
         // --- Gửi message RabbitMQ ---
-        cartEventProducer.sendMessage(cart);
+        cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }

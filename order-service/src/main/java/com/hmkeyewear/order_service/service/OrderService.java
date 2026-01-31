@@ -249,10 +249,9 @@ public class OrderService {
             case COMPLETED:
                 order.setStatus(nextStatus.name());
 
-                if (currentStatus != OrderStatus.COMPLETED) {
-                    InvoiceEmailEvent event = invoiceEmailMapper.toEvent(order);
-                    invoiceEmailProducer.sendEmailRequest(event);
-                }
+                InvoiceEmailEvent event = invoiceEmailMapper.toEvent(order);
+                invoiceEmailProducer.sendEmailRequest(event);
+
                 break;
 
             case CANCEL:

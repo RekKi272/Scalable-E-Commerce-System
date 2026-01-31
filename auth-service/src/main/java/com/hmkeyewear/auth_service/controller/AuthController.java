@@ -85,8 +85,8 @@ public class AuthController {
         // Set refreshToken into HttpOnly Cookie
         ResponseCookie cookie = ResponseCookie.from("refresh_token", authResponseDto.getRefreshToken())
                 .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
+                .secure(false)
+                .sameSite("Lax")
                 .path("/auth")
                 .maxAge(Duration.ofDays(7))
                 .build();
@@ -125,8 +125,8 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from(
                 "refresh_token", newRefreshToken)
                 .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
+                .secure(false)
+                .sameSite("Lax")
                 .path("/auth")
                 .maxAge(Duration.ofDays(7))
                 .build();
