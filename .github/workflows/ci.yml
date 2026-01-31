@@ -1,0 +1,69 @@
+name: Deploy Microservices to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ===============================
+      # 1. SETUP JAVA
+      # ===============================
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ===============================
+      # 2. BUILD MAVEN MULTI-MODULE
+      # ===============================
+      - name: Build Maven multi-module
+        run: mvn clean install -DskipTests
+
+      # ===============================
+      # 3. LOGIN DOCKER HUB
+      # ===============================
+      - name: Login DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ===============================
+      # 4. BUILD & PUSH IMAGES
+      # ===============================
+      - name: Build & push images
+        run: |
+          services=(
+            service-registry
+            api-gateway
+            auth-service
+            product-service
+            order-service
+            cart-service
+            blog-service
+            user-service
+            payment-service
+            file-service
+            notification-service
+          )
+
+          for svc in "${services[@]}"; do
+            docker build -t rekki27204/$svc:latest ./$svc
+            docker push rekki27204/$svc:latest
+          done
+
+      # ===============================
+      # 5. BUILD & PUSH NGINX IMAGE
+      # ===============================
+      - name: Build & push nginx image
+        run: |
+          docker build -t rekki27204/nginx-prod:latest ./nginx
+          docker push rekki27204/nginx-prod:latest
