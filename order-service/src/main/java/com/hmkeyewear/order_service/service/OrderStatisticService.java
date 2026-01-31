@@ -1,143 +1,300 @@
-// package com.hmkeyewear.order_service.service;
+package com.hmkeyewear.order_service.service;
 
-// import com.google.api.core.ApiFuture;
-// import com.google.cloud.firestore.*;
-// import com.google.firebase.cloud.FirestoreClient;
-// import com.hmkeyewear.common_dto.dto.OrderResponseDto;
-// import com.hmkeyewear.order_service.dto.RevenueChartWithOrdersResponseDto;
-// import
-// com.hmkeyewear.order_service.dto.RevenueYearChartWithOrdersResponseDto;
-// import com.hmkeyewear.order_service.mapper.OrderMapper;
-// import com.hmkeyewear.order_service.model.Order;
+import com.google.cloud.Timestamp;
+import com.google.cloud.firestore.Firestore;
+import com.google.firebase.cloud.FirestoreClient;
 
-// import org.springframework.stereotype.Service;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
+import com.hmkeyewear.order_service.dto.*;
+import com.hmkeyewear.order_service.mapper.OrderMapper;
+import com.hmkeyewear.order_service.model.Order;
 
-// import com.google.cloud.Timestamp;
+import org.springframework.stereotype.Service;
 
-// import java.time.DayOfWeek;
-// import java.time.LocalDate;
-// import java.time.ZoneId;
-// import java.util.*;
-// import java.util.concurrent.ExecutionException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
-// @Service
-// public class OrderStatisticService {
+@Service
+public class OrderStatisticService {
 
-// private final OrderMapper orderMapper;
+        private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-// private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+        private final OrderMapper orderMapper;
 
-// public OrderStatisticService(OrderMapper orderMapper) {
-// this.orderMapper = orderMapper;
-// }
+        public OrderStatisticService(OrderMapper orderMapper) {
+                this.orderMapper = orderMapper;
+        }
 
-// private RevenueChartWithOrdersResponseDto statisticByDateRange(
-// LocalDate fromDate,
-// LocalDate toDate)
-// throws ExecutionException, InterruptedException {
+        public OrderStatisticResponseDto statistic(
+                        LocalDate fromDate,
+                        LocalDate toDate)
+                        throws ExecutionException, InterruptedException {
 
-// Firestore db = FirestoreClient.getFirestore();
+                Firestore db = FirestoreClient.getFirestore();
 
-// Timestamp from = Timestamp.of(
-// Date.from(fromDate.atStartOfDay(VN_ZONE).toInstant()));
-// Timestamp to = Timestamp.of(
-// Date.from(toDate.plusDays(1).atStartOfDay(VN_ZONE).toInstant()));
+                Timestamp from = Timestamp.of(
+                                Date.from(fromDate.atStartOfDay(VN_ZONE).toInstant()));
+                Timestamp to = Timestamp.of(
+                                Date.from(toDate.plusDays(1).atStartOfDay(VN_ZONE).toInstant()));
 
-// ApiFuture<QuerySnapshot> future = db.collection("orders")
-// .whereGreaterThanOrEqualTo("createdAt", from)
-// .whereLessThan("createdAt", to)
-// .whereIn("status", List.of("PAID", "SUCCESS", "COMPLETED", "DELIVERING"))
-// .get();
+                List<Order> orders = db.collection("orders")
+                                .whereGreaterThanOrEqualTo("createdAt", from)
+                                .whereLessThan("createdAt", to)
+                                .get()
+                                .get()
+                                .toObjects(Order.class);
 
-// Map<String, Double> revenueMap = new LinkedHashMap<>();
-// LocalDate current = fromDate;
-// while (!current.isAfter(toDate)) {
-// revenueMap.put(current.toString(), 0.0);
-// current = current.plusDays(1);
-// }
+                List<Order> completedOrders = orders.stream()
+                                .filter(o -> "COMPLETED".equals(o.getStatus()))
+                                .toList();
 
-// List<OrderResponseDto> orders = new ArrayList<>();
+                double expectedRevenue = orders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .sum();
 
-// for (QueryDocumentSnapshot doc : future.get().getDocuments()) {
-// Order order = doc.toObject(Order.class);
-// if (order == null || order.getCreatedAt() == null)
-// continue;
+                double actualRevenue = completedOrders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .sum();
 
-// LocalDate orderDate = order.getCreatedAt()
-// .toDate()
-// .toInstant()
-// .atZone(VN_ZONE)
-// .toLocalDate();
+                double maxRevenue = completedOrders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .max()
+                                .orElse(0);
 
-// String key = orderDate.toString();
-// revenueMap.put(key, revenueMap.get(key) + order.getSummary());
+                double minRevenue = completedOrders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .min()
+                                .orElse(0);
 
-// orders.add(orderMapper.toOrderResponseDto(order));
-// }
+                RevenueDto revenueDto = new RevenueDto(
+                                expectedRevenue,
+                                actualRevenue,
+                                maxRevenue,
+                                minRevenue);
 
-// return new RevenueChartWithOrdersResponseDto(revenueMap, orders);
-// }
+                Map<String, Long> statusCount = orders.stream()
+                                .collect(Collectors.groupingBy(
+                                                Order::getStatus,
+                                                Collectors.counting()));
 
-// public RevenueChartWithOrdersResponseDto statisticByWeek(LocalDate anyDay)
-// throws ExecutionException, InterruptedException {
+                List<OrderResponseDto> responseOrders = orders.stream()
+                                .map(orderMapper::toOrderResponseDto)
+                                .toList();
 
-// LocalDate start = anyDay.with(DayOfWeek.MONDAY);
-// LocalDate end = start.plusDays(6);
-// return statisticByDateRange(start, end);
-// }
+                Map<String, Double> chartMap = new LinkedHashMap<>();
+                LocalDate cursor = fromDate;
+                while (!cursor.isAfter(toDate)) {
+                        chartMap.put(cursor.toString(), 0.0);
+                        cursor = cursor.plusDays(1);
+                }
 
-// public RevenueChartWithOrdersResponseDto statisticByMonth(int year, int
-// month)
-// throws ExecutionException, InterruptedException {
+                for (Order o : completedOrders) {
+                        String date = o.getCreatedAt()
+                                        .toDate()
+                                        .toInstant()
+                                        .atZone(VN_ZONE)
+                                        .toLocalDate()
+                                        .toString();
 
-// LocalDate from = LocalDate.of(year, month, 1);
-// LocalDate to = from.withDayOfMonth(from.lengthOfMonth());
-// return statisticByDateRange(from, to);
-// }
+                        chartMap.put(date, chartMap.get(date) + o.getSummary());
+                }
 
-// public RevenueYearChartWithOrdersResponseDto statisticByYear(int year)
-// throws ExecutionException, InterruptedException {
+                List<NameValueDto> revenueChart = chartMap.entrySet().stream()
+                                .map(e -> new NameValueDto(e.getKey(), e.getValue()))
+                                .toList();
 
-// Firestore db = FirestoreClient.getFirestore();
+                List<OrderResponseDto> top5Orders = completedOrders.stream()
+                                .sorted(Comparator.comparingDouble(Order::getSummary).reversed())
+                                .limit(5)
+                                .map(orderMapper::toOrderResponseDto)
+                                .toList();
 
-// LocalDate fromDate = LocalDate.of(year, 1, 1);
-// LocalDate toDate = LocalDate.of(year, 12, 31);
+                Map<String, TopCustomerDto> customerMap = new HashMap<>();
+                Map<String, TopProductDto> productMap = new HashMap<>();
 
-// Timestamp from = Timestamp.of(
-// Date.from(fromDate.atStartOfDay(VN_ZONE).toInstant()));
-// Timestamp to = Timestamp.of(
-// Date.from(toDate.plusDays(1).atStartOfDay(VN_ZONE).toInstant()));
+                for (Order o : completedOrders) {
 
-// ApiFuture<QuerySnapshot> future = db.collection("orders")
-// .whereGreaterThanOrEqualTo("createdAt", from)
-// .whereLessThan("createdAt", to)
-// .whereIn("status", List.of("PAID", "SUCCESS", "COMPLETED", "DELIVERING"))
-// .get();
+                        customerMap.compute(o.getEmail(), (k, v) -> {
+                                if (v == null) {
+                                        return new TopCustomerDto(
+                                                        o.getFullName(),
+                                                        o.getEmail(),
+                                                        o.getSummary());
+                                }
+                                v.setTotalAmount(v.getTotalAmount() + o.getSummary());
+                                return v;
+                        });
 
-// Map<String, Double> revenueByMonth = new LinkedHashMap<>();
-// for (int i = 1; i <= 12; i++) {
-// revenueByMonth.put(String.format("%02d", i), 0.0);
-// }
+                        for (OrderDetailRequestDto d : o.getDetails()) {
+                                productMap.compute(d.getProductId(), (k, v) -> {
+                                        if (v == null) {
+                                                return new TopProductDto(
+                                                                d.getProductId(),
+                                                                d.getProductName(),
+                                                                d.getQuantity());
+                                        }
+                                        v.setTotalQuantity(v.getTotalQuantity() + d.getQuantity());
+                                        return v;
+                                });
+                        }
+                }
 
-// List<OrderResponseDto> orders = new ArrayList<>();
+                return new OrderStatisticResponseDto(
+                                revenueDto,
+                                orders.size(),
+                                statusCount,
+                                responseOrders,
+                                revenueChart,
+                                top5Orders,
+                                customerMap.values().stream()
+                                                .sorted(Comparator.comparingDouble(TopCustomerDto::getTotalAmount)
+                                                                .reversed())
+                                                .limit(5)
+                                                .toList(),
+                                productMap.values().stream()
+                                                .sorted(Comparator.comparingInt(TopProductDto::getTotalQuantity)
+                                                                .reversed())
+                                                .limit(5)
+                                                .toList());
+        }
 
-// for (QueryDocumentSnapshot doc : future.get().getDocuments()) {
-// Order order = doc.toObject(Order.class);
-// if (order == null || order.getCreatedAt() == null)
-// continue;
+        public OrderStatisticResponseDto statisticYear(int year)
+                        throws ExecutionException, InterruptedException {
 
-// int month = order.getCreatedAt()
-// .toDate()
-// .toInstant()
-// .atZone(VN_ZONE)
-// .getMonthValue();
+                Firestore db = FirestoreClient.getFirestore();
 
-// String key = String.format("%02d", month);
-// revenueByMonth.put(key, revenueByMonth.get(key) + order.getSummary());
+                LocalDate fromDate = LocalDate.of(year, 1, 1);
+                LocalDate toDate = LocalDate.of(year, 12, 31);
 
-// orders.add(orderMapper.toOrderResponseDto(order));
-// }
+                Timestamp from = Timestamp.of(
+                                Date.from(fromDate.atStartOfDay(VN_ZONE).toInstant()));
+                Timestamp to = Timestamp.of(
+                                Date.from(toDate.plusDays(1).atStartOfDay(VN_ZONE).toInstant()));
 
-// return new RevenueYearChartWithOrdersResponseDto(revenueByMonth, orders);
-// }
-// }
+                List<Order> orders = db.collection("orders")
+                                .whereGreaterThanOrEqualTo("createdAt", from)
+                                .whereLessThan("createdAt", to)
+                                .get()
+                                .get()
+                                .toObjects(Order.class);
+
+                List<Order> completedOrders = orders.stream()
+                                .filter(o -> "COMPLETED".equals(o.getStatus()))
+                                .toList();
+
+                /* ===== REVENUE ===== */
+                double expectedRevenue = orders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .sum();
+
+                double actualRevenue = completedOrders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .sum();
+
+                double maxRevenue = completedOrders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .max()
+                                .orElse(0);
+
+                double minRevenue = completedOrders.stream()
+                                .mapToDouble(Order::getSummary)
+                                .min()
+                                .orElse(0);
+
+                RevenueDto revenueDto = new RevenueDto(
+                                expectedRevenue,
+                                actualRevenue,
+                                maxRevenue,
+                                minRevenue);
+
+                /* ===== STATUS COUNT ===== */
+                Map<String, Long> statusCount = orders.stream()
+                                .collect(Collectors.groupingBy(
+                                                Order::getStatus,
+                                                Collectors.counting()));
+
+                /* ===== CHART: GROUP BY MONTH ===== */
+                Map<String, Double> chartMap = new LinkedHashMap<>();
+
+                for (int m = 1; m <= 12; m++) {
+                        String key = String.format("%d-%02d", year, m);
+                        chartMap.put(key, 0.0);
+                }
+
+                for (Order o : completedOrders) {
+                        LocalDate date = o.getCreatedAt()
+                                        .toDate()
+                                        .toInstant()
+                                        .atZone(VN_ZONE)
+                                        .toLocalDate();
+
+                        String key = String.format("%d-%02d", date.getYear(), date.getMonthValue());
+                        chartMap.put(key, chartMap.get(key) + o.getSummary());
+                }
+
+                List<NameValueDto> revenueChart = chartMap.entrySet().stream()
+                                .map(e -> new NameValueDto(e.getKey(), e.getValue()))
+                                .toList();
+
+                /* ===== TOP ORDERS ===== */
+                List<OrderResponseDto> top5Orders = completedOrders.stream()
+                                .sorted(Comparator.comparingDouble(Order::getSummary).reversed())
+                                .limit(5)
+                                .map(orderMapper::toOrderResponseDto)
+                                .toList();
+
+                /* ===== TOP CUSTOMER & PRODUCT ===== */
+                Map<String, TopCustomerDto> customerMap = new HashMap<>();
+                Map<String, TopProductDto> productMap = new HashMap<>();
+
+                for (Order o : completedOrders) {
+
+                        customerMap.compute(o.getEmail(), (k, v) -> {
+                                if (v == null) {
+                                        return new TopCustomerDto(
+                                                        o.getFullName(),
+                                                        o.getEmail(),
+                                                        o.getSummary());
+                                }
+                                v.setTotalAmount(v.getTotalAmount() + o.getSummary());
+                                return v;
+                        });
+
+                        for (OrderDetailRequestDto d : o.getDetails()) {
+                                productMap.compute(d.getProductId(), (k, v) -> {
+                                        if (v == null) {
+                                                return new TopProductDto(
+                                                                d.getProductId(),
+                                                                d.getProductName(),
+                                                                d.getQuantity());
+                                        }
+                                        v.setTotalQuantity(v.getTotalQuantity() + d.getQuantity());
+                                        return v;
+                                });
+                        }
+                }
+
+                return new OrderStatisticResponseDto(
+                                revenueDto,
+                                orders.size(),
+                                statusCount,
+                                orders.stream().map(orderMapper::toOrderResponseDto).toList(),
+                                revenueChart,
+                                top5Orders,
+                                customerMap.values().stream()
+                                                .sorted(Comparator.comparingDouble(TopCustomerDto::getTotalAmount)
+                                                                .reversed())
+                                                .limit(5)
+                                                .toList(),
+                                productMap.values().stream()
+                                                .sorted(Comparator.comparingInt(TopProductDto::getTotalQuantity)
+                                                                .reversed())
+                                                .limit(5)
+                                                .toList());
+        }
+
+}

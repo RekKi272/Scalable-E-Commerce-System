@@ -1,6 +1,7 @@
 package com.hmkeyewear.order_service.service;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.common_dto.dto.InvoiceEmailEvent;
@@ -22,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -158,6 +161,31 @@ public class OrderService {
         Firestore db = FirestoreClient.getFirestore();
         ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME)
                 .whereEqualTo("phone", phone)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get();
+
+        List<OrderResponseDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : future.get().getDocuments()) {
+            result.add(orderMapper.toOrderResponseDto(doc.toObject(Order.class)));
+        }
+        return result;
+    }
+
+    public List<OrderResponseDto> getOrdersByDateRange(
+            LocalDate fromDate,
+            LocalDate toDate)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        Timestamp from = Timestamp.of(
+                Date.from(fromDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant()));
+        Timestamp to = Timestamp.of(
+                Date.from(toDate.plusDays(1).atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant()));
+
+        ApiFuture<QuerySnapshot> future = db.collection("orders")
+                .whereGreaterThanOrEqualTo("createdAt", from)
+                .whereLessThan("createdAt", to)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get();
 

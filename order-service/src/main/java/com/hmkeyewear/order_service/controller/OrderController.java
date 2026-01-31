@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDate;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -102,6 +103,20 @@ public class OrderController {
         List<OrderResponseDto> orders = orderService.getOrdersByEmail(userEmail);
 
         return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/get-by-time")
+    public ResponseEntity<?> getOrdersByTime(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam("fromDate") LocalDate fromDate,
+            @RequestParam("toDate") LocalDate toDate)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập");
+        }
+
+        return ResponseEntity.ok(orderService.getOrdersByDateRange(fromDate, toDate));
     }
 
     @PutMapping("/update-status/{orderId}")

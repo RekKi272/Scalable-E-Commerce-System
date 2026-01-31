@@ -1,68 +1,69 @@
-// package com.hmkeyewear.order_service.controller;
+package com.hmkeyewear.order_service.controller;
 
-// import com.hmkeyewear.order_service.service.OrderStatisticService;
+import com.hmkeyewear.order_service.service.OrderStatisticService;
 
-// import org.springframework.format.annotation.DateTimeFormat;
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-// import java.time.LocalDate;
-// import java.util.concurrent.ExecutionException;
+import java.time.LocalDate;
+import java.util.concurrent.ExecutionException;
 
-// @RestController
-// @RequestMapping("/order/statistic")
-// public class StatisticController {
+@RestController
+@RequestMapping("/order/statistic")
+public class StatisticController {
 
-// private final OrderStatisticService orderStatisticService;
+    private final OrderStatisticService service;
 
-// public StatisticController(OrderStatisticService orderStatisticService) {
-// this.orderStatisticService = orderStatisticService;
-// }
+    public StatisticController(OrderStatisticService service) {
+        this.service = service;
+    }
 
-// @GetMapping("/month")
-// public ResponseEntity<?> statisticByMonth(
-// @RequestHeader("X-User-Role") String role,
-// @RequestHeader("X-User-Id") String userId,
-// @RequestParam("year") int year,
-// @RequestParam("month") int month)
-// throws ExecutionException, InterruptedException {
+    @GetMapping("/week")
+    public ResponseEntity<?> statisticWeek(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam("date") LocalDate date)
+            throws ExecutionException, InterruptedException {
 
-// if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-// return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-// }
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
+        }
 
-// return ResponseEntity.ok(
-// orderStatisticService.statisticByMonth(year, month));
-// }
+        LocalDate monday = date.with(java.time.DayOfWeek.MONDAY);
+        LocalDate sunday = date.with(java.time.DayOfWeek.SUNDAY);
 
-// @GetMapping("/week")
-// public ResponseEntity<?> statisticByWeek(
-// @RequestHeader("X-User-Role") String role,
-// @RequestHeader("X-User-Id") String userId,
-// @RequestParam("localDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-// LocalDate localDate)
-// throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(service.statistic(monday, sunday));
+    }
 
-// if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-// return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-// }
+    @GetMapping("/month")
+    public ResponseEntity<?> statisticMonth(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(name = "month") int month,
+            @RequestParam(name = "year") int year)
+            throws ExecutionException, InterruptedException {
 
-// return ResponseEntity.ok(
-// orderStatisticService.statisticByWeek(localDate));
-// }
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
+        }
 
-// @GetMapping("/year")
-// public ResponseEntity<?> statisticByYear(
-// @RequestHeader("X-User-Role") String role,
-// @RequestHeader("X-User-Id") String userId,
-// @RequestParam("year") int year)
-// throws ExecutionException, InterruptedException {
+        LocalDate from = LocalDate.of(year, month, 1);
+        LocalDate to = from.with(java.time.temporal.TemporalAdjusters.lastDayOfMonth());
 
-// if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-// return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-// }
+        return ResponseEntity.ok(service.statistic(from, to));
+    }
 
-// return ResponseEntity.ok(
-// orderStatisticService.statisticByYear(year));
-// }
-// }
+    @GetMapping("/year")
+    public ResponseEntity<?> statisticYear(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(name = "year") int year)
+            throws ExecutionException, InterruptedException {
+
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
+        }
+
+        LocalDate from = LocalDate.of(year, 1, 1);
+        LocalDate to = LocalDate.of(year, 12, 31);
+
+        return ResponseEntity.ok(service.statisticYear(year));
+    }
+}
