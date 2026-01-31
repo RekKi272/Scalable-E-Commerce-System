@@ -47,12 +47,6 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.stock-update-decrease.routing-key}")
     private String stockUpdateDecreaseRoutingKey;
 
-    // Stock refund request queue
-    @Value("${app.rabbitmq.stock-refund-request.queue}")
-    private String stockRefundRequestQueueName;
-    @Value("${app.rabbitmq.stock-refund-request.routing-key}")
-    private String stockRefundRequestRoutingKey;
-
     // ---- Queues ----
     @Bean
     public Queue productQueue() {
@@ -80,12 +74,6 @@ public class RabbitMQConfig {
     @Bean
     public Queue stockUpdateDecreaseQueue() {
         return QueueBuilder.durable(stockUpdateDecreaseQueueName).build();
-    }
-
-    @Bean
-    public Queue stockRefundRequestQueue() {
-        return QueueBuilder
-                .durable(stockRefundRequestQueueName).build();
     }
 
     // ---- Exchange ----
@@ -133,14 +121,6 @@ public class RabbitMQConfig {
                 .bind(stockUpdateDecreaseQueue())
                 .to(exchange())
                 .with(stockUpdateDecreaseRoutingKey);
-    }
-
-    @Bean
-    public Binding stockRefundRequestBinding() {
-        return BindingBuilder
-                .bind(stockRefundRequestQueue())
-                .to(exchange())
-                .with(stockRefundRequestRoutingKey);
     }
 
     // ---- Message Converter & RabbitTemplate ----
