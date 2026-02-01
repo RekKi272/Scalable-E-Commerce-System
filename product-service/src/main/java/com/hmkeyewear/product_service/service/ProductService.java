@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
+import com.hmkeyewear.common_dto.dto.PageResponseDto;
 import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
@@ -241,15 +242,13 @@ public class ProductService {
         Firestore db = FirestoreClient.getFirestore();
 
         // Gom item theo productId
-        Map<String, List<OrderDetailRequestDto>> grouped =
-                items.stream()
-                        .collect(Collectors.groupingBy(OrderDetailRequestDto::getProductId));
+        Map<String, List<OrderDetailRequestDto>> grouped = items.stream()
+                .collect(Collectors.groupingBy(OrderDetailRequestDto::getProductId));
 
         for (String productId : grouped.keySet()) {
             db.runTransaction(transaction -> {
 
-                DocumentReference productRef =
-                        db.collection(COLLECTION_NAME).document(productId);
+                DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
 
                 DocumentSnapshot snapshot = transaction.get(productRef).get();
 
@@ -275,14 +274,12 @@ public class ProductService {
                     if (variant == null) {
                         throw new RuntimeException(
                                 "Variant " + detail.getVariantId() +
-                                        " not found in product " + productId
-                        );
+                                        " not found in product " + productId);
                     }
 
-                    Long sellQty =
-                            variant.getQuantitySell() != null
-                                    ? variant.getQuantitySell()
-                                    : 0L;
+                    Long sellQty = variant.getQuantitySell() != null
+                            ? variant.getQuantitySell()
+                            : 0L;
 
                     // không cho refund vượt quá số đã bán
                     if (sellQty < detail.getQuantity()) {
@@ -290,8 +287,7 @@ public class ProductService {
                                 "Refund quantity exceeds sold quantity for variant "
                                         + variant.getVariantId()
                                         + " (sold: " + sellQty
-                                        + ", refund: " + detail.getQuantity() + ")"
-                        );
+                                        + ", refund: " + detail.getQuantity() + ")");
                     }
 
                     // trả hàng -> giảm quantitySell
@@ -322,16 +318,46 @@ public class ProductService {
     }
 
     // GET All Products
-    public List<ProductResponseDto> getAllProducts() throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
-        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME).get().get().getDocuments();
+    public PageResponseDto<ProductResponseDto> getAllProducts(int page, int size)
+            throws ExecutionException, InterruptedException {
 
-        List<ProductResponseDto> result = new ArrayList<>();
-        for (QueryDocumentSnapshot doc : documents) {
-            Product product = doc.toObject(Product.class);
-            result.add(productMapper.toProductResponseDto(product));
+        Firestore db = FirestoreClient.getFirestore();
+
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .orderBy("createdAt", Query.Direction.DESCENDING);
+
+        // lấy tổng số phần tử
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prevSnapshot = baseQuery
+                    .limit(page * size)
+                    .get()
+                    .get();
+
+            if (!prevSnapshot.isEmpty()) {
+                DocumentSnapshot lastDoc = prevSnapshot.getDocuments().get(prevSnapshot.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
         }
-        return result;
+
+        QuerySnapshot snapshot = pageQuery.get().get();
+
+        List<ProductResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            Product product = doc.toObject(Product.class);
+            items.add(productMapper.toProductResponseDto(product));
+        }
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     // SEARCH PRODUCT NAME BY KEYWORD
@@ -486,20 +512,46 @@ public class ProductService {
     }
 
     // GET Active Product ONLY
-    public List<ProductInforResponseDto> getActiveProducts() throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> queryFuture = db.collection(COLLECTION_NAME)
-                .whereEqualTo("status", "ACTIVE")
-                .get();
+    public PageResponseDto<ProductInforResponseDto> getActiveProducts(int page, int size)
+            throws ExecutionException, InterruptedException {
 
-        List<QueryDocumentSnapshot> documents = queryFuture.get().getDocuments();
-        List<ProductInforResponseDto> result = new ArrayList<>();
-        for (QueryDocumentSnapshot doc : documents) {
-            Product product = doc.toObject(Product.class);
-            result.add(productMapper.toProductInforResponseDto(product));
+        Firestore db = FirestoreClient.getFirestore();
+
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .whereEqualTo("status", "ACTIVE")
+                .orderBy("createdAt", Query.Direction.DESCENDING);
+
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prevSnapshot = baseQuery
+                    .limit(page * size)
+                    .get()
+                    .get();
+
+            if (!prevSnapshot.isEmpty()) {
+                DocumentSnapshot lastDoc = prevSnapshot.getDocuments().get(prevSnapshot.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
         }
 
-        return result;
+        QuerySnapshot snapshot = pageQuery.get().get();
+
+        List<ProductInforResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            Product product = doc.toObject(Product.class);
+            items.add(productMapper.toProductInforResponseDto(product));
+        }
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     // DELETE Product

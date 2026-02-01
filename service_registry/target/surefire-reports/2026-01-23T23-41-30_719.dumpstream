@@ -1,5 +1,0 @@
-# Created at 2026-01-23T23:41:30.909
-Boot Manifest-JAR contains absolute paths in classpath 'D:\KLTN\Scalable-E-Commerce-System\service_registry\target\test-classes'
-Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-'other' has different root
-

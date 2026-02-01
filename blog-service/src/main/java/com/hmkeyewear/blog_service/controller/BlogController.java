@@ -28,9 +28,13 @@ public class BlogController {
     }
 
     @GetMapping("/getAll")
-    public ResponseEntity<List<BlogResponseDto>> getAllBlogs()
+    public ResponseEntity<?> getAllBlogs(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(blogService.getAllBlogs());
+
+        return ResponseEntity.ok(
+                blogService.getAllBlogs(page, size));
     }
 
     @GetMapping("/get/{blogId}")
@@ -55,8 +59,13 @@ public class BlogController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<BlogResponseDto>> getAllActiveBlogs()
+    public ResponseEntity<?> getAllActiveBlogs(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(blogService.getAllActiveBlogs());
+
+        return ResponseEntity.ok(
+                blogService.getAllActiveBlogs(page, size));
     }
+
 }
