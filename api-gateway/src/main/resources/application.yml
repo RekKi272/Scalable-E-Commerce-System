@@ -88,6 +88,7 @@ spring:
                 allowed-origins:
                   - http://localhost:8086
                   - https://fe-hmk-eyewear.vercel.app
+                  - https://hmk-eyewear.fordev.online
                 allowed-methods:
                   - GET
                   - POST
