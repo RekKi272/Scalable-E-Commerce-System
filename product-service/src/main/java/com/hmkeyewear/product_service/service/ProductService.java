@@ -9,6 +9,7 @@ import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
 import com.hmkeyewear.product_service.dto.ItemRequestDto;
+import com.hmkeyewear.product_service.dto.VariantListResponseDto;
 import com.hmkeyewear.product_service.mapper.ProductMapper;
 import com.hmkeyewear.product_service.mapper.ProductSearchMapper;
 import com.hmkeyewear.product_service.messaging.ProductEventProducer;
@@ -114,14 +115,10 @@ public class ProductService {
         Firestore db = FirestoreClient.getFirestore();
         String newProductId = generateProductId(db);
 
-        if (dto.getVariants() == null || dto.getVariants().isEmpty()) {
-            throw new RuntimeException("Product must contain at least 1 variant.");
-        }
-
         Product product = new Product();
         product.setProductId(newProductId);
-        product.setCategoryId(dto.getCategoryId());
         product.setBrandId(dto.getBrandId());
+        product.setCategoryId(dto.getCategoryId());
         product.setProductName(dto.getProductName());
         product.setDescription(dto.getDescription());
         product.setStatus(dto.getStatus());
@@ -129,33 +126,23 @@ public class ProductService {
         product.setImportPrice(dto.getImportPrice());
         product.setSellingPrice(dto.getSellingPrice());
         product.setAttributes(dto.getAttributes());
+        product.setImages(dto.getImages());
+
+        product.setVariants(new ArrayList<>()); // khởi tạo rỗng
+
         product.setCreatedAt(Timestamp.now());
         product.setCreatedBy(userId);
         product.setUpdatedAt(Timestamp.now());
         product.setUpdatedBy(userId);
 
-        // --- Xử lý biến thể ---
-        List<Variant> variants = new ArrayList<>();
+        db.collection(COLLECTION_NAME)
+                .document(product.getProductId())
+                .set(product)
+                .get();
 
-        for (Variant v : dto.getVariants()) {
-            v.setVariantId(generateVariantId(db, newProductId));
-            v.setQuantityImport(0L);
-            v.setQuantitySell(0L);
-            variants.add(v);
-        }
-
-        product.setVariants(variants);
-
-        if (dto.getImages() != null) {
-            product.setImages(dto.getImages());
-        }
-
-        db.collection(COLLECTION_NAME).document(product.getProductId()).set(product).get();
-
-        // index Elasticsearch
-        ProductDocument productDoc = productSearchMapper.toDocument(product);
-        productDoc.setProductName(removeVietnameseDiacritics(product.getProductName()));
-        productSearchService.save(productDoc);
+        ProductDocument doc = productSearchMapper.toDocument(product);
+        doc.setProductName(removeVietnameseDiacritics(product.getProductName()));
+        productSearchService.save(doc);
 
         productEventProducer.sendMessage(product);
 
@@ -419,96 +406,32 @@ public class ProductService {
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
-        DocumentReference productRef = db.collection(COLLECTION_NAME).document(productId);
+        DocumentReference ref = db.collection(COLLECTION_NAME).document(productId);
 
-        DocumentSnapshot snapshot = productRef.get().get();
+        DocumentSnapshot snapshot = ref.get().get();
         if (!snapshot.exists()) {
-            throw new RuntimeException("Product with ID " + productId + " not found");
+            throw new RuntimeException("Product not found");
         }
 
         Product existing = snapshot.toObject(Product.class);
-        if (existing == null) {
-            throw new RuntimeException("Product data is null for ID " + productId);
-        }
 
-        // Map các field cơ bản
-        Product updatedProduct = productMapper.toProduct(dto);
-        updatedProduct.setProductId(productId);
-        updatedProduct.setCreatedAt(existing.getCreatedAt());
-        updatedProduct.setCreatedBy(existing.getCreatedBy());
-        updatedProduct.setUpdatedAt(Timestamp.now());
-        updatedProduct.setUpdatedBy(userId);
+        Product updated = productMapper.toProduct(dto);
+        updated.setProductId(productId);
+        updated.setVariants(existing.getVariants()); // GIỮ NGUYÊN
+        updated.setCreatedAt(existing.getCreatedAt());
+        updated.setCreatedBy(existing.getCreatedBy());
+        updated.setUpdatedAt(Timestamp.now());
+        updated.setUpdatedBy(userId);
 
-        // ------------------------
-        // QUẢN LÝ DANH SÁCH BIẾN THỂ
-        // ------------------------
+        ref.set(updated).get();
 
-        List<Variant> oldVariants = existing.getVariants() != null ? existing.getVariants() : new ArrayList<>();
-        Map<String, Variant> oldMap = oldVariants.stream()
-                .collect(Collectors.toMap(Variant::getVariantId, v -> v));
+        ProductDocument doc = productSearchMapper.toDocument(updated);
+        doc.setProductName(removeVietnameseDiacritics(updated.getProductName()));
+        productSearchService.save(doc);
 
-        List<Variant> newVariants = dto.getVariants() != null ? dto.getVariants() : new ArrayList<>();
-        List<Variant> finalList = new ArrayList<>();
+        productEventProducer.sendMessage(updated);
 
-        // 1. DUYỆT DANH SÁCH FE GỬI LÊN
-        for (Variant v : newVariants) {
-
-            // CASE A — Biến thể CŨ (giữ nguyên ID)
-            if (v.getVariantId() != null && oldMap.containsKey(v.getVariantId())) {
-                Variant old = oldMap.get(v.getVariantId());
-
-                // Giữ lại số lượng cũ
-                v.setQuantityImport(old.getQuantityImport());
-                v.setQuantitySell(old.getQuantitySell());
-
-                finalList.add(v);
-            }
-
-            // CASE B — Biến thể mới
-            else {
-                v.setVariantId(generateVariantId(db, productId));
-                v.setQuantityImport(0L);
-                v.setQuantitySell(0L);
-
-                finalList.add(v);
-            }
-        }
-
-        // 2. GIỮ LẠI BIẾN THỂ CŨ KHÔNG ĐƯỢC GỬI LÊN (TRỪ KHI CHO PHÉP XOÁ)
-        for (Variant old : oldVariants) {
-
-            boolean FE_khong_gui_len = newVariants.stream()
-                    .noneMatch(v -> old.getVariantId().equals(v.getVariantId()));
-
-            if (FE_khong_gui_len) {
-
-                long importQty = old.getQuantityImport() != null ? old.getQuantityImport() : 0;
-                long sellQty = old.getQuantitySell() != null ? old.getQuantitySell() : 0;
-
-                boolean coTheXoa = (importQty == 0 && sellQty == 0);
-
-                if (!coTheXoa) {
-                    // Không được phép xoá → giữ lại biến thể cũ
-                    finalList.add(old);
-                }
-                // Nếu số lượng = 0 → cho phép xoá → không thêm vào finalList
-            }
-        }
-
-        updatedProduct.setVariants(finalList);
-
-        // ------------------------
-        // Lưu vào DB
-        // ------------------------
-        productRef.set(updatedProduct).get();
-
-        // Update in Elasticsearch
-        ProductDocument productDoc = productSearchMapper.toDocument(updatedProduct);
-        productDoc.setProductName(removeVietnameseDiacritics(updatedProduct.getProductName()));
-        productSearchService.save(productDoc);
-        productEventProducer.sendMessage(updatedProduct);
-
-        return productMapper.toProductResponseDto(updatedProduct);
+        return productMapper.toProductResponseDto(updated);
     }
 
     // GET Active Product ONLY
@@ -555,17 +478,34 @@ public class ProductService {
     }
 
     // DELETE Product
-    public String deleteProduct(String productId) throws ExecutionException, InterruptedException {
+    public String deleteProduct(String productId)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot snapshot = db.collection(COLLECTION_NAME)
+                .document(productId)
+                .get()
+                .get();
+
+        if (!snapshot.exists()) {
+            throw new RuntimeException("Product not found");
+        }
+
+        Product product = snapshot.toObject(Product.class);
+
+        boolean hasSoldVariant = product.getVariants() != null &&
+                product.getVariants().stream()
+                        .anyMatch(v -> v.getQuantitySell() != null && v.getQuantitySell() > 0);
+
+        if (hasSoldVariant) {
+            throw new RuntimeException("Không thể xóa sản phẩm vì đã có biến thể được bán");
+        }
+
         db.collection(COLLECTION_NAME).document(productId).delete().get();
-
-        // Delete from Elasticsearch
         productSearchService.deleteById(productId);
-
-        // --- Send message to RabbitMQ ---
         productEventProducer.sendMessage(productId);
 
-        return "Successfully deleted product with id " + productId;
+        return "Deleted product " + productId;
     }
 
     /**
