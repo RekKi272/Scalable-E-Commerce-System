@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class TopCustomerDto {
+    private String customerId;
     private String fullName;
     private String email;
     private double totalAmount;

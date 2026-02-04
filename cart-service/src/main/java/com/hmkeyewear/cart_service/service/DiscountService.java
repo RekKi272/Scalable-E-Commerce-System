@@ -359,4 +359,27 @@ public class DiscountService {
 
         return discount;
     }
+
+    public Discount validateAndIncreaseUsage(String discountId)
+            throws ExecutionException, InterruptedException {
+
+        // 1. Validate business rules
+        Discount discount = validateDiscountUsable(discountId);
+
+        // 2. +1 usedQuantity
+        discount.setUsedQuantity(discount.getUsedQuantity() + 1);
+
+        // 3. Update Firestore
+        Firestore db = FirestoreClient.getFirestore();
+        db.collection(COLLECTION_NAME)
+                .document(discountId)
+                .update("usedQuantity", discount.getUsedQuantity())
+                .get();
+
+        // 4. Send event
+        discountEventProducer.sendMessage(discount);
+
+        return discount;
+    }
+
 }

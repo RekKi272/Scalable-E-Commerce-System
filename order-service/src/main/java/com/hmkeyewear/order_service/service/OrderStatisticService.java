@@ -121,6 +121,7 @@ public class OrderStatisticService {
                         customerMap.compute(o.getEmail(), (k, v) -> {
                                 if (v == null) {
                                         return new TopCustomerDto(
+                                                        o.getUserId(),
                                                         o.getFullName(),
                                                         o.getEmail(),
                                                         o.getSummary());
@@ -256,6 +257,7 @@ public class OrderStatisticService {
                         customerMap.compute(o.getEmail(), (k, v) -> {
                                 if (v == null) {
                                         return new TopCustomerDto(
+                                                        o.getUserId(),
                                                         o.getFullName(),
                                                         o.getEmail(),
                                                         o.getSummary());

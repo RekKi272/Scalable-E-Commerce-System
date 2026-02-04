@@ -150,17 +150,15 @@ public class CartController {
     public ResponseEntity<?> checkout(
             @RequestHeader("X-User-Id") String userId,
             @RequestHeader("X-User-Name") String email,
-            @RequestBody OrderRequestDto orderRequest,
-            HttpServletRequest request) throws ExecutionException, InterruptedException {
+            @RequestBody CheckoutRequestDto checkoutRequest,
+            HttpServletRequest request)
+            throws ExecutionException, InterruptedException {
 
-        OrderResponseDto order = cartService.sendCreateOrder(orderRequest, userId);
+        OrderResponseDto order = cartService.checkout(userId, email, checkoutRequest, request);
 
         if ("BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())) {
-
             String ipAddress = request.getRemoteAddr();
-
             VNPayResponseDto payment = cartService.createPayment(order, ipAddress);
-
             return ResponseEntity.ok(payment);
         }
 
