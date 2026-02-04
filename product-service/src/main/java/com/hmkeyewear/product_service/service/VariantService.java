@@ -13,6 +13,7 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.SetOptions;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.product_service.dto.VariantImportRequestDto;
 import com.hmkeyewear.product_service.dto.VariantListResponseDto;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.Variant;
@@ -168,4 +169,47 @@ public class VariantService {
 
         return result;
     }
+
+    // Nhập kho
+    public void importVariants(List<VariantImportRequestDto> items)
+            throws ExecutionException, InterruptedException {
+
+        for (VariantImportRequestDto item : items) {
+            importVariantQuantity(item.getVariantId(), item.getQuantity());
+        }
+    }
+
+    public Variant importVariantQuantity(String variantId, Long quantity)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+        QuerySnapshot snapshot = db.collection(COLLECTION).get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Product product = doc.toObject(Product.class);
+            if (product == null || product.getVariants() == null) {
+                continue;
+            }
+
+            for (Variant variant : product.getVariants()) {
+                if (variantId.equals(variant.getVariantId())) {
+
+                    Long currentImport = variant.getQuantityImport() != null
+                            ? variant.getQuantityImport()
+                            : 0L;
+
+                    variant.setQuantityImport(currentImport + quantity);
+
+                    db.collection(COLLECTION)
+                            .document(product.getProductId())
+                            .set(product, SetOptions.merge());
+
+                    return variant;
+                }
+            }
+        }
+
+        throw new RuntimeException("Variant not found: " + variantId);
+    }
+
 }

@@ -1,8 +1,11 @@
 package com.hmkeyewear.product_service.controller;
 
+import com.hmkeyewear.product_service.dto.VariantImportRequestDto;
 import com.hmkeyewear.product_service.dto.VariantListResponseDto;
 import com.hmkeyewear.product_service.model.Variant;
 import com.hmkeyewear.product_service.service.VariantService;
+
+import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,4 +56,19 @@ public class VariantController {
 
         return ResponseEntity.ok(variantService.getAllVariants());
     }
+
+    @PostMapping("/import")
+    public ResponseEntity<?> importVariants(
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody List<VariantImportRequestDto> items)
+            throws ExecutionException, InterruptedException {
+
+        if (!List.of("ROLE_ADMIN", "ROLE_EMPLOYER").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền nhập kho");
+        }
+
+        variantService.importVariants(items);
+        return ResponseEntity.ok("Nhập kho thành công");
+    }
+
 }

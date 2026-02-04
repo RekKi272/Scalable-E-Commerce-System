@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class CheckoutRequestDto {
 
     // lấy từ header X-User-Name, FE không được gửi
+    private String userId;
     private String email;
 
     // FE gửi

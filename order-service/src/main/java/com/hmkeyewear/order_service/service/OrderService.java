@@ -79,7 +79,7 @@ public class OrderService {
 
                 // ===== BASIC =====
                 order.setOrderId(docRef.getId());
-                order.setUserId(userId);
+                order.setUserId(dto.getUserId());
                 order.setEmail(dto.getEmail());
                 order.setFullName(dto.getFullName());
                 order.setPhone(dto.getPhone());
@@ -195,6 +195,41 @@ public class OrderService {
                                 .limit(size);
 
                 List<OrderResponseDto> items = pagedQuery.get().get().getDocuments()
+                                .stream()
+                                .map(doc -> orderMapper.toOrderResponseDto(doc.toObject(Order.class)))
+                                .toList();
+
+                long totalElements = baseQuery.get().get().size();
+                int totalPages = (int) Math.ceil((double) totalElements / size);
+
+                return new PageResponseDto<>(
+                                items,
+                                page,
+                                size,
+                                totalElements,
+                                totalPages);
+        }
+
+        public PageResponseDto<OrderResponseDto> getOrdersByDiscountId(
+                        String discountId,
+                        int page,
+                        int size)
+                        throws ExecutionException, InterruptedException {
+
+                Firestore db = FirestoreClient.getFirestore();
+
+                Query baseQuery = db.collection(COLLECTION_NAME)
+                                .whereEqualTo("discount.discountId", discountId)
+                                .orderBy("createdAt", Query.Direction.DESCENDING);
+
+                Query pagedQuery = baseQuery
+                                .offset(page * size)
+                                .limit(size);
+
+                List<OrderResponseDto> items = pagedQuery
+                                .get()
+                                .get()
+                                .getDocuments()
                                 .stream()
                                 .map(doc -> orderMapper.toOrderResponseDto(doc.toObject(Order.class)))
                                 .toList();

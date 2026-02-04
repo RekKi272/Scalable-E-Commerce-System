@@ -351,6 +351,7 @@ public class CartService {
 
         // 3. Build OrderRequestDto gửi sang order-service
         OrderRequestDto orderRequest = new OrderRequestDto();
+        orderRequest.setUserId(userId);
         orderRequest.setEmail(emailFromHeader);
         orderRequest.setFullName(checkoutRequest.getFullName());
         orderRequest.setPhone(checkoutRequest.getPhone());

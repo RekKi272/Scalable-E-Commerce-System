@@ -91,6 +91,22 @@ public class OrderController {
                 orderService.getOrdersByPhone(phone, page, size));
     }
 
+    @GetMapping("/get-by-discount")
+    public ResponseEntity<?> getOrdersByDiscount(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam("discountId") String discountId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
+            throws ExecutionException, InterruptedException {
+
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thực hiện");
+        }
+
+        return ResponseEntity.ok(
+                orderService.getOrdersByDiscountId(discountId, page, size));
+    }
+
     @GetMapping("/my-order")
     public ResponseEntity<?> getMyOrder(
             @RequestHeader("X-User-Role") String role,
