@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -43,6 +44,8 @@ public class OrderService {
         private final OrderStatusResolver statusResolver;
 
         private static final String COLLECTION_NAME = "orders";
+        private static final String COUNTER_COLLECTION = "counters";
+        private static final String ORDER_COUNTER_DOC = "orderCounter";
 
         public OrderService(
                         OrderMapper orderMapper,
@@ -68,17 +71,55 @@ public class OrderService {
                                 .toList();
         }
 
+        // ===== CREATE ORDER ID =====
+        private String generateOrderCode(Firestore db)
+                        throws ExecutionException, InterruptedException {
+
+                // ===== FORMAT DATE: yymmdd =====
+                LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+                String dateKey = today.format(DateTimeFormatter.ofPattern("yyMMdd"));
+
+                DocumentReference counterRef = db.collection(COUNTER_COLLECTION).document(ORDER_COUNTER_DOC);
+
+                ApiFuture<String> future = db.runTransaction(transaction -> {
+
+                        DocumentSnapshot snapshot = transaction.get(counterRef).get();
+
+                        Long lastSeqObj = (snapshot.exists() && snapshot.contains(dateKey))
+                                        ? snapshot.getLong(dateKey)
+                                        : null;
+
+                        long lastSeq = (lastSeqObj != null) ? lastSeqObj : -1;
+                        long newSeq = lastSeq + 1;
+
+                        // bảo vệ tràn
+                        if (newSeq > 999) {
+                                throw new RuntimeException("Order sequence overflow for date " + dateKey);
+                        }
+
+                        // lưu lại counter theo ngày
+                        transaction.set(
+                                        counterRef,
+                                        Map.of(dateKey, newSeq),
+                                        SetOptions.merge());
+
+                        String formattedSeq = String.format("%03d", newSeq);
+                        return dateKey + formattedSeq; // yymmddXXX
+                });
+
+                return future.get();
+        }
+
         // ===== CREATE ORDER =====
         public OrderResponseDto createOrder(OrderRequestDto dto, String userId)
                         throws ExecutionException, InterruptedException {
 
                 Firestore db = FirestoreClient.getFirestore();
-                DocumentReference docRef = db.collection(COLLECTION_NAME).document();
-
+                String orderCode = generateOrderCode(db);
                 Order order = new Order();
 
                 // ===== BASIC =====
-                order.setOrderId(docRef.getId());
+                order.setOrderId(orderCode);
                 order.setUserId(dto.getUserId());
                 order.setEmail(dto.getEmail());
                 order.setFullName(dto.getFullName());
@@ -120,7 +161,7 @@ public class OrderService {
                 OrderAuditUtil.setCreateAudit(order, userId);
 
                 // ===== SAVE =====
-                docRef.set(order).get();
+                db.collection(COLLECTION_NAME).document(orderCode).set(order).get();
 
                 // ===== TRỪ KHO =====
                 stockUpdateRequestProducer.sendIncreaseQuantitySell(order.getDetails());
