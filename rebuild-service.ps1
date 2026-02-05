@@ -1,11 +1,15 @@
 # =========================================
-# 🚀 Script PowerShell: Clean + Test + Rebuild Single Service
-# Sử dụng: ./build-service.ps1 -ServiceName "product-service"
+# 🚀 Script PowerShell: Clean + Test (optional) + Rebuild Single Service
+# Sử dụng:
+#   ./build-service.ps1 -ServiceName "product-service"
+#   ./build-service.ps1 -ServiceName "product-service" -RunTests
 # =========================================
 
 param (
     [Parameter(Mandatory = $true)]
-    [string]$ServiceName
+    [string]$ServiceName,
+
+    [switch]$RunTests
 )
 
 # 1️⃣ Kiểm tra thư mục service có tồn tại không
@@ -16,7 +20,7 @@ if (-Not (Test-Path $serviceFolder)) {
     exit 1
 }
 
-# 2️⃣ Clean Maven build (xóa toàn bộ dữ liệu test cũ)
+# 2️⃣ Clean Maven build
 Write-Host "==> Cleaning Maven target for $ServiceName ..."
 mvn -f $serviceFolder clean
 if ($LASTEXITCODE -ne 0) {
@@ -24,15 +28,20 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# 3️⃣ Run unit tests
-Write-Host "==> Running unit tests for $ServiceName ..."
-mvn -f $serviceFolder test
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Unit tests failed for $ServiceName. Exiting."
-    exit $LASTEXITCODE
+# 3️⃣ Run unit tests (chỉ khi bật cờ)
+if ($RunTests) {
+    Write-Host "==> Running unit tests for $ServiceName ..."
+    mvn -f $serviceFolder test
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Unit tests failed for $ServiceName. Exiting."
+        exit $LASTEXITCODE
+    }
+}
+else {
+    Write-Host "==> Skipping unit tests for $ServiceName ..."
 }
 
-# 4️⃣ Build Maven package (sau khi test pass)
+# 4️⃣ Build Maven package
 Write-Host "==> Building Maven package for $ServiceName ..."
 mvn -f $serviceFolder package -DskipTests
 if ($LASTEXITCODE -ne 0) {

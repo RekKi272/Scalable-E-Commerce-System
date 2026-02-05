@@ -3,7 +3,6 @@ package com.hmkeyewear.product_service.controller;
 import com.hmkeyewear.product_service.dto.ProductInforResponseDto;
 import com.hmkeyewear.product_service.dto.ProductRequestDto;
 import com.hmkeyewear.product_service.dto.ProductResponseDto;
-import com.hmkeyewear.product_service.dto.BatchRequestDto;
 import com.hmkeyewear.product_service.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -49,17 +48,24 @@ public class ProductController {
 
     // READ ALL
     @GetMapping("/getAll")
-    public ResponseEntity<List<ProductResponseDto>> getAllProducts() throws InterruptedException, ExecutionException {
-        List<ProductResponseDto> response = productService.getAllProducts();
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> getAllProducts(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
+            throws InterruptedException, ExecutionException {
+
+        return ResponseEntity.ok(
+                productService.getAllProducts(page, size));
     }
 
     // GET ACTIVE only
     @GetMapping("/getActive")
-    public ResponseEntity<List<ProductInforResponseDto>> GetActiveProducts()
+    public ResponseEntity<?> getActiveProducts(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws InterruptedException, ExecutionException {
-        List<ProductInforResponseDto> response = productService.getActiveProducts();
-        return ResponseEntity.ok(response);
+
+        return ResponseEntity.ok(
+                productService.getActiveProducts(page, size));
     }
 
     // UPDATE PRODUCT
@@ -114,68 +120,5 @@ public class ProductController {
         }
 
         return ResponseEntity.ok(productService.deleteProduct(productId));
-    }
-
-    // POST nhập hàng batch
-    @PostMapping("/import")
-    public ResponseEntity<?> importInventoryBatch(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Name") String username,
-            @Valid @RequestBody BatchRequestDto batchDto) {
-
-        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có quyền thao tác kho");
-        }
-
-        try {
-            var responses = productService.updateInventoryBatchWithType(batchDto.getItems(), username, "IMPORT");
-            return ResponseEntity.ok(responses);
-        } catch (ExecutionException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-
-    }
-
-    // POST bán hàng batch
-    @PostMapping("/sell")
-    public ResponseEntity<?> sellInventoryBatch(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Name") String username,
-            @Valid @RequestBody BatchRequestDto batchDto) {
-
-        if (!List.of("ROLE_ADMIN", "ROLE_EMPLOYER").contains(role.toUpperCase())) {
-            return ResponseEntity.status(403).body("Bạn không có quyền sửa sản phẩm");
-        }
-
-        try {
-            var responses = productService.updateInventoryBatchWithType(batchDto.getItems(), username, "SELL");
-            return ResponseEntity.ok(responses);
-        } catch (ExecutionException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-
-    }
-
-    // POST bán hàng batch (online không cần xác thực)
-    @PostMapping("/sell-online")
-    public ResponseEntity<?> sellInventoryBatch(
-            @Valid @RequestBody BatchRequestDto batchDto) {
-
-        try {
-            var responses = productService.updateInventoryBatchWithType(batchDto.getItems(), "ONLINE", "SELL");
-            return ResponseEntity.ok(responses);
-        } catch (ExecutionException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ResponseEntity.internalServerError().body("Lỗi khi cập nhật kho: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-
     }
 }

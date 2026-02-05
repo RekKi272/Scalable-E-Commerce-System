@@ -1,11 +1,11 @@
 # =========================================
 # 🚀 Script PowerShell: Full Clean + (Optional) Test + Rebuild All Services
 # Chạy từ root folder chứa tất cả services
-# ./build-all.ps1 -RunTests:$false/true
+# ./rebuild.ps1 -RunTests:$false/true
 # =========================================
 
 param (
-    [bool]$RunTests = $true
+    [bool]$RunTests = $false
 )
 
 # 1️⃣ Dừng và xóa tất cả Docker container

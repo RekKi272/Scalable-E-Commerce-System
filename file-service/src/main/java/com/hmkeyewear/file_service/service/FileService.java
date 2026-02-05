@@ -7,6 +7,8 @@ import com.hmkeyewear.file_service.messaging.FileEventProducer;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
@@ -80,7 +82,14 @@ public class FileService {
             folder = "";
         }
 
-        String fileName = file.getOriginalFilename();
+        String originalName = file.getOriginalFilename();
+        String extension = "";
+
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf("."));
+        }
+
+        String fileName = bucket + "_" + System.currentTimeMillis() + extension;
         String objectPath = (folder.isBlank() ? "" : folder + "/") + fileName;
 
         byte[] fileBytes = file.getBytes();
@@ -142,12 +151,22 @@ public class FileService {
         if (!url.contains("/storage/v1/object/public/")) {
             throw new IllegalArgumentException("Unsupported URL format: " + url);
         }
-        String after = url.substring(url.indexOf("/storage/v1/object/public/") + "/storage/v1/object/public/".length());
+
+        String after = url.substring(
+                url.indexOf("/storage/v1/object/public/") + "/storage/v1/object/public/".length());
+
         String[] parts = after.split("/", 2);
         String bucket = parts[0];
-        String objectPath = parts[1];
 
-        String endpoint = String.format("%s/storage/v1/object/%s/%s", supabaseUrl, bucket, encodePath(objectPath));
+        // ✅ decode về path gốc
+        String objectPath = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+
+        String endpoint = String.format(
+                "%s/storage/v1/object/%s/%s",
+                supabaseUrl,
+                bucket,
+                objectPath);
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint))
                 .header("Authorization", "Bearer " + serviceRoleKey)
@@ -156,13 +175,14 @@ public class FileService {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 200 && response.statusCode() < 300) {
 
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
             eventProducer.sendMessage(Map.of("action", "DELETE", "url", url));
             return "Deleted: " + url;
-        } else {
-            throw new RuntimeException("Delete failed: HTTP " + response.statusCode() + " - " + response.body());
         }
+
+        throw new RuntimeException(
+                "Delete failed: HTTP " + response.statusCode() + " - " + response.body());
     }
 
     public FileResponseDto getByUrl(String url) {

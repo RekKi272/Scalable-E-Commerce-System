@@ -39,41 +39,29 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.discount.routing-key}")
     private String discountRoutingKey;
 
-    // Order save request
-    @Value("${app.rabbitmq.order-save.queue}")
-    private String orderSaveQueueName;
-    @Value("${app.rabbitmq.order-save.routing-key}")
-    private String orderSaveRoutingKey;
-
     @Bean
     public Queue cartQueue() {
         return QueueBuilder
                 .durable(cartQueueName).build();
     }
 
-//    @Bean
-//    public Queue paymentRequestQueue() {
-//        return QueueBuilder
-//                .durable(paymentRequestQueueName).build();
-//    }
+    // @Bean
+    // public Queue paymentRequestQueue() {
+    // return QueueBuilder
+    // .durable(paymentRequestQueueName).build();
+    // }
 
-//    @Bean
-//    public Queue orderCheckoutQueue() {
-//        return QueueBuilder
-//                .durable(orderCheckoutQueueName).build();
-//    }
+    // @Bean
+    // public Queue orderCheckoutQueue() {
+    // return QueueBuilder
+    // .durable(orderCheckoutQueueName).build();
+    // }
 
-//    @Bean
-//    public Queue discountQueue() {
-//        return QueueBuilder
-//                .durable(discountQueueName).build();
-//    }
-
-//    @Bean
-//    public Queue orderSaveQueue() {
-//        return QueueBuilder
-//                .durable(orderSaveQueueName).build();
-//    }
+    // @Bean
+    // public Queue discountQueue() {
+    // return QueueBuilder
+    // .durable(discountQueueName).build();
+    // }
 
     @Bean
     public TopicExchange exchange() {
@@ -88,37 +76,29 @@ public class RabbitMQConfig {
                 .with(cartRoutingKey);
     }
 
-//    @Bean
-//    public Binding paymentRequestBinding() {
-//        return BindingBuilder
-//                .bind(paymentRequestQueue())
-//                .to(exchange())
-//                .with(paymentRequestRoutingKey);
-//    }
+    // @Bean
+    // public Binding paymentRequestBinding() {
+    // return BindingBuilder
+    // .bind(paymentRequestQueue())
+    // .to(exchange())
+    // .with(paymentRequestRoutingKey);
+    // }
 
-//    @Bean
-//    public Binding orderCheckoutBinding() {
-//        return BindingBuilder
-//                .bind(orderCheckoutQueue())
-//                .to(exchange())
-//                .with(orderCheckoutRoutingKey);
-//    }
+    // @Bean
+    // public Binding orderCheckoutBinding() {
+    // return BindingBuilder
+    // .bind(orderCheckoutQueue())
+    // .to(exchange())
+    // .with(orderCheckoutRoutingKey);
+    // }
 
-//    @Bean
-//    public Binding discountBinding() {
-//        return BindingBuilder
-//                .bind(discountQueue())
-//                .to(exchange())
-//                .with(discountRoutingKey);
-//    }
-
-//    @Bean
-//    public Binding orderSaveBinding() {
-//        return BindingBuilder
-//                .bind(orderSaveQueue())
-//                .to(exchange())
-//                .with(orderSaveRoutingKey);
-//    }
+    // @Bean
+    // public Binding discountBinding() {
+    // return BindingBuilder
+    // .bind(discountQueue())
+    // .to(exchange())
+    // .with(discountRoutingKey);
+    // }
 
     @Bean
     public MessageConverter messageConverter() {

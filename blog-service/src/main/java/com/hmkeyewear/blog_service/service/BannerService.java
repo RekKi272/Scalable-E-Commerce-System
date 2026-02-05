@@ -9,7 +9,8 @@ import com.hmkeyewear.blog_service.dto.BannerResponseDto;
 import com.hmkeyewear.blog_service.mapper.BannerMapper;
 import com.hmkeyewear.blog_service.messaging.BannerEventProducer;
 import com.hmkeyewear.blog_service.model.Banner;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hmkeyewear.common_dto.dto.PageResponseDto;
+
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -63,8 +64,11 @@ public class BannerService {
         return bannerMapper.toBannerResponseDto(banner);
     }
 
-    public List<BannerResponseDto> getAllBanners() throws ExecutionException, InterruptedException {
+    public List<BannerResponseDto> getAllBannerOptions()
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
+
         List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME).get().get().getDocuments();
 
         List<BannerResponseDto> result = new ArrayList<>();
@@ -73,18 +77,46 @@ public class BannerService {
             result.add(bannerMapper.toBannerResponseDto(banner));
         }
 
-        // Giữ sort trong backend (nếu muốn theo updatedAt)
-        result.sort((a, b) -> {
-            Timestamp aTime = a.getUpdatedAt() != null ? a.getUpdatedAt() : a.getCreatedAt();
-            Timestamp bTime = b.getUpdatedAt() != null ? b.getUpdatedAt() : b.getCreatedAt();
-
-            double aSeconds = aTime != null ? aTime.getSeconds() + aTime.getNanos() / 1e9 : 0;
-            double bSeconds = bTime != null ? bTime.getSeconds() + bTime.getNanos() / 1e9 : 0;
-
-            return Double.compare(bSeconds, aSeconds);
-        });
-
         return result;
+    }
+
+    public PageResponseDto<BannerResponseDto> getAllBannersPaging(int page, int size)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .orderBy("updatedAt", Query.Direction.DESCENDING);
+
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prev = baseQuery
+                    .limit(page * size)
+                    .get()
+                    .get();
+
+            if (!prev.isEmpty()) {
+                DocumentSnapshot lastDoc = prev.getDocuments().get(prev.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
+        }
+
+        List<BannerResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : pageQuery.get().get().getDocuments()) {
+            Banner banner = doc.toObject(Banner.class);
+            items.add(bannerMapper.toBannerResponseDto(banner));
+        }
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     public BannerResponseDto getBannerById(String bannerId) throws ExecutionException, InterruptedException {

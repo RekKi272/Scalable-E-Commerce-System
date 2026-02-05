@@ -39,18 +39,36 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getCategoryById(categoryId));
     }
 
-    @GetMapping("/getAll")
-    public ResponseEntity<List<CategoryResponseDto>> getAllCategories()
+    @GetMapping("/option")
+    public ResponseEntity<List<CategoryResponseDto>> getCategoryOptions()
             throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(categoryService.getAllCategories());
+
+        return ResponseEntity.ok(categoryService.getCategoryOptions());
+    }
+
+    @GetMapping("/getAll")
+    public ResponseEntity<?> getBrandsPaging(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
+            throws ExecutionException, InterruptedException {
+
+        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403)
+                    .body("Bạn không có quyền xem danh mục sản phẩm");
+        }
+
+        return ResponseEntity.ok(
+                categoryService.getCategoriesPaging(page, size));
     }
 
     @PutMapping("/update/{categoryId}")
     public ResponseEntity<?> updateCategory(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Name") String username,
-            @PathVariable String categoryId,
-            @RequestBody CategoryRequestDto dto) throws ExecutionException, InterruptedException {
+            @PathVariable("categoryId") String categoryId,
+            @RequestBody CategoryRequestDto dto)
+            throws ExecutionException, InterruptedException {
 
         if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
             return ResponseEntity.status(403).body("Bạn không có quyền  sửa danh mục sản phẩm");

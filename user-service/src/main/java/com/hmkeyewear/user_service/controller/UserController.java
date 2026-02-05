@@ -5,7 +5,6 @@ import com.hmkeyewear.user_service.service.UserService;
 
 import jakarta.validation.Valid;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,14 +56,18 @@ public class UserController {
     /** ==================== ADMIN ==================== */
 
     @GetMapping("/getAll")
-    public ResponseEntity<?> getAllUsers(@RequestHeader("X-User-Role") String role)
+    public ResponseEntity<?> getAllUsers(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
 
-        if (!isAdmin(role))
+        if (!isAdmin(role)) {
             return ResponseEntity.status(403).body("Access denied: Admin only");
+        }
 
         try {
-            return ResponseEntity.ok(userService.getAllUser());
+            return ResponseEntity.ok(userService.getAllUser(page, size));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404).body(e.getMessage());
         } catch (IllegalStateException e) {
@@ -75,14 +78,17 @@ public class UserController {
     @GetMapping("/getByRole")
     public ResponseEntity<?> getUsersByRole(
             @RequestHeader("X-User-Role") String roleHeader,
-            @RequestParam("role") String role)
+            @RequestParam("role") String role,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
 
-        if (!isAdmin(roleHeader))
+        if (!isAdmin(roleHeader)) {
             return ResponseEntity.status(403).body("Access denied: Admin only");
+        }
 
         try {
-            return ResponseEntity.ok(userService.getUserByRole(role));
+            return ResponseEntity.ok(userService.getUserByRole(role, page, size));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404).body(e.getMessage());
         } catch (IllegalStateException e) {

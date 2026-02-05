@@ -39,16 +39,34 @@ public class BrandController {
         return ResponseEntity.ok(brandService.getBrandById(brandId));
     }
 
+    @GetMapping("/option")
+    public ResponseEntity<List<BrandResponseDto>> getBrandOptions()
+            throws ExecutionException, InterruptedException {
+
+        return ResponseEntity.ok(brandService.getBrandOptions());
+    }
+
     @GetMapping("/getAll")
-    public ResponseEntity<List<BrandResponseDto>> getAllBrands() throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(brandService.getAllBrands());
+    public ResponseEntity<?> getBrandsPaging(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
+            throws ExecutionException, InterruptedException {
+
+        if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {
+            return ResponseEntity.status(403).body("Bạn không có quyền xem danh sách brand");
+        }
+
+        return ResponseEntity.ok(
+                brandService.getBrandsPaging(page, size));
     }
 
     @PutMapping("/update/{brandId}")
     public ResponseEntity<?> updateBrand(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Name") String username,
-            @PathVariable String brandId, @RequestBody BrandRequestDto dto)
+            @PathVariable("brandId") String brandId,
+            @RequestBody BrandRequestDto dto)
             throws ExecutionException, InterruptedException {
 
         if (!List.of("ROLE_EMPLOYER", "ROLE_ADMIN").contains(role.toUpperCase())) {

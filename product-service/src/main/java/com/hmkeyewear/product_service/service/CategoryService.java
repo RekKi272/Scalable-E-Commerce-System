@@ -3,6 +3,7 @@ package com.hmkeyewear.product_service.service;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.common_dto.dto.PageResponseDto;
 import com.hmkeyewear.product_service.dto.CategoryRequestDto;
 import com.hmkeyewear.product_service.dto.CategoryResponseDto;
 import com.hmkeyewear.product_service.mapper.CategoryMapper;
@@ -93,10 +94,11 @@ public class CategoryService {
     }
 
     // READ ALL Categories
-    public List<CategoryResponseDto> getAllCategories() throws ExecutionException, InterruptedException {
+    public List<CategoryResponseDto> getCategoryOptions()
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME).get();
-        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME).get().get().getDocuments();
 
         List<CategoryResponseDto> result = new ArrayList<>();
         for (QueryDocumentSnapshot doc : documents) {
@@ -104,6 +106,45 @@ public class CategoryService {
             result.add(categoryMapper.toCategoryResponseDto(category));
         }
         return result;
+    }
+
+    public PageResponseDto<CategoryResponseDto> getCategoriesPaging(int page, int size)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .orderBy("createdAt", Query.Direction.DESCENDING);
+
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prevSnapshot = baseQuery
+                    .limit(page * size)
+                    .get()
+                    .get();
+
+            if (!prevSnapshot.isEmpty()) {
+                DocumentSnapshot lastDoc = prevSnapshot.getDocuments().get(prevSnapshot.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
+        }
+
+        List<CategoryResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : pageQuery.get().get().getDocuments()) {
+            Category category = doc.toObject(Category.class);
+            items.add(categoryMapper.toCategoryResponseDto(category));
+        }
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     // UPDATE Category

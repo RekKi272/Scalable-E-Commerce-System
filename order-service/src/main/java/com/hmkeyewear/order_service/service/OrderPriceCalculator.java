@@ -1,8 +1,8 @@
 package com.hmkeyewear.order_service.service;
 
-import com.hmkeyewear.order_service.model.DiscountDetail;
-import com.hmkeyewear.order_service.model.OrderDetail;
-import com.hmkeyewear.order_service.model.ShipInfo;
+import com.hmkeyewear.common_dto.dto.DiscountDto;
+import com.hmkeyewear.common_dto.dto.ShipInfoDto;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -10,18 +10,18 @@ import java.util.List;
 @Component
 public class OrderPriceCalculator {
 
-    public double calculatePriceTemp(List<OrderDetail> details) {
+    public double calculatePriceTemp(List<OrderDetailRequestDto> details) {
         double total = 0;
         if (details == null)
             return 0;
 
-        for (OrderDetail d : details) {
+        for (OrderDetailRequestDto d : details) {
             total += d.getUnitPrice() * d.getQuantity();
         }
         return total;
     }
 
-    public double calculatePriceDecreased(double priceTemp, DiscountDetail discount) {
+    public double calculatePriceDecreased(double priceTemp, DiscountDto discount) {
         if (discount == null)
             return 0;
 
@@ -36,7 +36,7 @@ public class OrderPriceCalculator {
         return decreased;
     }
 
-    public double calculateShippingFee(ShipInfo ship) {
+    public double calculateShippingFee(ShipInfoDto ship) {
         if (ship == null)
             return 0;
         return ship.getShippingFee();

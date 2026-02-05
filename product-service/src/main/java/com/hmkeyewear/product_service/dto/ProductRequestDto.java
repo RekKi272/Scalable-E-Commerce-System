@@ -15,28 +15,27 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProductRequestDto {
-    @NotBlank(message = "Product name is required")
+
+    @NotBlank
     private String productName;
 
-    @NotBlank(message = "Brand ID is required")
+    @NotBlank
     private String brandId;
 
-    @NotBlank(message = "Category ID is required")
+    @NotBlank
     private String categoryId;
 
     private String description;
     private String status;
     private String thumbnail;
 
-    @Min(value = 0, message = "Import price must be >= 0")
+    @Min(0)
     private double importPrice;
 
-    @Min(value = 0, message = "Selling price must be >= 0")
+    @Min(0)
     private double sellingPrice;
 
     private Map<String, Object> attributes;
-    private List<Variant> variants;
 
-    // Moved images out of variant
     private List<Image> images;
 }

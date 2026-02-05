@@ -1,14 +1,10 @@
-package com.hmkeyewear.order_service.dto;
+package com.hmkeyewear.common_dto.dto;
 
-import com.hmkeyewear.order_service.model.OrderDetail;
-import com.hmkeyewear.order_service.model.DiscountDetail;
-import com.hmkeyewear.order_service.model.ShipInfo;
-
-import com.google.cloud.Timestamp;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.google.cloud.Timestamp;
 import java.util.List;
 
 @Data
@@ -18,7 +14,7 @@ public class OrderResponseDto {
     private String orderId;
     private String userId;
     private String email;
-    private String fullname;
+    private String fullName;
     private String phone;
 
     private String paymentMethod;
@@ -29,14 +25,11 @@ public class OrderResponseDto {
 
     private String status;
 
-    private DiscountDetail discount;
-    private List<OrderDetail> details;
-    private ShipInfo ship;
+    private List<CartItemDto> items;
+    private ShipInfoDto ship;
+    private DiscountDto discount;
 
     private String note;
 
     private Timestamp createdAt;
-    private String createdBy;
-    private Timestamp updatedAt;
-    private String updatedBy;
 }

@@ -1,29 +1,23 @@
 package com.hmkeyewear.order_service.mapper;
 
-import com.hmkeyewear.order_service.dto.OrderDetailRequestDto;
-import com.hmkeyewear.order_service.dto.OrderRequestDto;
-import com.hmkeyewear.order_service.dto.OrderResponseDto;
-import com.hmkeyewear.order_service.dto.OrderSaveRequestDto;
+import com.hmkeyewear.common_dto.dto.CartItemDto;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
 import com.hmkeyewear.order_service.model.Order;
-import com.hmkeyewear.order_service.model.OrderDetail;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
 
-    // RequestDto -> Order
+    // ===== Request -> Model =====
     Order toOrder(OrderRequestDto dto);
 
-    // Order -> ResponseDto
+    // ===== Model -> Response =====
+    @Mapping(source = "details", target = "items")
     OrderResponseDto toOrderResponseDto(Order order);
 
-    // OrderSaveRequestDto -> OrderRequestDto
-    @Mapping(source = "items", target = "details")
-    @Mapping(target = "discount", ignore = true) // vì OrderSaveRequestDto chỉ có discountId
-    @Mapping(target = "ship", ignore = true) // không có ship trong OrderSaveRequestDto
-    OrderRequestDto toOrderRequestDto(OrderSaveRequestDto orderSaveRequestDto);
-
-    // OrderDetail -> OrderDetailRequestDto
-    OrderDetailRequestDto toOrderDetailRequestDto(OrderDetail orderDetail);
+    // ===== Detail -> CartItem =====
+    CartItemDto toCartItemDto(OrderDetailRequestDto detail);
 }

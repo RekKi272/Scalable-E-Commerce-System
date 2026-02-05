@@ -1,12 +1,12 @@
 package com.hmkeyewear.order_service.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-public class OrderDetailRequestDto {
+@AllArgsConstructor
+public class TopProductDto {
     private String productId;
-    private String variantId;
     private String productName;
-    private String unitPrice;
-    private int quantity;
+    private int totalQuantity;
 }

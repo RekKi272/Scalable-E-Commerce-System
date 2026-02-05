@@ -1,5 +1,7 @@
 package com.hmkeyewear.order_service.dto;
 
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

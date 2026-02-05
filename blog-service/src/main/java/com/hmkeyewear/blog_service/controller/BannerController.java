@@ -56,6 +56,13 @@ public class BannerController {
         return ResponseEntity.ok(bannerService.deleteBanner(bannerId));
     }
 
+    @GetMapping("/option")
+    public ResponseEntity<List<BannerResponseDto>> getBannerOptions()
+            throws ExecutionException, InterruptedException {
+
+        return ResponseEntity.ok(bannerService.getAllBannerOptions());
+    }
+
     @GetMapping("/get/{bannerId}")
     public ResponseEntity<BannerResponseDto> getBannerById(
             @PathVariable String bannerId,
@@ -68,8 +75,18 @@ public class BannerController {
     }
 
     @GetMapping("/getAll")
-    public ResponseEntity<List<BannerResponseDto>> getAllBanners() throws ExecutionException, InterruptedException {
-        return ResponseEntity.ok(bannerService.getAllBanners());
+    public ResponseEntity<?> getAllBannersPaging(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size)
+            throws ExecutionException, InterruptedException {
+
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        return ResponseEntity.ok(
+                bannerService.getAllBannersPaging(page, size));
     }
 
     @GetMapping("/active")
