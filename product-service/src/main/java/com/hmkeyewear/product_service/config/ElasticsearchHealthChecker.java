@@ -5,16 +5,21 @@ import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class ElasticsearchHealthChecker {
 
-    private final RestClient restClient;
+    private final Optional<RestClient> restClient;
 
     public boolean isReady() {
+        if (restClient.isEmpty()) {
+            return false;
+        }
         try {
             Request request = new Request("GET", "/");
-            restClient.performRequest(request);
+            restClient.get().performRequest(request);
             return true;
         } catch (Exception e) {
             return false;

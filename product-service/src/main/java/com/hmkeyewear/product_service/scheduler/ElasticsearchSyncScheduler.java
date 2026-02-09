@@ -26,8 +26,6 @@ public class ElasticsearchSyncScheduler {
             log.info("Elasticsearch READY -> start syncing");
             syncService.syncAll();
             synced = true;
-        } else {
-            log.info("Waiting for Elasticsearch...");
         }
     }
 }

@@ -6,20 +6,41 @@ import com.google.firebase.FirebaseOptions;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @SpringBootApplication
 public class AuthServiceApplication {
 
 	public static void main(String[] args) throws IOException {
-		// Lấy đường dẫn file từ biến môi trường
-		String credentialPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
-		if (credentialPath == null || credentialPath.isEmpty()) {
-			throw new IllegalStateException("Missing GOOGLE_APPLICATION_CREDENTIALS env variable");
-		}
+		initFirebase();
+		SpringApplication.run(AuthServiceApplication.class, args);
+	}
 
-		try (FileInputStream serviceAccount = new FileInputStream(credentialPath)) {
+	private static void initFirebase() {
+		try {
+			String credentials = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+
+			if (credentials == null || credentials.isBlank()) {
+				throw new IllegalStateException("Missing GOOGLE_APPLICATION_CREDENTIALS");
+			}
+
+			InputStream serviceAccount;
+
+			// Nếu là path file
+			if (credentials.endsWith(".json")) {
+				serviceAccount = new FileInputStream(credentials);
+			}
+			// Nếu là JSON string
+			else {
+				serviceAccount = new ByteArrayInputStream(
+						credentials.getBytes(StandardCharsets.UTF_8)
+				);
+			}
+
 			FirebaseOptions options = FirebaseOptions.builder()
 					.setCredentials(GoogleCredentials.fromStream(serviceAccount))
 					.build();
@@ -27,9 +48,10 @@ public class AuthServiceApplication {
 			if (FirebaseApp.getApps().isEmpty()) {
 				FirebaseApp.initializeApp(options);
 			}
-		}
 
-		SpringApplication.run(AuthServiceApplication.class, args);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to initialize Firebase", e);
+		}
 	}
 
 }

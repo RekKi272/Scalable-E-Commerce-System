@@ -5,11 +5,13 @@ spring:
   application:
     name: user-service
   rabbitmq:
-    host: rabbitmq
-    port: 5672
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     dynamic: true
+    ssl:
+      enabled: true
     listener:
       simple:
         retry:

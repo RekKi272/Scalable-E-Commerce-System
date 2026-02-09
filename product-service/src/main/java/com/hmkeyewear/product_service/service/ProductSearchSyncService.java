@@ -2,11 +2,13 @@ package com.hmkeyewear.product_service.service;
 
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.product_service.config.ElasticsearchHealthChecker;
 import com.hmkeyewear.product_service.mapper.ProductSearchMapper;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.ProductDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ public class ProductSearchSyncService {
 
     private final ProductSearchService productSearchService;
     private final ProductSearchMapper productSearchMapper;
+    private final ElasticsearchHealthChecker healthChecker;
 
     private static final String COLLECTION = "products";
 
@@ -31,6 +34,11 @@ public class ProductSearchSyncService {
     }
 
     public void syncAll() {
+
+        if (!healthChecker.isReady()) {
+            log.warn("Elasticsearch down, skip sync");
+            return;
+        }
 
         try {
             Firestore db = FirestoreClient.getFirestore();

@@ -21,6 +21,11 @@ public class ProductController {
         this.productService = productService;
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     // CREATE Product
     @PostMapping("/create")
     public ResponseEntity<?> createProduct(

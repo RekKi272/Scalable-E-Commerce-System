@@ -36,6 +36,11 @@ public class AuthController {
     private final JwtService jwtService;
     private final OtpService otpService;
 
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     @PostMapping("/register-staff")
     public ResponseEntity<AuthResponseDto> registerStaff(
             @RequestBody RegisterStaffRequestDto dto,

@@ -27,6 +27,11 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getStatusOrderOption());
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(
             @RequestHeader("X-User-Role") String role,

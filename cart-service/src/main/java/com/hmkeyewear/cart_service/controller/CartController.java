@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.Console;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -28,6 +29,11 @@ public class CartController {
     // dto) throws ExecutionException, InterruptedException {
     // return ResponseEntity.ok(cartService.createCart(dto));
     // }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
 
     /**
      * Lấy giỏ hàng của người dùng đã đăng nhập
@@ -159,6 +165,9 @@ public class CartController {
         if ("BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())) {
             String ipAddress = request.getRemoteAddr();
             VNPayResponseDto payment = cartService.createPayment(order, ipAddress);
+
+            System.out.println(payment.getPaymentUrl());
+
             return ResponseEntity.ok(payment);
         }
 

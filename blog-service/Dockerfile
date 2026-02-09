@@ -1,9 +1,9 @@
 FROM eclipse-temurin:17-jdk
 
-ARG FILE_JAR=target/*.jar
+WORKDIR /app
 
-ADD ${FILE_JAR} blog-service.jar
-
-ENTRYPOINT ["java", "-jar", "/blog-service.jar"]
+COPY target/*.jar app.jar
 
 EXPOSE 8084
+
+ENTRYPOINT ["java","-jar","app.jar"]

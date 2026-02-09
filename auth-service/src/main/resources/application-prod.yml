@@ -6,6 +6,16 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+      connect-timeout: 10000
+      timeout: 5000
 
 logging:
   level:
@@ -15,3 +25,4 @@ logging:
     io.grpc: WARN
     org.springframework.web: INFO
     org.springframework.security: INFO
+

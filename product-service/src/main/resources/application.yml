@@ -5,11 +5,13 @@ spring:
   application:
     name: product-service
   rabbitmq:
-    host: rabbitmq
-    port: 5672
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     dynamic: true
+    ssl:
+      enabled: true
     listener:
       simple:
         retry:
@@ -20,7 +22,7 @@ spring:
           max-interval: 10000
         default-requeue-rejected: false
   elasticsearch:
-    uris: http://elasticsearch:9200
+    uris: ${ELASTICSEARCH_URIS:http://elasticsearch:9200}
 
 firebase:
   credentials:

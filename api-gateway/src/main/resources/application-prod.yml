@@ -6,6 +6,110 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  application:
+    name: api-gateway
+  main:
+    web-application-type: reactive
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # Auth Service
+            - id: auth-service
+              uri: http://auth-service.hmk.local:8090
+              predicates:
+                - Path=/auth/**
+
+            # Blog Service
+            - id: blog-service
+              uri: http://blog-service.hmk.local:8084
+              predicates:
+                - Path=/blog/**,/banner/**
+              filters:
+                - RemoveRequestHeader=Cookie
+
+            # Cart Service
+            - id: cart-service
+              uri: http://cart-service.hmk.local:8083
+              predicates:
+                - Path=/cart/**,/discount/**
+              filters:
+                - RemoveRequestHeader=Cookie
+
+            # Order Service
+            - id: order-service
+              uri: http://order-service.hmk.local:8082
+              predicates:
+                - Path=/order/**
+              filters:
+                - RemoveRequestHeader=Cookie
+
+            # Product Service
+            - id: product-service
+              uri: http://product-service.hmk.local:8081
+              predicates:
+                - Path=/product/**,/category/**,/brand/**
+              filters:
+                - RemoveRequestHeader=Cookie
+
+            # User Service
+            - id: user-service
+              uri: http://user-service.hmk.local:8085
+              predicates:
+                - Path=/user/**
+              filters:
+                - RemoveRequestHeader=Cookie
+
+            # File Service
+            - id: file-service
+              uri: http://file-service.hmk.local:8091
+              predicates:
+                - Path=/file/**
+              filters:
+                - RemoveRequestHeader=Cookie
+
+            # Payment Service
+            - id: payment-service
+              uri: http://payment-service.hmk.local:8089
+              predicates:
+                - Path=/payment/**
+              filters:
+                - RemoveRequestHeader=Cookie
+
+            # Notification Service
+            - id: notification-service
+              uri: http://notification-service.hmk.local:8092
+              predicates:
+                - Path=/notification/**
+              filters:
+                - RemoveRequestHeader=Cookie
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins:
+                  - http://localhost:8086
+                  - https://fe-hmk-eyewear.vercel.app
+                  - https://hmk-eyewear.fordev.online
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  - OPTIONS
+                allowed-headers:
+                  - "*"
+                allow-credentials: true
+          httpclient:
+            connect-timeout: 5000
+            response-timeout: 10s
+          default-filters:
+            - name: DedupeResponseHeader
+              args:
+                strategy: RETAIN_UNIQUE
+                name: Access-Control-Allow-Credentials
 
 logging:
   level:

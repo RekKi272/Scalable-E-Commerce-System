@@ -370,12 +370,10 @@ public class OrderService {
 
                 // ===== SIDE EFFECT THEO TRẠNG THÁI =====
                 switch (nextStatus) {
-
-                        case PAID:
                         case DELIVERING:
                                 order.setStatus(nextStatus.name());
                                 break;
-
+                        case PAID:
                         case COMPLETED:
                                 order.setStatus(nextStatus.name());
 
@@ -383,7 +381,6 @@ public class OrderService {
                                 invoiceEmailProducer.sendEmailRequest(event);
 
                                 break;
-
                         case CANCEL:
                                 stockUpdateRequestProducer
                                                 .sendDecreaseQuantitySell(order.getDetails());

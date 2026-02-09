@@ -19,6 +19,11 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     @GetMapping("/vn-pay")
     public ResponseEntity<?> pay(
             @RequestHeader("X-User-Id") String userId,

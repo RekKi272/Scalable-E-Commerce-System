@@ -20,6 +20,11 @@ public class UserController {
         this.userService = userService;
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     /** ==================== COMMON UTILS ==================== */
 
     private boolean isAdmin(String role) {

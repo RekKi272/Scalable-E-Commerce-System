@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+
 @RestController
 @RequestMapping("/blog")
 public class BlogController {
@@ -18,6 +19,11 @@ public class BlogController {
 
     public BlogController(BlogService blogService) {
         this.blogService = blogService;
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
 
     @PostMapping("/create")
