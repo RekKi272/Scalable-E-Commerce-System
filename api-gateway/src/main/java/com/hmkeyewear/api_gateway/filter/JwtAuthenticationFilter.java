@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/payment/vn-pay-ipn",
             "/payment/vn-pay-callback",
 
-            "/product/get",
+            "/product/get/**",
             "/product/getActive",
             "/product/search",
             "/product/filter",
