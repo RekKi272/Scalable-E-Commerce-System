@@ -11,6 +11,8 @@ import com.hmkeyewear.blog_service.messaging.BannerEventProducer;
 import com.hmkeyewear.blog_service.model.Banner;
 import com.hmkeyewear.common_dto.dto.PageResponseDto;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -47,6 +49,7 @@ public class BannerService {
         return future.get();
     }
 
+    @CacheEvict(value = "active_banners", allEntries = true)
     public BannerResponseDto createBanner(String createdBy, BannerRequestDto dto)
             throws ExecutionException, InterruptedException {
 
@@ -119,6 +122,11 @@ public class BannerService {
                 totalPages);
     }
 
+    @Cacheable(
+            value = "banner",
+            key = "'banner:' + #bannerId",
+            unless = "#result == null"
+    )
     public BannerResponseDto getBannerById(String bannerId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(bannerId).get().get();
@@ -129,6 +137,11 @@ public class BannerService {
         return bannerMapper.toBannerResponseDto(snapshot.toObject(Banner.class));
     }
 
+    @CacheEvict(
+            value = {"banner", "active_banners"},
+            key = "'banner:' + #bannerId",
+            allEntries = true
+    )
     public BannerResponseDto updateBanner(String bannerId, BannerRequestDto dto, String updatedBy)
             throws ExecutionException, InterruptedException {
 
@@ -157,6 +170,11 @@ public class BannerService {
         return bannerMapper.toBannerResponseDto(banner);
     }
 
+    @CacheEvict(
+            value = {"banner", "active_banners"},
+            key = "'banner:' + #bannerId",
+            allEntries = true
+    )
     public String deleteBanner(String bannerId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         db.collection(COLLECTION_NAME).document(bannerId).delete().get();
@@ -168,6 +186,10 @@ public class BannerService {
     }
 
     // Chỉ trả về list banner active, không sort — FE tự sort
+    @Cacheable(
+            value = "active_banners",
+            key = "'all'"
+    )
     public List<BannerResponseDto> getAllActiveBanners() throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME)

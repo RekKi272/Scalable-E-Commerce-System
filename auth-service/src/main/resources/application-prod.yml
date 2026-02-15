@@ -1,5 +1,10 @@
 server:
   port: ${SERVER_PORT:8080}
+  tomcat:
+    threads:
+      max: 500
+      min-spare: 50
+
 
 spring:
   servlet:
@@ -8,14 +13,13 @@ spring:
       max-request-size: 10MB
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: 6379
-      username: ${REDIS_USERNAME}
+      cluster:
+        nodes:
+          - ${REDIS_HOST}:6379
+      timeout: 2000ms
       password: ${REDIS_PASSWORD}
       ssl:
         enabled: true
-      connect-timeout: 10000
-      timeout: 5000
 
 logging:
   level:

@@ -6,6 +6,7 @@ import com.google.firebase.FirebaseOptions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -21,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 @EnableElasticsearchRepositories(
 		basePackages = "com.hmkeyewear.product_service.repository"
 )
+@EnableCaching
 public class ProductServiceApplication{
 
 	public static void main(String[] args) throws IOException {

@@ -24,6 +24,15 @@ public class PaymentController {
         return ResponseEntity.ok("OK");
     }
 
+    @GetMapping("/stress")
+    public String stress() {
+        long sum = 0;
+        for (long i = 0; i < 5_000_000_000L; i++) {
+            sum += i;
+        }
+        return "done";
+    }
+
     @GetMapping("/vn-pay")
     public ResponseEntity<?> pay(
             @RequestHeader("X-User-Id") String userId,

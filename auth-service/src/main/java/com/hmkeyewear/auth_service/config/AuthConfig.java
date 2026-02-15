@@ -30,23 +30,23 @@ public class AuthConfig {
         return configuration.getAuthenticationManager();
     }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(java.util.List.of(
-                "https://hmk-eyewear.fordev.online"
-        ));
-        corsConfiguration.setAllowedMethods(java.util.List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD", "*"
-        ));
-        corsConfiguration.setAllowedHeaders(java.util.List.of("*"));
-        corsConfiguration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfiguration);
-
-        return source;
-    }
+//    @Bean
+//    public CorsConfigurationSource corsConfigurationSource() {
+//        CorsConfiguration corsConfiguration = new CorsConfiguration();
+//        corsConfiguration.setAllowedOrigins(java.util.List.of(
+//                "https://hmk-eyewear.fordev.online"
+//        ));
+//        corsConfiguration.setAllowedMethods(java.util.List.of(
+//                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD", "*"
+//        ));
+//        corsConfiguration.setAllowedHeaders(java.util.List.of("*"));
+//        corsConfiguration.setAllowCredentials(true);
+//
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", corsConfiguration);
+//
+//        return source;
+//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -54,7 +54,7 @@ public class AuthConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()) // Cho phép tất cả request, không check token
-                .cors(Customizer.withDefaults())
+//                .cors(Customizer.withDefaults())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
