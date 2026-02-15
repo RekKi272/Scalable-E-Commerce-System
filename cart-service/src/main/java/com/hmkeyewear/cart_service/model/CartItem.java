@@ -12,6 +12,7 @@ import lombok.Setter;
 public class CartItem {
     private String productId;
     private String variantId;
+    private String color;
     private String productName;
     private double unitPrice;
     private int quantity;
