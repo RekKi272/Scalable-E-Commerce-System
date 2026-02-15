@@ -7,6 +7,8 @@ import com.hmkeyewear.product_service.model.Product;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.time.Instant;
+
 @Mapper(componentModel = "spring")
 public interface ProductMapper {
 
@@ -20,4 +22,16 @@ public interface ProductMapper {
     ProductResponseDto toProductResponseDto(Product product);
 
     ProductInforResponseDto toProductInforResponseDto(Product product);
+
+    default Instant map(com.google.cloud.Timestamp timestamp) {
+        return timestamp != null ? timestamp.toDate().toInstant() : null;
+    }
+
+    default com.google.cloud.Timestamp map(Instant instant) {
+        return instant != null
+                ? com.google.cloud.Timestamp.ofTimeSecondsAndNanos(
+                instant.getEpochSecond(),
+                instant.getNano())
+                : null;
+    }
 }

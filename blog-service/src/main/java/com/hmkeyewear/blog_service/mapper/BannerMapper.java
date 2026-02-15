@@ -6,6 +6,8 @@ import com.hmkeyewear.blog_service.model.Banner;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.time.Instant;
+
 @Mapper(componentModel = "spring")
 public interface BannerMapper {
 
@@ -23,4 +25,16 @@ public interface BannerMapper {
     @Mapping(source = "updatedAt", target = "updatedAt")
     @Mapping(source = "updatedBy", target = "updatedBy")
     BannerResponseDto toBannerResponseDto(Banner banner);
+
+    default Instant map(com.google.cloud.Timestamp timestamp) {
+        return timestamp != null ? timestamp.toDate().toInstant() : null;
+    }
+
+    default com.google.cloud.Timestamp map(Instant instant) {
+        return instant != null
+                ? com.google.cloud.Timestamp.ofTimeSecondsAndNanos(
+                instant.getEpochSecond(),
+                instant.getNano())
+                : null;
+    }
 }

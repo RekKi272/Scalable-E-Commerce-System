@@ -13,6 +13,8 @@ import com.hmkeyewear.blog_service.model.Blog;
 import com.hmkeyewear.common_dto.dto.PageResponseDto;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,6 +64,7 @@ public class BlogService {
     }
 
     // CREATE BLOG
+    @CacheEvict(value = "active_blogs", allEntries = true)
     public BlogResponseDto createBlog(String createdBy, BlogRequestDto blogRequestDto)
             throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
@@ -124,6 +127,11 @@ public class BlogService {
     }
 
     // Get blog by ID
+    @Cacheable(
+            value = "blog",
+            key = "'blog:' + #blogId",
+            unless = "#result == null"
+    )
     public BlogResponseDto getBlogById(String blogId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(blogId);
@@ -137,6 +145,11 @@ public class BlogService {
     }
 
     // UPDATE Blog
+    @CacheEvict(
+            value = {"blog", "active_blogs"},
+            key = "'blog:' + #blogId",
+            allEntries = true
+    )
     public BlogResponseDto updateBlog(String blogId, BlogRequestDto blogRequestDto, String updatedBy)
             throws ExecutionException, InterruptedException {
 
@@ -170,6 +183,11 @@ public class BlogService {
     }
 
     // DELETE blog
+    @CacheEvict(
+            value = {"blog", "active_blogs"},
+            key = "'blog:' + #blogId",
+            allEntries = true
+    )
     public String deleteBlog(String blogId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(blogId);
@@ -183,6 +201,10 @@ public class BlogService {
     }
 
     // Get All Blog by status
+    @Cacheable(
+            value = "active_blogs",
+            key = "'page:' + #page + ':size:' + #size"
+    )
     public PageResponseDto<BlogResponseDto> getAllActiveBlogs(int page, int size)
             throws ExecutionException, InterruptedException {
 

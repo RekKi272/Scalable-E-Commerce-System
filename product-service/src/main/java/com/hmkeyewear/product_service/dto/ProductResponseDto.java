@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import com.google.cloud.Timestamp;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -31,8 +33,8 @@ public class ProductResponseDto {
     // Images moved out of variant
     private List<Image> images;
 
-    private Timestamp createdAt;
+    private Instant createdAt;
     private String createdBy;
-    private Timestamp updatedAt;
+    private Instant updatedAt;
     private String updatedBy;
 }

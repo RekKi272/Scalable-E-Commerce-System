@@ -21,6 +21,18 @@ spring:
           multiplier: 2.0
           max-interval: 10000
         default-requeue-rejected: false
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000        # 10 phút (milliseconds)
+      cache-null-values: false
+      use-key-prefix: true
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+      timeout: 2000ms
+      password: ${REDIS_PASSWORD}
 
 firebase:
   credentials:

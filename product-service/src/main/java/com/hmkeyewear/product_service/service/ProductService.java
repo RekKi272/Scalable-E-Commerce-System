@@ -14,6 +14,8 @@ import com.hmkeyewear.product_service.messaging.ProductEventProducer;
 import com.hmkeyewear.product_service.model.Product;
 import com.hmkeyewear.product_service.model.ProductDocument;
 import com.hmkeyewear.product_service.model.Variant;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
@@ -288,6 +290,11 @@ public class ProductService {
     }
 
     // GET Product by Id
+    @Cacheable(
+            value = "product",
+            key = "'product:' + #productId",
+            unless = "#result == null"
+    )
     public ProductResponseDto getProductById(String productId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(productId).get().get();
@@ -400,6 +407,7 @@ public class ProductService {
     }
 
     // UPDATE Product
+    @CacheEvict(value = "product", key = "'product:' + #productId")
     public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String userId)
             throws ExecutionException, InterruptedException {
 
@@ -433,6 +441,10 @@ public class ProductService {
     }
 
     // GET Active Product ONLY
+    @Cacheable(
+            value = "active_products",
+            key = "'page:' + #page + ':size:' + #size"
+    )
     public PageResponseDto<ProductInforResponseDto> getActiveProducts(int page, int size)
             throws ExecutionException, InterruptedException {
 
@@ -476,6 +488,7 @@ public class ProductService {
     }
 
     // DELETE Product
+    @CacheEvict(value = {"product", "active_products"}, key = "'product:' + #productId", allEntries = true)
     public String deleteProduct(String productId)
             throws ExecutionException, InterruptedException {
 
