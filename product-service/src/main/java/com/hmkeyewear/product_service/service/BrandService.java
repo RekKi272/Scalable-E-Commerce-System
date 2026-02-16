@@ -161,13 +161,13 @@ public class BrandService {
         ApiFuture<DocumentSnapshot> future = brandRef.get();
         DocumentSnapshot document = future.get();
         if (!document.exists()) {
-            throw new RuntimeException("Brand with ID " + brandId + " not found");
+            throw new RuntimeException("Thương hiệu có ID " + brandId + " không tìm thấy");
         }
 
         Brand existingBrand = document.toObject(Brand.class);
 
         if (existingBrand == null) {
-            throw new RuntimeException("Brand data is null for ID " + brandId);
+            throw new RuntimeException("Dữ liệu thương hiệu trống đối với ID " + brandId);
         }
 
         Brand updatedBrand = brandMapper.toBrand(dto);
@@ -195,6 +195,6 @@ public class BrandService {
 
         // --- Send message to RabbitMQ ---
         brandEventProducer.sendMessage(brandId);
-        return "Successfully deleted brand with id " + brandId;
+        return "Đã xóa thành công thương hiệu có ID " + brandId;
     }
 }

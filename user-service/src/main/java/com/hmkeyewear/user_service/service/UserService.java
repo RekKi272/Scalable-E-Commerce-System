@@ -36,11 +36,11 @@ public class UserService {
         DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(userId).get().get();
 
         if (!snapshot.exists()) {
-            throw new IllegalArgumentException("User with ID " + userId + " does not exist");
+            throw new IllegalArgumentException("Người dùng có ID " + userId + " không tồn tại");
         }
         User user = snapshot.toObject(User.class);
         if (user == null) {
-            throw new IllegalStateException("User data corrupted or missing for ID " + userId);
+            throw new IllegalStateException("Dữ liệu người dùng bị hỏng hoặc thiếu đối với ID " + userId);
         }
         return userMapper.toResponseDto(user);
     }
@@ -53,12 +53,12 @@ public class UserService {
 
         DocumentSnapshot snapshot = docRef.get().get();
         if (!snapshot.exists()) {
-            throw new IllegalArgumentException("User with ID " + userId + " does not exist");
+            throw new IllegalArgumentException("Người dùng có ID " + userId + " không tồn tại");
         }
 
         User existing = snapshot.toObject(User.class);
         if (existing == null) {
-            throw new IllegalStateException("User data corrupted or missing for ID " + userId);
+            throw new IllegalStateException("Dữ liệu người dùng bị hỏng hoặc thiếu đối với ID " + userId);
         }
 
         // Chỉ update các trường cho phép
@@ -167,7 +167,7 @@ public class UserService {
                 .getDocuments();
 
         if (docs.isEmpty()) {
-            throw new IllegalArgumentException("User with phone " + phone + " does not exist");
+            throw new IllegalArgumentException("Người dùng có điện thoại " + phone + " không tồn tại");
         }
 
         User user = docs.get(0).toObject(User.class);
@@ -183,11 +183,11 @@ public class UserService {
 
         DocumentSnapshot snapshot = docRef.get().get();
         if (!snapshot.exists()) {
-            throw new IllegalArgumentException("User with ID " + userId + " does not exist");
+            throw new IllegalArgumentException("Người dùng có điện thoại " + userId + " không tồn tại");
         }
         User existing = snapshot.toObject(User.class);
         if (existing == null) {
-            throw new IllegalStateException("User data corrupted or missing for ID " + userId);
+            throw new IllegalStateException("Dữ liệu người dùng bị hỏng hoặc thiếu đối với ID " + userId);
         }
 
         // Update tất cả field ngoại trừ meta

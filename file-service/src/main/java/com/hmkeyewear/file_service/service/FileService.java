@@ -180,7 +180,7 @@ public class FileService {
         String[] parts = after.split("/", 2);
         String bucket = parts[0];
 
-        // ✅ decode về path gốc
+        // decode về path gốc
         String objectPath = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
 
         String endpoint = String.format(

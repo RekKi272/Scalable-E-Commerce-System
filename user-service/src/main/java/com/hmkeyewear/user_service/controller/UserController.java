@@ -68,7 +68,7 @@ public class UserController {
             throws ExecutionException, InterruptedException {
 
         if (!isAdmin(role)) {
-            return ResponseEntity.status(403).body("Access denied: Admin only");
+            return ResponseEntity.status(403).body("Quyền truy cập bị từ chối: Chỉ quản trị viên mới được phép");
         }
 
         try {
@@ -89,7 +89,7 @@ public class UserController {
             throws ExecutionException, InterruptedException {
 
         if (!isAdmin(roleHeader)) {
-            return ResponseEntity.status(403).body("Access denied: Admin only");
+            return ResponseEntity.status(403).body("Quyền truy cập bị từ chối");
         }
 
         try {
@@ -107,7 +107,7 @@ public class UserController {
             @RequestParam("phone") String phone) throws ExecutionException, InterruptedException {
 
         if (!isAdmin(roleHeader))
-            return ResponseEntity.status(403).body("Access denied: Admin only");
+            return ResponseEntity.status(403).body("Quyền truy cập bị từ chối");
 
         try {
             return ResponseEntity.ok(userService.getUserByPhone(phone));
@@ -124,7 +124,7 @@ public class UserController {
             @RequestParam("userId") String userId) throws ExecutionException, InterruptedException {
 
         if (!isAdmin(roleHeader) && !"EMPLOYER".equalsIgnoreCase(roleHeader)) {
-            return ResponseEntity.status(403).body("Access denied: Admin or Employer only");
+            return ResponseEntity.status(403).body("Quyền truy cập bị từ chối");
         }
 
         try {
@@ -144,7 +144,7 @@ public class UserController {
             @RequestHeader("X-User-Id") String updatedBy) throws ExecutionException, InterruptedException {
 
         if (!isAdmin(roleHeader))
-            return ResponseEntity.status(403).body("Access denied: Admin only");
+            return ResponseEntity.status(403).body("Quyền truy cập bị từ chối");
 
         try {
             return ResponseEntity.ok(userService.updateUser(userId, dto, updatedBy));
