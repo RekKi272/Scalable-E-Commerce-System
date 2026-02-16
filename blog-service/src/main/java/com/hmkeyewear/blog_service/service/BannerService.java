@@ -182,7 +182,7 @@ public class BannerService {
         // --- Send message to RabbitMQ ---
         bannerEventProducer.sendMessage(bannerId);
 
-        return "Banner deleted successfully: " + bannerId;
+        return "Banner xóa thành công: " + bannerId;
     }
 
     // Chỉ trả về list banner active, không sort — FE tự sort

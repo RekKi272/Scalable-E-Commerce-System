@@ -25,7 +25,7 @@ public class PaymentService {
 
         String orderId = request.getParameter("orderId");
         if (orderId == null || orderId.isBlank()) {
-            throw new IllegalArgumentException("orderId is required");
+            throw new IllegalArgumentException("Mã đơn hàng (orderId) là bắt buộc");
         }
 
         long amount = Long.parseLong(request.getParameter("amount")) * 100L;
@@ -94,7 +94,7 @@ public class PaymentService {
                     .build();
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to encode cart data", e);
+            throw new RuntimeException("Tạo hóa đơn thất bại", e);
         }
     }
 

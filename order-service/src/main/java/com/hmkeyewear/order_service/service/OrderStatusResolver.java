@@ -15,7 +15,7 @@ public class OrderStatusResolver {
             case BANK_TRANSFER:
                 return "PENDING";
             default:
-                throw new RuntimeException("Unsupported payment method");
+                throw new RuntimeException("Phương thức thanh toán không được hỗ trợ");
         }
     }
 }

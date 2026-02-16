@@ -197,7 +197,7 @@ public class BlogService {
         // --- Send message to RabbitMQ ---
         blogEventProducer.sendMessage(blogId);
 
-        return "Blog deleted successfully" + blogId;
+        return "Blog xóa thành công" + blogId;
     }
 
     // Get All Blog by status

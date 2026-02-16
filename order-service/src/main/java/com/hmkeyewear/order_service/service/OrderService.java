@@ -94,7 +94,7 @@ public class OrderService {
 
                         // bảo vệ tràn
                         if (newSeq > 999) {
-                                throw new RuntimeException("Order sequence overflow for date " + dateKey);
+                                throw new RuntimeException("Lỗi tràn thứ tự đơn hàng theo ngày " + dateKey);
                         }
 
                         // lưu lại counter theo ngày
@@ -336,7 +336,7 @@ public class OrderService {
                 // --- Send message to RabbitMQ ---
                 orderEventProducer.sendMessage(orderId);
 
-                return "Order " + orderId + " deleted at " + result.get().getUpdateTime();
+                return "Đơn hàng " + orderId + " Xóa tại " + result.get().getUpdateTime();
         }
 
         // UPDATE ORDER STATUS AFTER PAYMENT
@@ -352,7 +352,7 @@ public class OrderService {
                 Order order = docRef.get().get().toObject(Order.class);
 
                 if (order == null) {
-                        throw new RuntimeException("Order not found");
+                        throw new RuntimeException("Đơn hàng không tìm thấy");
                 }
 
                 OrderStatus currentStatus;

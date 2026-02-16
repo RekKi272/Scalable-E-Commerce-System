@@ -303,7 +303,7 @@ public class ProductService {
         if (snapshot.exists()) {
             Product product = snapshot.toObject(Product.class);
             if (product == null) {
-                throw new RuntimeException("Product data is null for ID " + productId);
+                throw new RuntimeException("Dữ liệu sản phẩm có" + productId + " rỗng");
             }
             return productMapper.toProductResponseDto(product);
         }
@@ -417,7 +417,7 @@ public class ProductService {
 
         DocumentSnapshot snapshot = ref.get().get();
         if (!snapshot.exists()) {
-            throw new RuntimeException("Product not found");
+            throw new RuntimeException("Không tìm thấy sản phẩm");
         }
 
         Product existing = snapshot.toObject(Product.class);
@@ -503,7 +503,7 @@ public class ProductService {
                 .get();
 
         if (!snapshot.exists()) {
-            throw new RuntimeException("Product not found");
+            throw new RuntimeException("Không tìm thấy sản phẩm");
         }
 
         Product product = snapshot.toObject(Product.class);
@@ -520,7 +520,7 @@ public class ProductService {
         productSearchService.deleteById(productId);
         productEventProducer.sendMessage(productId);
 
-        return "Deleted product " + productId;
+        return "Xóa sản phẩm " + productId;
     }
 
     // SEARCH PRODUCT
