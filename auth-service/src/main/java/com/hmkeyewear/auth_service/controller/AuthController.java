@@ -49,7 +49,7 @@ public class AuthController {
             throws ExecutionException, InterruptedException {
 
         if (!"ROLE_ADMIN".equals(role)) {
-            throw new RuntimeException("Only admin can register staff");
+            throw new RuntimeException("Chỉ có admin mới được phép tạo tài khoản cho nhân viên");
         }
 
         return ResponseEntity.ok(authService.registerStaff(dto, createdBy));
@@ -73,13 +73,13 @@ public class AuthController {
                         loginRequestDto.getPassword()));
 
         if (!authenticate.isAuthenticated()) {
-            throw new RuntimeException("Invalid email or password");
+            throw new RuntimeException("Email hoặc mật khẩu không hợp lệ");
         }
 
         // Get user to revoke old token
         Optional<User> optionalUser = authService.findByEmail(loginRequestDto.getEmail());
         if (optionalUser.isEmpty()) {
-            throw new RuntimeException("User not found");
+            throw new RuntimeException("Người dùng không tồn tại");
         }
         User user = optionalUser.get();
         refreshTokenRedisService.revokeAllByUser(user.getUserId());
@@ -165,7 +165,7 @@ public class AuthController {
 
         response.addHeader(HttpHeaders.SET_COOKIE, clear.toString());
         return ResponseEntity.ok(
-                new ApiResponse(true, "Logged out"));
+                new ApiResponse(true, "Đăng xuất thành công"));
 
     }
 
@@ -186,7 +186,7 @@ public class AuthController {
         try {
             otpService.verifyOtp(dto.getEmail(), dto.getOtp());
             return ResponseEntity.ok(
-                    new ApiResponse(true, "OTP verified"));
+                    new ApiResponse(true, "OTP được xác thực"));
         } catch (RuntimeException ex) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -201,28 +201,28 @@ public class AuthController {
         if (dto.getEmail() == null || dto.getEmail().isBlank()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(false, "Email is required"));
+                    .body(new ApiResponse(false, "Vui lòng nhập Email"));
         }
 
         // Validate password
         if (dto.getNewPassword() == null || dto.getConfirmPassword() == null) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(false, "Password is required"));
+                    .body(new ApiResponse(false, "Vui lòng nhập mật khẩu"));
         }
 
         // Password mismatch
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(false, "Password confirmation does not match"));
+                    .body(new ApiResponse(false, "Mật khẩu xác nhận không khớp"));
         }
 
         // Password policy
         if (dto.getNewPassword().length() < 8) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(false, "Password must be at least 8 characters"));
+                    .body(new ApiResponse(false, "Mật khẩu phải ít nhất 8 chữ cái"));
         }
 
         try {
@@ -232,7 +232,7 @@ public class AuthController {
                     dto.getNewPassword());
 
             return ResponseEntity.ok(
-                    new ApiResponse(true, "Password reset successfully"));
+                    new ApiResponse(true, "Thiết lập mật khẩu mới thành công"));
 
         } catch (RuntimeException ex) {
             // User not found, OTP chưa verify, v.v.
@@ -244,7 +244,7 @@ public class AuthController {
             // Unexpected error
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponse(false, "Internal server error"));
+                    .body(new ApiResponse(false, "Lỗi hệ thống"));
         }
     }
 
@@ -256,19 +256,19 @@ public class AuthController {
         if (dto.getOldPassword() == null || dto.getNewPassword() == null || dto.getConfirmPassword() == null) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(false, "Password is required"));
+                    .body(new ApiResponse(false, "Vui lòng nhập mật khẩu"));
         }
 
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(false, "Password confirmation does not match"));
+                    .body(new ApiResponse(false, "Mật khẩu xác nhận không khớp"));
         }
 
         if (dto.getNewPassword().length() < 8) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(false, "Password must be at least 8 characters"));
+                    .body(new ApiResponse(false, "Mật khẩu phải ít nhất 8 chữ cái"));
         }
 
         try {
@@ -278,7 +278,7 @@ public class AuthController {
                     dto.getNewPassword());
 
             return ResponseEntity.ok(
-                    new ApiResponse(true, "Password changed successfully"));
+                    new ApiResponse(true, "Đổi mật khẩu thành công"));
 
         } catch (RuntimeException ex) {
             return ResponseEntity
@@ -288,7 +288,7 @@ public class AuthController {
         } catch (Exception ex) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponse(false, "Internal server error"));
+                    .body(new ApiResponse(false, "Lỗi hệ thống"));
         }
     }
 }

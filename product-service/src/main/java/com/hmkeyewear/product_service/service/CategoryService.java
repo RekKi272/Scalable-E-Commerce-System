@@ -156,13 +156,13 @@ public class CategoryService {
         ApiFuture<DocumentSnapshot> future = categoryRef.get();
         DocumentSnapshot document = future.get();
         if (!document.exists()) {
-            throw new RuntimeException("Category with ID " + categoryId + " not found");
+            throw new RuntimeException("Danh mục có ID " + categoryId + " không tìm thấy");
         }
 
         Category existingCategory = document.toObject(Category.class);
 
         if (existingCategory == null) {
-            throw new RuntimeException("Category data is null for ID " + categoryId);
+            throw new RuntimeException("Dữ liệu danh mục trống đối với ID " + categoryId);
         }
 
         Category updatedCategory = categoryMapper.toCategory(dto);
@@ -190,6 +190,6 @@ public class CategoryService {
 
         // --- Send message to RabbitMQ ---
         categoryEventProducer.sendMessage(categoryId);
-        return "Successfully deleted category with id " + categoryId;
+        return "Đã xóa thành công danh mục có ID " + categoryId;
     }
 }

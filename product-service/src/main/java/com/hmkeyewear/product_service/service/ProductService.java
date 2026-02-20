@@ -16,6 +16,7 @@ import com.hmkeyewear.product_service.model.ProductDocument;
 import com.hmkeyewear.product_service.model.Variant;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import com.google.cloud.Timestamp;
@@ -290,7 +291,7 @@ public class ProductService {
     }
 
     // GET Product by Id
-    @Cacheable(value = "product", key = "'product:' + #productId", unless = "#result == null")
+    @Cacheable(value = "product", key = "'product:' + #p0", unless = "#result == null")
     public ProductResponseDto getProductById(String productId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(productId).get().get();
@@ -298,7 +299,7 @@ public class ProductService {
         if (snapshot.exists()) {
             Product product = snapshot.toObject(Product.class);
             if (product == null) {
-                throw new RuntimeException("Product data is null for ID " + productId);
+                throw new RuntimeException("Dữ liệu sản phẩm có" + productId + " rỗng");
             }
             return productMapper.toProductResponseDto(product);
         }
@@ -403,7 +404,7 @@ public class ProductService {
     }
 
     // UPDATE Product
-    @CacheEvict(value = "product", key = "'product:' + #productId")
+    @CacheEvict(value = "product", key = "'product:' + #p0")
     public ProductResponseDto updateProduct(String productId, ProductRequestDto dto, String userId)
             throws ExecutionException, InterruptedException {
 
@@ -412,7 +413,7 @@ public class ProductService {
 
         DocumentSnapshot snapshot = ref.get().get();
         if (!snapshot.exists()) {
-            throw new RuntimeException("Product not found");
+            throw new RuntimeException("Không tìm thấy sản phẩm");
         }
 
         Product existing = snapshot.toObject(Product.class);
@@ -481,7 +482,10 @@ public class ProductService {
     }
 
     // DELETE Product
-    @CacheEvict(value = { "product", "active_products" }, key = "'product:' + #productId", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "'product:' + #p0"),
+            @CacheEvict(value = "active_products", allEntries = true)
+    })
     public String deleteProduct(String productId)
             throws ExecutionException, InterruptedException {
 
@@ -492,7 +496,7 @@ public class ProductService {
                 .get();
 
         if (!snapshot.exists()) {
-            throw new RuntimeException("Product not found");
+            throw new RuntimeException("Không tìm thấy sản phẩm");
         }
 
         Product product = snapshot.toObject(Product.class);
@@ -509,7 +513,7 @@ public class ProductService {
         productSearchService.deleteById(productId);
         productEventProducer.sendMessage(productId);
 
-        return "Deleted product " + productId;
+        return "Xóa sản phẩm " + productId;
     }
 
     // SEARCH PRODUCT

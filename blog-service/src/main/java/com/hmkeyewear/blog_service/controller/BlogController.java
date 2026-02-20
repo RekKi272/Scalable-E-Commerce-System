@@ -3,12 +3,14 @@ package com.hmkeyewear.blog_service.controller;
 import com.hmkeyewear.blog_service.dto.BlogRequestDto;
 import com.hmkeyewear.blog_service.dto.BlogResponseDto;
 import com.hmkeyewear.blog_service.service.BlogService;
+import com.hmkeyewear.blog_service.service.StressService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.IntStream;
 
 
 @RestController
@@ -16,15 +18,25 @@ import java.util.concurrent.ExecutionException;
 public class BlogController {
 
     private final BlogService blogService;
+    private final StressService stressService;
 
-    public BlogController(BlogService blogService) {
+    public BlogController(BlogService blogService, StressService stressService) {
         this.blogService = blogService;
+        this.stressService = stressService;
     }
 
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("OK");
     }
+
+    @GetMapping("/stress")
+    public String stress() {
+        stressService.runStress();
+        return "Stress started";
+    }
+
+
 
     @PostMapping("/create")
     public ResponseEntity<BlogResponseDto> createBlog(

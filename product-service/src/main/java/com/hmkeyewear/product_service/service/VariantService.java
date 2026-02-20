@@ -49,7 +49,7 @@ public class VariantService {
         db.runTransaction(tx -> {
             Product product = tx.get(ref).get().toObject(Product.class);
             if (product == null)
-                throw new RuntimeException("Product not found");
+                throw new RuntimeException("Không tìm thấy sản phẩm");
 
             variant.setVariantId(generateVariantId(db, productId));
 
@@ -92,7 +92,7 @@ public class VariantService {
             Variant old = product.getVariants().stream()
                     .filter(v -> v.getVariantId().equals(updated.getVariantId()))
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Variant not found"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể"));
 
             updated.setQuantityImport(old.getQuantityImport());
             updated.setQuantitySell(old.getQuantitySell());
@@ -209,7 +209,7 @@ public class VariantService {
             }
         }
 
-        throw new RuntimeException("Variant not found: " + variantId);
+        throw new RuntimeException("Không tìm thấy biến thể: " + variantId);
     }
 
 }

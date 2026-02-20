@@ -6,6 +6,7 @@ import com.google.firebase.FirebaseOptions;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -15,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 
 @SpringBootApplication
 @EnableCaching
+@EnableAsync
 public class BlogServiceApplication {
 
 	public static void main(String[] args) {

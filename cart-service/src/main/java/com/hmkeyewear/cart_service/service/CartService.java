@@ -54,66 +54,76 @@ public class CartService {
      */
     public CartResponseDto addToCart(AddToCartRequestDto request, String userId)
             throws ExecutionException, InterruptedException {
+
+        if (request.getQuantity() <= 0) {
+            throw new RuntimeException("Số lượng sản phẩm phải lớn hơn 0");
+        }
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(userId);
 
-        // Lấy giỏ hàng hiện tại
-        DocumentSnapshot snapshot = docRef.get().get();
-        Cart cart;
+        Cart cart = db.runTransaction(transaction -> {
 
-        if (!snapshot.exists()) {
-            // Nếu chưa có giỏ hàng -> tạo mới
-            CartRequestDto newCartDto = new CartRequestDto();
-            newCartDto.setUserId(userId);
-            newCartDto.setItems(new ArrayList<>());
-            createCart(newCartDto);
-            cart = cartMapper.toCart(newCartDto);
-        } else {
-            cart = snapshot.toObject(Cart.class);
-        }
+            DocumentSnapshot snapshot = transaction.get(docRef).get();
+            Cart currentCart;
 
-        // Nếu vì lý do nào đó cart vẫn null thì tạo mới
-        if (cart == null) {
-            cart = new Cart();
-            cart.setUserId(userId);
-            cart.setItems(new ArrayList<>());
-        }
+            // Nếu chưa có cart -> tạo mới trong memory
+            if (!snapshot.exists()) {
+                currentCart = new Cart();
+                currentCart.setUserId(userId);
+                currentCart.setItems(new ArrayList<>());
+            } else {
+                currentCart = snapshot.toObject(Cart.class);
+                if (currentCart == null) {
+                    currentCart = new Cart();
+                    currentCart.setUserId(userId);
+                    currentCart.setItems(new ArrayList<>());
+                }
+            }
 
-        // Kiểm tra sản phẩm đã có trong giỏ chưa
-        Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(i -> i.getProductId().equals(request.getProductId()) &&
-                        i.getVariantId().equals(request.getVariantId()))
-                .findFirst();
+            // Kiểm tra item đã tồn tại chưa
+            Optional<CartItem> existingItem = currentCart.getItems().stream()
+                    .filter(i ->
+                            i.getProductId().equals(request.getProductId())
+                                    && i.getVariantId().equals(request.getVariantId()))
+                    .findFirst();
 
-        if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(existingItem.get().getQuantity() + request.getQuantity());
-        } else {
-            CartItem newItem = new CartItem(
-                    request.getProductId(),
-                    request.getVariantId(),
-                    request.getProductName(),
-                    request.getUnitPrice(),
-                    request.getQuantity(),
-                    request.getThumbnail());
-            cart.getItems().add(newItem);
-        }
+            if (existingItem.isPresent()) {
+                existingItem.get().setQuantity(
+                        existingItem.get().getQuantity() + request.getQuantity());
+            } else {
+                CartItem newItem = new CartItem(
+                        request.getProductId(),
+                        request.getVariantId(),
+                        request.getColor(),
+                        request.getProductName(),
+                        request.getUnitPrice(),
+                        request.getQuantity(),
+                        request.getThumbnail()
+                );
+                currentCart.getItems().add(newItem);
+            }
 
-        // Tính tổng tiền
-        double total = cart.getItems().stream()
-                .mapToDouble(i -> i.getUnitPrice() * i.getQuantity())
-                .sum();
+            // Recalculate total
+            double total = currentCart.getItems().stream()
+                    .mapToDouble(i -> i.getUnitPrice() * i.getQuantity())
+                    .sum();
 
-        cart.setTotal(total);
+            currentCart.setTotal(total);
 
-        // Lưu lại vào Firestore
-        ApiFuture<WriteResult> writeResult = docRef.set(cart);
-        writeResult.get();
+            // Save atomically
+            transaction.set(docRef, currentCart);
 
-        // --- Send message to RabbitMQ ---
+            return currentCart;
+
+        }).get();
+
+        // 5Gửi event sau khi transaction thành công
         cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
+
 
     public CartResponseDto createCart(CartRequestDto dto) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
@@ -190,13 +200,13 @@ public class CartService {
 
         DocumentSnapshot snapshot = docRef.get().get();
         if (!snapshot.exists()) {
-            throw new RuntimeException("Cart not found for customer: " + userId);
+            throw new RuntimeException("Không tìm thấy giỏ hàng người dùng có mã: " + userId);
         }
 
         Cart cart = snapshot.toObject(Cart.class);
         assert cart != null;
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new RuntimeException("Giỏ hàng đang rỗng");
         }
 
         Optional<CartItem> optionalItem = cart.getItems().stream()
@@ -205,7 +215,7 @@ public class CartService {
                 .findFirst();
 
         if (optionalItem.isEmpty()) {
-            throw new RuntimeException("Product not found in cart: " + productId);
+            throw new RuntimeException("Không tìm thấy sản phẩm trong giỏ hàng: " + productId);
         }
 
         CartItem item = optionalItem.get();
@@ -215,14 +225,14 @@ public class CartService {
             switch (action.toLowerCase()) {
                 case "increment" -> item.setQuantity(item.getQuantity() + 1);
                 case "decrement" -> item.setQuantity(Math.max(item.getQuantity() - 1, 1)); // tối thiểu 1
-                default -> throw new RuntimeException("Invalid action. Use 'increment' or 'decrement'");
+                default -> throw new RuntimeException("Hành động không hợp lệ. Sử dụng 'increment' hoặc 'decrement'");
             }
         }
 
         // Nếu có quantity cụ thể
         if (quantity != null) {
             if (quantity <= 0)
-                throw new RuntimeException("Quantity must be > 0");
+                throw new RuntimeException("Số lượng phải > 0");
             item.setQuantity(quantity);
         }
 
@@ -291,7 +301,7 @@ public class CartService {
         // --- Send message to RabbitMQ ---
         cartEventProducer.sendMessage(userId);
 
-        return "Cart deleted successfully";
+        return "Xóa giỏ hàng thành công";
     }
 
     /**
@@ -317,7 +327,7 @@ public class CartService {
         VNPayResponseDto response = paymentRequestEventProducer.sendPaymentRequest(request);
 
         if (response == null) {
-            throw new RuntimeException("Failed to send payment request");
+            throw new RuntimeException("Không thể gửi yêu cầu thanh toán lúc này");
         }
 
         return response;

@@ -163,7 +163,7 @@ public class AttributeService {
 
         DocumentSnapshot snap = ref.get().get();
         if (!snap.exists()) {
-            throw new RuntimeException("Attribute not found");
+            throw new RuntimeException("Attribute không tìm thấy");
         }
 
         Attribute attribute = snap.toObject(Attribute.class);

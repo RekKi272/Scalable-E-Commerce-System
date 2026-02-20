@@ -166,7 +166,7 @@ public class CartController {
             String ipAddress = request.getRemoteAddr();
             VNPayResponseDto payment = cartService.createPayment(order, ipAddress);
 
-            System.out.println(payment.getPaymentUrl());
+//            System.out.println(payment.getPaymentUrl());
 
             return ResponseEntity.ok(payment);
         }
