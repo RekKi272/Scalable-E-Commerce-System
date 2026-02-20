@@ -290,11 +290,7 @@ public class ProductService {
     }
 
     // GET Product by Id
-    @Cacheable(
-            value = "product",
-            key = "'product:' + #productId",
-            unless = "#result == null"
-    )
+    @Cacheable(value = "product", key = "'product:' + #productId", unless = "#result == null")
     public ProductResponseDto getProductById(String productId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(productId).get().get();
@@ -441,10 +437,7 @@ public class ProductService {
     }
 
     // GET Active Product ONLY
-    @Cacheable(
-            value = "active_products",
-            key = "'page:' + #page + ':size:' + #size"
-    )
+    @Cacheable(value = "active_products", key = "'page:' + #page + ':size:' + #size")
     public PageResponseDto<ProductInforResponseDto> getActiveProducts(int page, int size)
             throws ExecutionException, InterruptedException {
 
@@ -488,7 +481,7 @@ public class ProductService {
     }
 
     // DELETE Product
-    @CacheEvict(value = {"product", "active_products"}, key = "'product:' + #productId", allEntries = true)
+    @CacheEvict(value = { "product", "active_products" }, key = "'product:' + #productId", allEntries = true)
     public String deleteProduct(String productId)
             throws ExecutionException, InterruptedException {
 
