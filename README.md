@@ -267,11 +267,11 @@ MAIL_APP_PASSWORD=
 # =========================
 SUPABASE_SECRETS_PATH=/app/supabase-secrets.json
 ```
----
 
 ## Important
 
 Before running docker-compose, make sure you place all required secret files inside the `/secrets` directory:
+```text
 secrets/
 ├── firebase-user.json
 ├── firebase-blog.json
@@ -279,6 +279,13 @@ secrets/
 ├── firebase-order.json
 ├── firebase-product.json
 └── supabase-secrets.json
+```
+
+### Notes
+
+- These files contain sensitive credentials and must **not** be committed to Git.
+- Ensure the `/secrets` directory is mounted correctly in `docker-compose.yml`.
+- In production environments, use secure secret management solutions
 
 ---
 
