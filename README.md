@@ -208,44 +208,25 @@ Make sure you have installed:
 ## Environment Configuration
 
 Create a `.env` file in root directory:
-# =========================
-# SPRING PROFILE
-# =========================
+
 SPRING_PROFILES_ACTIVE=local
 
-# =========================
-# JWT
-# =========================
 JWT_SECRET=your_jwt_secret
 
-# =========================
-# REDIS
-# =========================
 REDIS_HOST=redis
 REDIS_PASSWORD=your_redis_password
 
-# =========================
-# RABBITMQ
-# =========================
 RABBITMQ_HOST=rabbitmq
 RABBITMQ_PORT=5672
 RABBITMQ_USER=guest
 RABBITMQ_PASSWORD=guest
 
-# =========================
-# ELASTICSEARCH
-# =========================
 SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
 
-# =========================
-# GOOGLE FIREBASE CREDENTIALS (Mounted via volume)
-# =========================
+
 # (These are file paths inside container)
 GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-user.json
 
-# =========================
-# VNPAY CONFIGURATION
-# =========================
 VNP_URL=
 VNP_TMN_CODE=
 VNP_SECRET_KEY=
@@ -254,15 +235,9 @@ VNP_VERSION=
 VNP_COMMAND=
 VNP_ORDER_TYPE=
 
-# =========================
-# EMAIL (Notification Service)
-# =========================
 MAIL_USERNAME=
 MAIL_APP_PASSWORD=
 
-# =========================
-# SUPABASE (File Service)
-# =========================
 SUPABASE_SECRETS_PATH=/app/supabase-secrets.json
 
 ---
