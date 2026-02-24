@@ -315,13 +315,13 @@ You must build JAR files before running Docker Compose.
 After building all JAR files:
 
 ```bash
-docker-compose up
+docker compose -f docker-compose.local.yml up
 ```
 
 Or run in detached mode:
 
 ```bash
-docker-compose up -d
+docker compose -f docker-compose.local.yml up -d
 ```
 
 Note:  
@@ -332,13 +332,13 @@ We do **not** use `docker-compose up --build` because JAR files are already buil
 ## Stop the System
 
 ```bash
-docker-compose down
+docker compose -f docker-compose.local.yml down
 ```
 
 To remove volumes as well:
 
 ```bash
-docker-compose down -v
+docker compose -f docker-compose.local.yml down -v
 ```
 
 ---
@@ -349,8 +349,8 @@ Whenever you modify the source code:
 
 ```bash
 mvn clean install -DskipTests
-docker-compose down
-docker-compose up -d
+docker compose -f docker-compose.local.yml down
+docker compose -f docker-compose.local.yml up -d
 ```
 
 ---
