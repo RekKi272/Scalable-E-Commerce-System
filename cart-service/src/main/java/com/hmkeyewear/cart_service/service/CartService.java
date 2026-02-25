@@ -1,7 +1,6 @@
 package com.hmkeyewear.cart_service.service;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
@@ -11,18 +10,22 @@ import com.hmkeyewear.cart_service.dto.*;
 import com.hmkeyewear.cart_service.mapper.CartMapper;
 import com.hmkeyewear.cart_service.messaging.CartEventProducer;
 import com.hmkeyewear.cart_service.messaging.OrderCheckoutRequestEventProducer;
-import com.hmkeyewear.cart_service.messaging.OrderSaveRequestProducer;
 import com.hmkeyewear.cart_service.messaging.PaymentRequestEventProducer;
 import com.hmkeyewear.cart_service.model.Cart;
 import com.hmkeyewear.cart_service.model.CartItem;
 import com.hmkeyewear.cart_service.model.Discount;
-import com.hmkeyewear.common_dto.dto.OrderSaveRequestDto;
+import com.hmkeyewear.common_dto.dto.DiscountDto;
+import com.hmkeyewear.common_dto.dto.OrderDetailRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import com.hmkeyewear.common_dto.dto.PaymentRequestDto;
 import com.hmkeyewear.common_dto.dto.VNPayResponseDto;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +45,6 @@ public class CartService {
 
     private final OrderCheckoutRequestEventProducer orderCheckoutRequestEventProducer;
 
-    private final OrderSaveRequestProducer orderSaveRequestProducer;
-
     private final DiscountService discountService;
 
     private static final String COLLECTION_NAME = "carts";
@@ -53,66 +54,76 @@ public class CartService {
      */
     public CartResponseDto addToCart(AddToCartRequestDto request, String userId)
             throws ExecutionException, InterruptedException {
+
+        if (request.getQuantity() <= 0) {
+            throw new RuntimeException("Số lượng sản phẩm phải lớn hơn 0");
+        }
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(userId);
 
-        // Lấy giỏ hàng hiện tại
-        DocumentSnapshot snapshot = docRef.get().get();
-        Cart cart;
+        Cart cart = db.runTransaction(transaction -> {
 
-        if (!snapshot.exists()) {
-            // Nếu chưa có giỏ hàng -> tạo mới
-            CartRequestDto newCartDto = new CartRequestDto();
-            newCartDto.setUserId(userId);
-            newCartDto.setItems(new ArrayList<>());
-            createCart(newCartDto); // gọi hàm createCart() để đảm bảo thống nhất cấu trúc
-            cart = cartMapper.toCart(newCartDto);
-        } else {
-            cart = snapshot.toObject(Cart.class);
-        }
+            DocumentSnapshot snapshot = transaction.get(docRef).get();
+            Cart currentCart;
 
-        // Nếu vì lý do nào đó cart vẫn null thì tạo mới
-        if (cart == null) {
-            cart = new Cart();
-            cart.setUserId(userId);
-            cart.setItems(new ArrayList<>());
-        }
+            // Nếu chưa có cart -> tạo mới trong memory
+            if (!snapshot.exists()) {
+                currentCart = new Cart();
+                currentCart.setUserId(userId);
+                currentCart.setItems(new ArrayList<>());
+            } else {
+                currentCart = snapshot.toObject(Cart.class);
+                if (currentCart == null) {
+                    currentCart = new Cart();
+                    currentCart.setUserId(userId);
+                    currentCart.setItems(new ArrayList<>());
+                }
+            }
 
-        // Kiểm tra sản phẩm đã có trong giỏ chưa
-        Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(i -> i.getProductId().equals(request.getProductId()) &&
-                        i.getVariantId().equals(request.getVariantId()))
-                .findFirst();
+            // Kiểm tra item đã tồn tại chưa
+            Optional<CartItem> existingItem = currentCart.getItems().stream()
+                    .filter(i ->
+                            i.getProductId().equals(request.getProductId())
+                                    && i.getVariantId().equals(request.getVariantId()))
+                    .findFirst();
 
-        if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(existingItem.get().getQuantity() + request.getQuantity());
-        } else {
-            CartItem newItem = new CartItem(
-                    request.getProductId(),
-                    request.getVariantId(),
-                    request.getProductName(),
-                    request.getUnitPrice(),
-                    request.getQuantity(),
-                    request.getThumbnail());
-            cart.getItems().add(newItem);
-        }
+            if (existingItem.isPresent()) {
+                existingItem.get().setQuantity(
+                        existingItem.get().getQuantity() + request.getQuantity());
+            } else {
+                CartItem newItem = new CartItem(
+                        request.getProductId(),
+                        request.getVariantId(),
+                        request.getColor(),
+                        request.getProductName(),
+                        request.getUnitPrice(),
+                        request.getQuantity(),
+                        request.getThumbnail()
+                );
+                currentCart.getItems().add(newItem);
+            }
 
-        // Tính tổng tiền
-        double total = cart.getItems().stream()
-                .mapToDouble(i -> i.getUnitPrice() * i.getQuantity())
-                .sum();
+            // Recalculate total
+            double total = currentCart.getItems().stream()
+                    .mapToDouble(i -> i.getUnitPrice() * i.getQuantity())
+                    .sum();
 
-        cart.setTotal(total);
+            currentCart.setTotal(total);
 
-        // Lưu lại vào Firestore
-        ApiFuture<WriteResult> writeResult = docRef.set(cart);
-        writeResult.get();
+            // Save atomically
+            transaction.set(docRef, currentCart);
 
-        // --- Send message to RabbitMQ ---
+            return currentCart;
+
+        }).get();
+
+        // 5Gửi event sau khi transaction thành công
         cartEventProducer.sendMessage(cart.toString());
 
         return cartMapper.toResponseDto(cart);
     }
+
 
     public CartResponseDto createCart(CartRequestDto dto) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
@@ -189,13 +200,13 @@ public class CartService {
 
         DocumentSnapshot snapshot = docRef.get().get();
         if (!snapshot.exists()) {
-            throw new RuntimeException("Cart not found for customer: " + userId);
+            throw new RuntimeException("Không tìm thấy giỏ hàng người dùng có mã: " + userId);
         }
 
         Cart cart = snapshot.toObject(Cart.class);
         assert cart != null;
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new RuntimeException("Giỏ hàng đang rỗng");
         }
 
         Optional<CartItem> optionalItem = cart.getItems().stream()
@@ -204,7 +215,7 @@ public class CartService {
                 .findFirst();
 
         if (optionalItem.isEmpty()) {
-            throw new RuntimeException("Product not found in cart: " + productId);
+            throw new RuntimeException("Không tìm thấy sản phẩm trong giỏ hàng: " + productId);
         }
 
         CartItem item = optionalItem.get();
@@ -214,14 +225,14 @@ public class CartService {
             switch (action.toLowerCase()) {
                 case "increment" -> item.setQuantity(item.getQuantity() + 1);
                 case "decrement" -> item.setQuantity(Math.max(item.getQuantity() - 1, 1)); // tối thiểu 1
-                default -> throw new RuntimeException("Invalid action. Use 'increment' or 'decrement'");
+                default -> throw new RuntimeException("Hành động không hợp lệ. Sử dụng 'increment' hoặc 'decrement'");
             }
         }
 
         // Nếu có quantity cụ thể
         if (quantity != null) {
             if (quantity <= 0)
-                throw new RuntimeException("Quantity must be > 0");
+                throw new RuntimeException("Số lượng phải > 0");
             item.setQuantity(quantity);
         }
 
@@ -290,7 +301,7 @@ public class CartService {
         // --- Send message to RabbitMQ ---
         cartEventProducer.sendMessage(userId);
 
-        return "Cart deleted successfully";
+        return "Xóa giỏ hàng thành công";
     }
 
     /**
@@ -301,105 +312,80 @@ public class CartService {
         db.collection(COLLECTION_NAME).document(userId).delete();
     }
 
-    public VNPayResponseDto createPayment(PaymentRequestDto request) throws ExecutionException, InterruptedException {
-        // Send message to payment-service and wait for reply
+    public VNPayResponseDto createPayment(
+            OrderResponseDto order,
+            String ipAddress) throws ExecutionException, InterruptedException {
+
+        // ===== BUILD PaymentRequestDto (CHỈ FIELD PAYMENT-SERVICE CẦN) =====
+        PaymentRequestDto request = new PaymentRequestDto();
+
+        request.setOrderId(order.getOrderId());
+        request.setTotal(order.getSummary());
+        request.setIpAddress(ipAddress);
+
+        // ===== RPC CALL =====
         VNPayResponseDto response = paymentRequestEventProducer.sendPaymentRequest(request);
 
         if (response == null) {
-            throw new RuntimeException("Failed to send payment request");
+            throw new RuntimeException("Không thể gửi yêu cầu thanh toán lúc này");
         }
+
         return response;
     }
 
-    public CartResponseDto applyDiscount(String userId, String discountCode)
+    public OrderResponseDto checkout(
+            String userId,
+            String emailFromHeader,
+            CheckoutRequestDto checkoutRequest,
+            HttpServletRequest request)
             throws ExecutionException, InterruptedException {
-        Firestore db = FirestoreClient.getFirestore();
-        DocumentReference cartRef = db.collection(COLLECTION_NAME).document(userId);
-        DocumentSnapshot snapshot = cartRef.get().get();
 
-        if (!snapshot.exists()) {
-            throw new RuntimeException("Giỏ hàng trống");
-        }
-
-        Cart cart = snapshot.toObject(Cart.class);
+        // 1. Lấy cart theo userId
+        CartResponseDto cart = getCart(userId);
         if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
-            throw new RuntimeException("Giỏ hàng trống");
+            throw new RuntimeException("Giỏ hàng trống, không thể thanh toán");
         }
 
-        // --- Lấy danh sách discount từ Firestore ---
-        List<Discount> allDiscounts = discountService.getAllDiscountsRaw(); // trả về Discount object
-        Optional<Discount> optionalDiscount = allDiscounts.stream()
-                .filter(d -> d.getDiscountId().equalsIgnoreCase(discountCode))
-                .findFirst();
+        // 2. Chuẩn hóa CartItem -> OrderDetailRequestDto
+        List<OrderDetailRequestDto> orderDetails = cart.getItems().stream()
+                .map(item -> {
+                    OrderDetailRequestDto detail = new OrderDetailRequestDto();
+                    detail.setProductId(item.getProductId());
+                    detail.setVariantId(item.getVariantId());
+                    detail.setProductName(item.getProductName());
+                    detail.setUnitPrice(item.getUnitPrice());
+                    detail.setQuantity(item.getQuantity());
+                    return detail;
+                })
+                .toList();
 
-        if (optionalDiscount.isEmpty()) {
-            throw new RuntimeException("Mã giảm giá không hợp lệ hoặc đã hết hạn");
+        // 3. Build OrderRequestDto gửi sang order-service
+        OrderRequestDto orderRequest = new OrderRequestDto();
+        orderRequest.setUserId(userId);
+        orderRequest.setEmail(emailFromHeader);
+        orderRequest.setFullName(checkoutRequest.getFullName());
+        orderRequest.setPhone(checkoutRequest.getPhone());
+        orderRequest.setPaymentMethod(checkoutRequest.getPaymentMethod());
+        orderRequest.setNote(checkoutRequest.getNote());
+        orderRequest.setDetails(orderDetails);
+        orderRequest.setShip(checkoutRequest.getShip());
+
+        // 5. Xử lý xác thực và gắn discount
+        if (checkoutRequest.getDiscount() != null && checkoutRequest.getDiscount().getDiscountId() != null) {
+
+            Discount discount = discountService.validateAndIncreaseUsage(checkoutRequest.getDiscount().getDiscountId());
+
+            DiscountDto discountDto = new DiscountDto();
+            discountDto.setDiscountId(discount.getDiscountId());
+            discountDto.setValueType(discount.getValueType());
+            discountDto.setValueDiscount(discount.getValueDiscount());
+
+            orderRequest.setDiscount(discountDto);
         }
 
-        Discount discount = optionalDiscount.get();
-
-        Timestamp now = Timestamp.now();
-        if (discount.getStartDate() != null && now.compareTo(discount.getStartDate()) < 0) {
-            throw new RuntimeException("Mã giảm giá chưa bắt đầu");
-        }
-        if (discount.getEndDate() != null && now.compareTo(discount.getEndDate()) > 0) {
-            throw new RuntimeException("Mã giảm giá đã hết hạn");
-        }
-
-        if (discount.getMaxQuantity() > 0 && discount.getUsedQuantity() >= discount.getMaxQuantity()) {
-            throw new RuntimeException("Mã giảm giá đã đạt giới hạn sử dụng");
-        }
-
-        double totalBefore = cart.getTotal();
-
-        if (discount.getMinPriceRequired() != null && totalBefore < discount.getMinPriceRequired()) {
-            throw new RuntimeException("Giá trị giỏ hàng chưa đạt mức tối thiểu để áp dụng mã giảm giá");
-        }
-
-        // --- Tính toán discount ---
-        double discountAmount = 0.0;
-        if ("percentage".equalsIgnoreCase(discount.getValueType())) {
-            discountAmount = totalBefore * discount.getValueDiscount() / 100.0;
-            if (discount.getMaxPriceDiscount() != null && discountAmount > discount.getMaxPriceDiscount()) {
-                discountAmount = discount.getMaxPriceDiscount();
-            }
-        } else if ("fixed".equalsIgnoreCase(discount.getValueType())) {
-            discountAmount = discount.getValueDiscount();
-            if (discountAmount > totalBefore)
-                discountAmount = totalBefore; // không âm
-        } else {
-            throw new RuntimeException("Loại giảm giá không hợp lệ");
-        }
-
-        double newTotal = Math.max(totalBefore - discountAmount, 0.0);
-
-        // --- Cập nhật cart ---
-        cart.setDiscountId(discount.getDiscountId());
-        // cart.setDiscountAmount(discountAmount);
-        cart.setTotal(newTotal);
-
-        cartRef.set(cart).get();
-
-        // --- Cập nhật số lượng sử dụng của discount ---
-        discount.setUsedQuantity(discount.getUsedQuantity() + 1);
-        discountService.updateDiscountUsage(discount);
-
-        // --- Gửi message RabbitMQ ---
-        cartEventProducer.sendMessage(cart.toString());
-
-        return cartMapper.toResponseDto(cart);
+        // 6. Gửi message tạo order
+        return (OrderResponseDto) orderCheckoutRequestEventProducer
+                .convertSendAndReceive(orderRequest, userId);
     }
 
-    public String createOrderForCheckout(PaymentRequestDto request) throws ExecutionException, InterruptedException {
-        OrderSaveRequestDto orderSaveRequestDto = new OrderSaveRequestDto();
-
-        // Mapping
-        orderSaveRequestDto.setUserId(request.getUserId());
-        orderSaveRequestDto.setEmail(request.getEmail());
-        orderSaveRequestDto.setDiscountId(request.getDiscountId());
-        orderSaveRequestDto.setSummary(request.getTotal());
-        orderSaveRequestDto.setItems(request.getItems());
-
-        return orderSaveRequestProducer.sendSaveRequest(orderSaveRequestDto);
-    }
 }

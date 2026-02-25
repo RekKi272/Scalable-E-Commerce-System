@@ -6,11 +6,13 @@ spring:
   application:
     name: auth-service
   rabbitmq:
-    host: rabbitmq
-    port: 5672
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     dynamic: true
+    ssl:
+      enabled: true
     listener:
       simple:
         retry:
@@ -22,23 +24,18 @@ spring:
         default-requeue-rejected: false
   data:
     redis:
-      host: redis
+      host: ${REDIS_HOST}
       port: 6379
-      connect-timeout: 6000
-      timeout: 2000
-      password: ${REDIS_PASSWORD:defaultPassword}
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+      connect-timeout: 10000
+      timeout: 5000
+      password: ${REDIS_PASSWORD}
 
 firebase:
   credentials:
-    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-user.json}
+    path: ${GOOGLE_APPLICATION_CREDENTIALS}
 
 jwt:
-  secret: ${JWT_SECRET:defaultFallbackSecretKey1234567890}
+  secret: ${JWT_SECRET}
 
 app:
   rabbitmq:

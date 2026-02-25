@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.common_dto.dto.PageResponseDto;
 import com.hmkeyewear.cart_service.dto.DiscountRequestDto;
 import com.hmkeyewear.cart_service.dto.DiscountResponseDto;
 import com.hmkeyewear.cart_service.mapper.DiscountMapper;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Service
 public class DiscountService {
@@ -142,24 +145,46 @@ public class DiscountService {
     // ====================================================================
     // READ ALL
     // ====================================================================
-    public List<DiscountResponseDto> getAllDiscounts()
+    public PageResponseDto<DiscountResponseDto> getDiscountsPaging(int page, int size)
             throws ExecutionException, InterruptedException {
 
         Firestore db = FirestoreClient.getFirestore();
-        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME)
-                .get().get().getDocuments();
 
-        List<DiscountResponseDto> list = new ArrayList<>();
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .orderBy("createdAt", Query.Direction.DESCENDING);
 
-        for (QueryDocumentSnapshot doc : documents) {
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prev = baseQuery
+                    .limit((int) ((long) page * size))
+                    .get()
+                    .get();
+
+            if (!prev.isEmpty()) {
+                DocumentSnapshot lastDoc = prev.getDocuments().get(prev.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
+        }
+
+        List<DiscountResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : pageQuery.get().get().getDocuments()) {
             Discount discount = doc.toObject(Discount.class);
             DiscountResponseDto res = discountMapper.toDiscountResponseDto(discount);
             res.setStartDate(formatTimestamp(discount.getStartDate()));
             res.setEndDate(formatTimestamp(discount.getEndDate()));
-
-            list.add(res);
+            items.add(res);
         }
-        return list;
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     public List<Discount> getAllDiscountsRaw()
@@ -290,4 +315,71 @@ public class DiscountService {
 
         discountEventProducer.sendMessage(discount);
     }
+
+    public Discount validateDiscountUsable(String discountId)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot snapshot = db.collection(COLLECTION_NAME)
+                .document(discountId)
+                .get().get();
+
+        if (!snapshot.exists()) {
+            throw new RuntimeException("Mã giảm giá không tồn tại");
+        }
+
+        Discount discount = snapshot.toObject(Discount.class);
+        if (discount == null) {
+            throw new RuntimeException("Mã giảm giá không hợp lệ");
+        }
+
+        // ===== CHỈ SO SÁNH NGÀY =====
+        LocalDate today = LocalDate.now();
+
+        LocalDate startDate = discount.getStartDate()
+                .toDate()
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        LocalDate endDate = discount.getEndDate()
+                .toDate()
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        if (today.isBefore(startDate) || today.isAfter(endDate)) {
+            throw new RuntimeException("Mã giảm giá đã hết hạn hoặc chưa đến thời gian sử dụng");
+        }
+
+        // ===== KIỂM TRA SỐ LƯỢNG =====
+        if (discount.getUsedQuantity() >= discount.getMaxQuantity()) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
+        }
+
+        return discount;
+    }
+
+    public Discount validateAndIncreaseUsage(String discountId)
+            throws ExecutionException, InterruptedException {
+
+        // 1. Validate business rules
+        Discount discount = validateDiscountUsable(discountId);
+
+        // 2. +1 usedQuantity
+        discount.setUsedQuantity(discount.getUsedQuantity() + 1);
+
+        // 3. Update Firestore
+        Firestore db = FirestoreClient.getFirestore();
+        db.collection(COLLECTION_NAME)
+                .document(discountId)
+                .update("usedQuantity", discount.getUsedQuantity())
+                .get();
+
+        // 4. Send event
+        discountEventProducer.sendMessage(discount);
+
+        return discount;
+    }
+
 }

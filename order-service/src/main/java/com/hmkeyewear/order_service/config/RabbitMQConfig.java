@@ -27,17 +27,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.order-checkout.routing-key}")
     private String orderCheckoutRoutingKey;
 
-    // Order save request handler
-    @Value("${app.rabbitmq.order-save-listener.queue}")
-    private String orderSaveListenerQueueName;
-    @Value("${app.rabbitmq.order-save-listener.routing-key}")
-    private String orderSaveListenerRoutingKey;
-
     // Update stock in product
-    @Value("${app.rabbitmq.stock-update-request.queue}")
-    private String stockUpdateRequestQueueName;
-    @Value("${app.rabbitmq.stock-update-request.routing-key}")
-    private String stockUpdateRequestRoutingKey;
+    @Value("${app.rabbitmq.stock-update-increase.routing-key}")
+    private String stockUpdateIncreaseRoutingKey;
+
+    @Value("${app.rabbitmq.stock-update-decrease.routing-key}")
+    private String stockUpdateDecreaseRoutingKey;
 
     // Update order status after payment
     @Value("${app.rabbitmq.order-status.queue}")
@@ -51,14 +46,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.order-mail.routing-key}")
     private String orderMailRoutingKey;
 
-
     // ---- Queues ----
     @Bean
     public Queue orderQueue() {
         return QueueBuilder
                 .durable(orderQueueName).build();
     }
-
 
     @Bean
     public Queue orderCheckoutQueue() {
@@ -67,34 +60,21 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue orderSaveListenerQueue() {
-        return QueueBuilder
-                .durable(orderSaveListenerQueueName).build();
-    }
-
-//    @Bean
-//    public Queue stockUpdateRequestQueue() {
-//        return QueueBuilder
-//                .durable(stockUpdateRequestQueueName).build();
-//    }
-
-    @Bean
     public Queue orderStatusQueue() {
         return QueueBuilder
                 .durable(orderStatusQueueName).build();
     }
 
-//    @Bean
-//    public Queue orderMailQueue() {
-//        return QueueBuilder
-//                .durable(orderMailQueue).build();
-//    }
+    @Bean
+    public Queue orderMailQueue() {
+        return QueueBuilder
+                .durable(orderMailQueue).build();
+    }
 
     @Bean
     public TopicExchange exchange() {
         return new TopicExchange(exchangeName, true, false);
     }
-
 
     // ---- Bindings ----
     @Bean
@@ -105,7 +85,6 @@ public class RabbitMQConfig {
                 .with(orderRoutingKey);
     }
 
-
     @Bean
     public Binding orderCheckoutBinding() {
         return BindingBuilder
@@ -115,22 +94,6 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding orderSaveListenerBinding() {
-        return BindingBuilder
-                .bind(orderSaveListenerQueue())
-                .to(exchange())
-                .with(orderSaveListenerRoutingKey);
-    }
-
-//    @Bean
-//    public Binding stockUpdateRequestBinding() {
-//        return BindingBuilder
-//                .bind(stockUpdateRequestQueue())
-//                .to(exchange())
-//                .with(stockUpdateRequestRoutingKey);
-//    }
-
-    @Bean
     public Binding orderStatusBinding() {
         return BindingBuilder
                 .bind(orderStatusQueue())
@@ -138,13 +101,13 @@ public class RabbitMQConfig {
                 .with(orderStatusRoutingKey);
     }
 
-//    @Bean
-//    public Binding orderMailBinding() {
-//        return BindingBuilder
-//                .bind(orderMailQueue())
-//                .to(exchange())
-//                .with(orderMailRoutingKey);
-//    }
+    @Bean
+    public Binding orderMailBinding() {
+        return BindingBuilder
+                .bind(orderMailQueue())
+                .to(exchange())
+                .with(orderMailRoutingKey);
+    }
 
     @Bean
     public MessageConverter messageConverter() {

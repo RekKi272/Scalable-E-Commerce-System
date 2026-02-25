@@ -1,5 +1,6 @@
 package com.hmkeyewear.product_service.service;
 
+import com.hmkeyewear.product_service.config.ElasticsearchHealthChecker;
 import com.hmkeyewear.product_service.model.ProductDocument;
 import com.hmkeyewear.product_service.repository.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,13 @@ import java.util.List;
 public class ProductSearchService {
 
     private final ProductSearchRepository productSearchRepository;
+    private final ElasticsearchHealthChecker elasticsearchHealthChecker;
 
     // ---------- SAVE ----------
     public void save(ProductDocument document) {
+        if (!elasticsearchHealthChecker.isReady()){
+            return;
+        }
         try {
             productSearchRepository.save(document);
         } catch (Exception e) {
@@ -28,6 +33,9 @@ public class ProductSearchService {
 
     // ---------- DELETE ----------
     public void deleteById(String id) {
+        if (!elasticsearchHealthChecker.isReady()){
+            return;
+        }
         try {
             productSearchRepository.deleteById(id);
         } catch (Exception e) {
@@ -37,6 +45,9 @@ public class ProductSearchService {
 
     // ---------- SEARCH ----------
     public List<ProductDocument> searchByName(String keyword) {
+        if (!elasticsearchHealthChecker.isReady()) {
+            return Collections.emptyList();
+        }
         try {
             return productSearchRepository.findByProductNameContainingIgnoreCase(
                     keyword,

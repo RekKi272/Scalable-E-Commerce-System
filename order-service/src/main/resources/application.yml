@@ -5,11 +5,13 @@ spring:
   application:
     name: order-service
   rabbitmq:
-    host: rabbitmq
-    port: 5672
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     dynamic: true
+    ssl:
+      enabled: true
     listener:
       simple:
         retry:
@@ -20,14 +22,9 @@ spring:
           max-interval: 10000
         default-requeue-rejected: false
 
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
-
 firebase:
   credentials:
-    path: ${GOOGLE_APPLICATION_CREDENTIALS:../secrets/firebase-order.json}
+    path: ${GOOGLE_APPLICATION_CREDENTIALS}
 
 app:
   rabbitmq:
@@ -48,13 +45,11 @@ app:
       queue: order_status_update_queue
       routing-key: order_status_update_routing_key
 
-    stock-update-request:
-      queue: stock_update_queue
-      routing-key: stock_update_routing_key
+    stock-update-increase:
+      routing-key: stock.update.increase
 
-    stock-refund-request:
-      queue: stock-refund-queue
-      routing-key: stock-refund-routing-key
+    stock-update-decrease:
+      routing-key: stock.update.decrease
 
     order-mail:
       queue: order_mail_queue

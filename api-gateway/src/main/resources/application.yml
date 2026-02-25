@@ -12,36 +12,24 @@ spring:
     gateway:
       server:
         webflux:
-          discovery:
-            locator:
-              enabled: true
-              lower-case-service-id: true
           routes:
                     # Auth Service
                     - id: auth-service
-                      uri: lb://auth-service
+                      uri: http://auth-service:8090
                       predicates:
-                        - Path=/auth/**
+                        - Path=/auth/**,/public/auth/**
 
                     # Blog Service
                     - id: blog-service
-                      uri: lb://blog-service
+                      uri: http://blog-service:8084
                       predicates:
-                        - Path=/blog/**
-                      filters:
-                        - RemoveRequestHeader=Cookie
-
-                    # Banner Service
-                    - id: banner-route
-                      uri: lb://blog-service
-                      predicates:
-                        - Path=/banner/**
+                        - Path=/blog/**,/banner/**
                       filters:
                         - RemoveRequestHeader=Cookie
 
                     # Cart Service
                     - id: cart-service
-                      uri: lb://cart-service
+                      uri: http://cart-service:8083
                       predicates:
                         - Path=/cart/**,/discount/**
                       filters:
@@ -49,7 +37,7 @@ spring:
 
                     # Order Service
                     - id: order-service
-                      uri: lb://order-service
+                      uri: http://order-service:8082
                       predicates:
                         - Path=/order/**
                       filters:
@@ -57,7 +45,7 @@ spring:
 
                     # Product Service
                     - id: product-service
-                      uri: lb://product-service
+                      uri: http://product-service:8081
                       predicates:
                         - Path=/product/**,/category/**,/brand/**
                       filters:
@@ -65,23 +53,15 @@ spring:
 
                     # User Service
                     - id: user-service
-                      uri: lb://user-service
+                      uri: http://user-service:8085
                       predicates:
                         - Path=/user/**
                       filters:
                         - RemoveRequestHeader=Cookie
 
-                    # Inventory Service
-                    - id: inventory-service
-                      uri: lb://inventory-service
-                      predicates:
-                        - Path=/inventory/**
-                      filters:
-                        - RemoveRequestHeader=Cookie
-
                     # File Service
                     - id: file-service
-                      uri: lb://file-service
+                      uri: http://file-service:8091
                       predicates:
                         - Path=/file/**
                       filters:
@@ -89,7 +69,7 @@ spring:
 
                     # Payment Service
                     - id: payment-service
-                      uri: lb://payment-service
+                      uri: http://payment-service:8089
                       predicates:
                         - Path=/payment/**
                       filters:
@@ -97,7 +77,7 @@ spring:
 
                     # Notification Service
                     - id: notification-service
-                      uri: lb://notification-service
+                      uri: http://notification-service:8092
                       predicates:
                         - Path=/notification/**
                       filters:
@@ -108,6 +88,7 @@ spring:
                 allowed-origins:
                   - http://localhost:8086
                   - https://fe-hmk-eyewear.vercel.app
+                  - https://hmk-eyewear.fordev.online
                 allowed-methods:
                   - GET
                   - POST
@@ -137,14 +118,20 @@ auth:
   service:
     url: http://localhost:8090
 
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
-
 
 logging:
   level:
     root: INFO
     org.springframework.cloud.gateway: DEBUG
     org.springframework.web: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+

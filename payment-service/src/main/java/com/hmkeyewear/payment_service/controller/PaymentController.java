@@ -14,8 +14,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/payment")
 public class PaymentController {
     private final PaymentService paymentService;
+
     public PaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
+    @GetMapping("/stress")
+    public String stress() {
+        long sum = 0;
+        for (long i = 0; i < 5_000_000_000L; i++) {
+            sum += i;
+        }
+        return "done";
     }
 
     @GetMapping("/vn-pay")

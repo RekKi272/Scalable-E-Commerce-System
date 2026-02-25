@@ -1,6 +1,6 @@
 package com.hmkeyewear.blog_service.dto;
 
-import com.google.cloud.Timestamp;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,8 +13,8 @@ public class BannerResponseDto {
     private String title;
     private String thumbnail;
     private String status;
-    private Timestamp createdAt;
+    private Instant createdAt;
     private String createdBy;
-    private Timestamp updatedAt;
+    private Instant updatedAt;
     private String updatedBy;
 }

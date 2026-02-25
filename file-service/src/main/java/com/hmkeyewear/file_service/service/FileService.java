@@ -7,6 +7,9 @@ import com.hmkeyewear.file_service.messaging.FileEventProducer;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
@@ -36,21 +39,42 @@ public class FileService {
     }
 
     private void loadSecrets() {
-        String path = System.getenv("SUPABASE_SECRETS_PATH");
-        if (path == null) {
-            throw new IllegalStateException("SUPABASE_SECRETS_PATH env variable is not set");
-        }
-        try (InputStream is = new FileInputStream(path)) {
+        try {
+            String secrets = System.getenv("SUPABASE_SECRETS_PATH");
+
+            if (secrets == null || secrets.isBlank()) {
+                throw new IllegalStateException("SUPABASE_SECRETS_PATH env variable is not set");
+            }
+
+            InputStream is;
+
+            // Nếu là path file (json)
+            if (secrets.endsWith(".json")) {
+                is = new FileInputStream(secrets);
+            }
+            // Nếu là JSON string
+            else {
+                is = new ByteArrayInputStream(
+                        secrets.getBytes(StandardCharsets.UTF_8)
+                );
+            }
+
             JsonNode node = objectMapper.readTree(is);
+
             this.supabaseUrl = node.get("supabaseUrl").asText();
             this.serviceRoleKey = node.get("serviceRoleKey").asText();
-            this.anonKey = node.has("anonKey") ? node.get("anonKey").asText() : null;
+            this.anonKey = node.has("anonKey") && !node.get("anonKey").isNull()
+                    ? node.get("anonKey").asText()
+                    : null;
 
             System.out.println("Supabase URL: " + supabaseUrl);
-            System.out.println("Using key: " + (anonKey != null ? anonKey : serviceRoleKey));
+            System.out.println("Using key: " + (anonKey != null ? "anonKey" : "serviceRoleKey"));
 
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot load supabase secrets from " + path + " - " + e.getMessage(), e);
+            throw new IllegalStateException(
+                    "Cannot load supabase secrets from env SUPABASE_SECRETS_PATH - " + e.getMessage(),
+                    e
+            );
         }
     }
 
@@ -80,7 +104,14 @@ public class FileService {
             folder = "";
         }
 
-        String fileName = file.getOriginalFilename();
+        String originalName = file.getOriginalFilename();
+        String extension = "";
+
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf("."));
+        }
+
+        String fileName = bucket + "_" + System.currentTimeMillis() + extension;
         String objectPath = (folder.isBlank() ? "" : folder + "/") + fileName;
 
         byte[] fileBytes = file.getBytes();
@@ -142,12 +173,22 @@ public class FileService {
         if (!url.contains("/storage/v1/object/public/")) {
             throw new IllegalArgumentException("Unsupported URL format: " + url);
         }
-        String after = url.substring(url.indexOf("/storage/v1/object/public/") + "/storage/v1/object/public/".length());
+
+        String after = url.substring(
+                url.indexOf("/storage/v1/object/public/") + "/storage/v1/object/public/".length());
+
         String[] parts = after.split("/", 2);
         String bucket = parts[0];
-        String objectPath = parts[1];
 
-        String endpoint = String.format("%s/storage/v1/object/%s/%s", supabaseUrl, bucket, encodePath(objectPath));
+        // decode về path gốc
+        String objectPath = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+
+        String endpoint = String.format(
+                "%s/storage/v1/object/%s/%s",
+                supabaseUrl,
+                bucket,
+                objectPath);
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint))
                 .header("Authorization", "Bearer " + serviceRoleKey)
@@ -156,13 +197,14 @@ public class FileService {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 200 && response.statusCode() < 300) {
 
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
             eventProducer.sendMessage(Map.of("action", "DELETE", "url", url));
             return "Deleted: " + url;
-        } else {
-            throw new RuntimeException("Delete failed: HTTP " + response.statusCode() + " - " + response.body());
         }
+
+        throw new RuntimeException(
+                "Delete failed: HTTP " + response.statusCode() + " - " + response.body());
     }
 
     public FileResponseDto getByUrl(String url) {

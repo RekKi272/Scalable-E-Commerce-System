@@ -19,6 +19,11 @@ public class FileController {
         this.fileService = fileService;
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<FileResponseDto> uploadSingle(
             @RequestPart("file") MultipartFile file,

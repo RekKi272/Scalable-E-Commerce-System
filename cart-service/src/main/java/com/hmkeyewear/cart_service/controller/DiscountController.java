@@ -6,24 +6,25 @@ import com.hmkeyewear.cart_service.service.DiscountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RestController
-@RequestMapping("discount")
+@RequestMapping("/discount")
 public class DiscountController {
+
     private final DiscountService discountService;
 
     public DiscountController(DiscountService discountService) {
         this.discountService = discountService;
     }
 
-    // CREATE Discount
     @PostMapping("/create")
     public ResponseEntity<?> createDiscount(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestBody DiscountRequestDto discountRequestDto) throws ExecutionException, InterruptedException {
+            @RequestHeader(name = "X-User-Role") String role,
+            @RequestHeader(name = "X-User-Id") String userId,
+            @RequestBody DiscountRequestDto discountRequestDto)
+            throws ExecutionException, InterruptedException {
+
         if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }
@@ -33,40 +34,47 @@ public class DiscountController {
         }
 
         DiscountResponseDto response = discountService.createDiscount(discountRequestDto, userId);
+
         return ResponseEntity.ok(response);
     }
 
-    // Get Discount By Id
     @GetMapping("/get")
     public ResponseEntity<?> getDiscountById(
-            @RequestParam(name = "discountId") String discountId) throws ExecutionException, InterruptedException {
+            @RequestParam(name = "discountId") String discountId)
+            throws ExecutionException, InterruptedException {
 
         DiscountResponseDto response = discountService.getDiscountById(discountId);
+
         return ResponseEntity.ok(response);
     }
 
-    // Get ALL Discount
     @GetMapping("/getAll")
     public ResponseEntity<?> getAllDiscounts(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId) throws ExecutionException, InterruptedException {
+            @RequestHeader(name = "X-User-Role") String role,
+            @RequestHeader(name = "X-User-Id") String userId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
+            throws ExecutionException, InterruptedException {
+
         if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }
+
         if ("ROLE_USER".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có quyền truy ");
+            return ResponseEntity.status(403).body("Bạn không có quyền truy cập");
         }
 
-        List<DiscountResponseDto> response = discountService.getAllDiscounts();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                discountService.getDiscountsPaging(page, size));
     }
 
-    // UPDATE Discount
     @PutMapping("/update")
     public ResponseEntity<?> updateDiscount(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestBody DiscountRequestDto discountRequestDto) throws ExecutionException, InterruptedException {
+            @RequestHeader(name = "X-User-Role") String role,
+            @RequestHeader(name = "X-User-Id") String userId,
+            @RequestBody DiscountRequestDto discountRequestDto)
+            throws ExecutionException, InterruptedException {
+
         if (userId == null) {
             return ResponseEntity.status(403).body("Vui lòng đăng nhập");
         }
@@ -76,14 +84,14 @@ public class DiscountController {
         }
 
         DiscountResponseDto response = discountService.updateDiscount(userId, discountRequestDto);
+
         return ResponseEntity.ok(response);
     }
 
-    // DELETE Discount
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteDiscount(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader(name = "X-User-Role") String role,
+            @RequestHeader(name = "X-User-Id") String userId,
             @RequestParam(name = "discountId") String discountId)
             throws ExecutionException, InterruptedException {
 
@@ -95,11 +103,16 @@ public class DiscountController {
             return ResponseEntity.status(403).body("Bạn không có quyền xóa mã giảm giá");
         }
 
-        try {
-            return ResponseEntity.ok(discountService.deleteDiscount(discountId));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(
+                discountService.deleteDiscount(discountId));
     }
 
+    @GetMapping("/validate")
+    public ResponseEntity<?> validateDiscount(
+            @RequestParam(name = "discountId") String discountId)
+            throws ExecutionException, InterruptedException {
+
+        return ResponseEntity.ok(
+                discountService.validateDiscountUsable(discountId));
+    }
 }

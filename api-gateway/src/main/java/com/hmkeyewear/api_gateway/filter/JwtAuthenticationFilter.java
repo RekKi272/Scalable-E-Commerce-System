@@ -23,6 +23,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // Các endpoint public không cần token
     private static final String[] OPEN_ENDPOINTS = {
             "/eureka",
+            "/actuator/**",
 
             "/auth/login",
             "/auth/refresh",
@@ -31,23 +32,23 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/auth/verify-otp",
             "/auth/reset-password",
 
+            "/brand/option",
+            "/category/option",
+
             "/payment/vn-pay-ipn",
             "/payment/vn-pay-callback",
 
-            "/product/get",
+            "/product/get/**",
             "/product/getActive",
             "/product/search",
             "/product/filter",
-
-            "/category/getAll",
-            "/brand/getAll",
 
             "/banner/active",
             "/blog/active",
             "/blog/get/**",
 
             "/discount/get",
-            "/discount/get/*",
+            "/discount/get/*"
     };
 
     @Override
@@ -97,7 +98,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                         headers.set("X-User-Id", userId);
                         headers.set("X-User-Name", username);
                         headers.set("X-User-Role", role);
-                        headers.set("X-User-StoreId", storeId != null ? storeId : "UNKNOWN");
                     }))
                     .build();
 

@@ -6,6 +6,8 @@ import com.hmkeyewear.blog_service.model.Blog;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.time.Instant;
+
 @Mapper(componentModel = "spring")
 public interface BlogMapper {
 
@@ -25,4 +27,16 @@ public interface BlogMapper {
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "createdBy", target = "createdBy")
     BlogResponseDto toBlogResponseDto(Blog blog);
+
+    default Instant map(com.google.cloud.Timestamp timestamp) {
+        return timestamp != null ? timestamp.toDate().toInstant() : null;
+    }
+
+    default com.google.cloud.Timestamp map(Instant instant) {
+        return instant != null
+                ? com.google.cloud.Timestamp.ofTimeSecondsAndNanos(
+                instant.getEpochSecond(),
+                instant.getNano())
+                : null;
+    }
 }

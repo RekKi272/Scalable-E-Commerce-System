@@ -1,15 +1,15 @@
 package com.hmkeyewear.order_service.controller;
 
-import com.hmkeyewear.order_service.dto.OrderRequestDto;
-import com.hmkeyewear.order_service.dto.OrderResponseDto;
+import com.hmkeyewear.common_dto.dto.OrderRequestDto;
+import com.hmkeyewear.common_dto.dto.OrderResponseDto;
+import com.hmkeyewear.common_dto.dto.OrderStatusUpdateRequestDto;
 import com.hmkeyewear.order_service.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.time.LocalDate;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -22,6 +22,16 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    @GetMapping("/status-options")
+    public ResponseEntity<?> getStatusOrderOption() {
+        return ResponseEntity.ok(orderService.getStatusOrderOption());
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(
             @RequestHeader("X-User-Role") String role,
@@ -29,13 +39,11 @@ public class OrderController {
             @RequestBody OrderRequestDto orderRequestDto)
             throws ExecutionException, InterruptedException {
 
-        if (role == null || userId == null) {
+        if ((!"ROLE_EMPLOYER".equals(role) && !"ROLE_ADMIN".equals(role))) {
             return ResponseEntity.status(403).body("Bạn cần đăng nhập để tạo đơn hàng");
         }
 
-        orderRequestDto.setCreatedBy(userId);
-
-        OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto, role);
+        OrderResponseDto orderResponseDto = orderService.createOrder(orderRequestDto, userId);
 
         return ResponseEntity.ok(orderResponseDto);
     }
@@ -58,40 +66,58 @@ public class OrderController {
     @GetMapping("/get-by-email")
     public ResponseEntity<?> getOrderByEmail(
             @RequestHeader("X-User-Role") String role,
-            @RequestParam("userEmail") String userEmail)
+            @RequestParam("userEmail") String userEmail,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
-
-        if (role == null) {
-            return ResponseEntity.status(403).body("Bạn cần đăng nhập");
-        }
 
         if (!"ROLE_ADMIN".equals(role)) {
             return ResponseEntity.status(403).body("Bạn không có quyền thực hiện");
         }
 
-        List<OrderResponseDto> orders = orderService.getOrdersByEmail(userEmail);
-
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(
+                orderService.getOrdersByEmail(userEmail, page, size));
     }
 
     @GetMapping("/get-by-phone")
     public ResponseEntity<?> getOrdersByPhone(
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam("phone") String phone)
+            @RequestParam("phone") String phone,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
 
         if (role == null || userId == null) {
-            return ResponseEntity.status(403).body("Bạn cần đăng nhập để xem đơn hàng");
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập");
         }
 
-        return ResponseEntity.ok(orderService.getOrdersByPhone(phone));
+        return ResponseEntity.ok(
+                orderService.getOrdersByPhone(phone, page, size));
+    }
+
+    @GetMapping("/get-by-discount")
+    public ResponseEntity<?> getOrdersByDiscount(
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam("discountId") String discountId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
+            throws ExecutionException, InterruptedException {
+
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thực hiện");
+        }
+
+        return ResponseEntity.ok(
+                orderService.getOrdersByDiscountId(discountId, page, size));
     }
 
     @GetMapping("/my-order")
     public ResponseEntity<?> getMyOrder(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Name") String userEmail)
+            @RequestHeader("X-User-Name") String userEmail,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
 
         if (role == null || userEmail == null) {
@@ -102,25 +128,46 @@ public class OrderController {
             return ResponseEntity.status(403).body("Bạn không có quyền xem đơn hàng");
         }
 
-        List<OrderResponseDto> orders = orderService.getOrdersByEmail(userEmail);
-
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(
+                orderService.getOrdersByEmail(userEmail, page, size));
     }
 
-    @PutMapping("/update/{orderId}")
-    public ResponseEntity<?> updateOrder(
+    @GetMapping("/get-by-time")
+    public ResponseEntity<?> getOrdersByTime(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @PathVariable("orderId") String orderId,
-            @RequestBody OrderRequestDto orderRequestDto)
+            @RequestParam("fromDate") LocalDate fromDate,
+            @RequestParam("toDate") LocalDate toDate,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
+            throws ExecutionException, InterruptedException {
+
+        if (role == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập");
+        }
+
+        return ResponseEntity.ok(
+                orderService.getOrdersByDateRange(fromDate, toDate, page, size));
+    }
+
+    @PutMapping("/update-status/{orderId}")
+    public ResponseEntity<?> updateOrder(
+            @RequestHeader(name = "X-User-Role") String role,
+            @RequestHeader(name = "X-User-Id") String userId,
+            @PathVariable(name = "orderId") String orderId,
+            @RequestBody OrderStatusUpdateRequestDto request)
             throws ExecutionException, InterruptedException {
 
         if (role == null || userId == null) {
-            return ResponseEntity.status(403).body("Bạn cần đăng nhập để sửa đơn ");
+            return ResponseEntity.status(403)
+                    .body("Bạn cần đăng nhập để cập nhật trạng thái đơn");
         }
 
-        OrderResponseDto orderResponseDto = orderService.updateOrder(orderId, orderRequestDto, userId);
-        return ResponseEntity.ok(orderResponseDto);
+        try {
+            OrderResponseDto response = orderService.updateOrderStatus(orderId, request.getStatus(), userId);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/delete")
@@ -137,49 +184,20 @@ public class OrderController {
         return ResponseEntity.ok(orderService.deleteOrder(orderId));
     }
 
-    // ----- STATISTIC -----
-
-    @GetMapping("/statistic/month")
-    public ResponseEntity<?> statisticByMonth(
+    @GetMapping("/filter-status")
+    public ResponseEntity<?> filterOrders(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam("year") int year,
-            @RequestParam("month") int month)
+            @RequestParam(name = "status", required = false) List<String> status,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size)
             throws ExecutionException, InterruptedException {
 
-        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
+        if (role == null) {
+            return ResponseEntity.status(403).body("Bạn cần đăng nhập");
         }
 
-        return ResponseEntity.ok(orderService.statisticByMonth(year, month));
-    }
-
-    @GetMapping("/statistic/week")
-    public ResponseEntity<?> statisticByWeek(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam("localDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate localDate)
-            throws ExecutionException, InterruptedException {
-
-        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-        }
-
-        return ResponseEntity.ok(orderService.statisticByWeek(localDate));
-    }
-
-    @GetMapping("/statistic/year")
-    public ResponseEntity<?> statisticByYear(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam("year") int year)
-            throws ExecutionException, InterruptedException {
-
-        if (!"ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có thẩm quyền");
-        }
-
-        return ResponseEntity.ok(orderService.statisticByYear(year));
+        return ResponseEntity.ok(
+                orderService.filterStatusOrders(status, page, size));
     }
 
 }

@@ -3,6 +3,7 @@ package com.hmkeyewear.product_service.service;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.common_dto.dto.PageResponseDto;
 import com.hmkeyewear.product_service.dto.BrandRequestDto;
 import com.hmkeyewear.product_service.dto.BrandResponseDto;
 import com.hmkeyewear.product_service.mapper.BrandMapper;
@@ -98,10 +99,11 @@ public class BrandService {
     }
 
     // READ ALL Brands
-    public List<BrandResponseDto> getAllBrands() throws ExecutionException, InterruptedException {
+    public List<BrandResponseDto> getBrandOptions()
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME).get();
-        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+        List<QueryDocumentSnapshot> documents = db.collection(COLLECTION_NAME).get().get().getDocuments();
 
         List<BrandResponseDto> result = new ArrayList<>();
         for (QueryDocumentSnapshot doc : documents) {
@@ -109,6 +111,45 @@ public class BrandService {
             result.add(brandMapper.toBrandResponseDto(brand));
         }
         return result;
+    }
+
+    public PageResponseDto<BrandResponseDto> getBrandsPaging(int page, int size)
+            throws ExecutionException, InterruptedException {
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .orderBy("createdAt", Query.Direction.DESCENDING);
+
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prevSnapshot = baseQuery
+                    .limit(page * size)
+                    .get()
+                    .get();
+
+            if (!prevSnapshot.isEmpty()) {
+                DocumentSnapshot lastDoc = prevSnapshot.getDocuments().get(prevSnapshot.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
+        }
+
+        List<BrandResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : pageQuery.get().get().getDocuments()) {
+            Brand brand = doc.toObject(Brand.class);
+            items.add(brandMapper.toBrandResponseDto(brand));
+        }
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     // UPDATE Brand
@@ -120,13 +161,13 @@ public class BrandService {
         ApiFuture<DocumentSnapshot> future = brandRef.get();
         DocumentSnapshot document = future.get();
         if (!document.exists()) {
-            throw new RuntimeException("Brand with ID " + brandId + " not found");
+            throw new RuntimeException("Thương hiệu có ID " + brandId + " không tìm thấy");
         }
 
         Brand existingBrand = document.toObject(Brand.class);
 
         if (existingBrand == null) {
-            throw new RuntimeException("Brand data is null for ID " + brandId);
+            throw new RuntimeException("Dữ liệu thương hiệu trống đối với ID " + brandId);
         }
 
         Brand updatedBrand = brandMapper.toBrand(dto);
@@ -154,6 +195,6 @@ public class BrandService {
 
         // --- Send message to RabbitMQ ---
         brandEventProducer.sendMessage(brandId);
-        return "Successfully deleted brand with id " + brandId;
+        return "Đã xóa thành công thương hiệu có ID " + brandId;
     }
 }

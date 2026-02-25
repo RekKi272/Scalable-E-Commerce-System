@@ -1,15 +1,14 @@
 package com.hmkeyewear.user_service.service;
 
-import com.google.api.core.ApiFuture;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.common_dto.dto.PageResponseDto;
 import com.hmkeyewear.user_service.dto.UserRequestDto;
 import com.hmkeyewear.user_service.dto.UserResponseDto;
 import com.hmkeyewear.user_service.mapper.UserMapper;
 import com.hmkeyewear.user_service.messaging.UserEventProducer;
 import com.hmkeyewear.user_service.model.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -37,11 +36,11 @@ public class UserService {
         DocumentSnapshot snapshot = db.collection(COLLECTION_NAME).document(userId).get().get();
 
         if (!snapshot.exists()) {
-            throw new IllegalArgumentException("User with ID " + userId + " does not exist");
+            throw new IllegalArgumentException("Người dùng có ID " + userId + " không tồn tại");
         }
         User user = snapshot.toObject(User.class);
         if (user == null) {
-            throw new IllegalStateException("User data corrupted or missing for ID " + userId);
+            throw new IllegalStateException("Dữ liệu người dùng bị hỏng hoặc thiếu đối với ID " + userId);
         }
         return userMapper.toResponseDto(user);
     }
@@ -54,12 +53,12 @@ public class UserService {
 
         DocumentSnapshot snapshot = docRef.get().get();
         if (!snapshot.exists()) {
-            throw new IllegalArgumentException("User with ID " + userId + " does not exist");
+            throw new IllegalArgumentException("Người dùng có ID " + userId + " không tồn tại");
         }
 
         User existing = snapshot.toObject(User.class);
         if (existing == null) {
-            throw new IllegalStateException("User data corrupted or missing for ID " + userId);
+            throw new IllegalStateException("Dữ liệu người dùng bị hỏng hoặc thiếu đối với ID " + userId);
         }
 
         // Chỉ update các trường cho phép
@@ -94,19 +93,68 @@ public class UserService {
     /** ==================== ADMIN / MANAGER ==================== */
 
     // Lấy tất cả user
-    public List<UserResponseDto> getAllUser() throws ExecutionException, InterruptedException {
+    public PageResponseDto<UserResponseDto> getAllUser(int page, int size)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME).get();
-        List<QueryDocumentSnapshot> docs = query.get().getDocuments();
-        return docs.stream().map(d -> userMapper.toResponseDto(d.toObject(User.class))).toList();
+
+        Query query = db.collection(COLLECTION_NAME)
+                .offset(page * size)
+                .limit(size);
+
+        List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+
+        List<UserResponseDto> items = docs.stream()
+                .map(d -> userMapper.toResponseDto(d.toObject(User.class)))
+                .toList();
+
+        long totalElements = db.collection(COLLECTION_NAME)
+                .get()
+                .get()
+                .size();
+
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     // Lấy user theo role
-    public List<UserResponseDto> getUserByRole(String role) throws ExecutionException, InterruptedException {
+    public PageResponseDto<UserResponseDto> getUserByRole(String role, int page, int size)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME).whereEqualTo("role", role).get();
-        List<QueryDocumentSnapshot> docs = query.get().getDocuments();
-        return docs.stream().map(d -> userMapper.toResponseDto(d.toObject(User.class))).toList();
+
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .whereEqualTo("role", role);
+
+        Query pagedQuery = baseQuery
+                .offset(page * size)
+                .limit(size);
+
+        List<QueryDocumentSnapshot> docs = pagedQuery.get().get().getDocuments();
+
+        List<UserResponseDto> items = docs.stream()
+                .map(d -> userMapper.toResponseDto(d.toObject(User.class)))
+                .toList();
+
+        long totalElements = baseQuery
+                .get()
+                .get()
+                .size();
+
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     // Lấy user theo phone
@@ -119,7 +167,7 @@ public class UserService {
                 .getDocuments();
 
         if (docs.isEmpty()) {
-            throw new IllegalArgumentException("User with phone " + phone + " does not exist");
+            throw new IllegalArgumentException("Người dùng có điện thoại " + phone + " không tồn tại");
         }
 
         User user = docs.get(0).toObject(User.class);
@@ -135,11 +183,11 @@ public class UserService {
 
         DocumentSnapshot snapshot = docRef.get().get();
         if (!snapshot.exists()) {
-            throw new IllegalArgumentException("User with ID " + userId + " does not exist");
+            throw new IllegalArgumentException("Người dùng có điện thoại " + userId + " không tồn tại");
         }
         User existing = snapshot.toObject(User.class);
         if (existing == null) {
-            throw new IllegalStateException("User data corrupted or missing for ID " + userId);
+            throw new IllegalStateException("Dữ liệu người dùng bị hỏng hoặc thiếu đối với ID " + userId);
         }
 
         // Update tất cả field ngoại trừ meta

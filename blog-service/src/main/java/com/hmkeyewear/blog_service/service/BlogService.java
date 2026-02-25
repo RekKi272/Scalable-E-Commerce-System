@@ -4,13 +4,20 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import com.hmkeyewear.blog_service.dto.BannerResponseDto;
 import com.hmkeyewear.blog_service.dto.BlogRequestDto;
 import com.hmkeyewear.blog_service.dto.BlogResponseDto;
 import com.hmkeyewear.blog_service.mapper.BlogMapper;
 import com.hmkeyewear.blog_service.messaging.BlogEventProducer;
 import com.hmkeyewear.blog_service.model.Blog;
+import com.hmkeyewear.common_dto.dto.PageResponseDto;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +64,7 @@ public class BlogService {
     }
 
     // CREATE BLOG
+    @CacheEvict(value = "active_blogs", allEntries = true)
     public BlogResponseDto createBlog(String createdBy, BlogRequestDto blogRequestDto)
             throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
@@ -77,22 +85,53 @@ public class BlogService {
     }
 
     // Get All Blogs (kể cả inactive)
-    public List<BlogResponseDto> getAllBlogs() throws ExecutionException, InterruptedException {
+    public PageResponseDto<BlogResponseDto> getAllBlogs(int page, int size)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
 
-        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME).get();
-        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+        Query baseQuery = db.collection(COLLECTION_NAME)
+                .orderBy("createdAt", Query.Direction.DESCENDING);
 
-        List<BlogResponseDto> result = new ArrayList<>();
-        for (QueryDocumentSnapshot doc : documents) {
-            Blog blog = doc.toObject(Blog.class);
-            result.add(blogMapper.toBlogResponseDto(blog));
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prevSnapshot = baseQuery
+                    .limit(page * size)
+                    .get()
+                    .get();
+
+            if (!prevSnapshot.isEmpty()) {
+                DocumentSnapshot lastDoc = prevSnapshot.getDocuments().get(prevSnapshot.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
         }
 
-        return result;
+        QuerySnapshot snapshot = pageQuery.get().get();
+
+        List<BlogResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            Blog blog = doc.toObject(Blog.class);
+            items.add(blogMapper.toBlogResponseDto(blog));
+        }
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
     // Get blog by ID
+    @Cacheable(
+            value = "blog",
+            key = "'blog:' + #blogId",
+            unless = "#result == null"
+    )
     public BlogResponseDto getBlogById(String blogId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(blogId);
@@ -106,6 +145,11 @@ public class BlogService {
     }
 
     // UPDATE Blog
+    @CacheEvict(
+            value = {"blog", "active_blogs"},
+            key = "'blog:' + #blogId",
+            allEntries = true
+    )
     public BlogResponseDto updateBlog(String blogId, BlogRequestDto blogRequestDto, String updatedBy)
             throws ExecutionException, InterruptedException {
 
@@ -139,6 +183,11 @@ public class BlogService {
     }
 
     // DELETE blog
+    @CacheEvict(
+            value = {"blog", "active_blogs"},
+            key = "'blog:' + #blogId",
+            allEntries = true
+    )
     public String deleteBlog(String blogId) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection(COLLECTION_NAME).document(blogId);
@@ -148,27 +197,54 @@ public class BlogService {
         // --- Send message to RabbitMQ ---
         blogEventProducer.sendMessage(blogId);
 
-        return "Blog deleted successfully" + blogId;
+        return "Blog xóa thành công" + blogId;
     }
 
     // Get All Blog by status
-    public List<BlogResponseDto> getAllActiveBlogs() throws ExecutionException, InterruptedException {
+    @Cacheable(
+            value = "active_blogs",
+            key = "'page:' + #page + ':size:' + #size"
+    )
+    public PageResponseDto<BlogResponseDto> getAllActiveBlogs(int page, int size)
+            throws ExecutionException, InterruptedException {
+
         Firestore db = FirestoreClient.getFirestore();
 
-        // query tất cả document có status = "active"
-        ApiFuture<QuerySnapshot> query = db.collection(COLLECTION_NAME)
+        Query baseQuery = db.collection(COLLECTION_NAME)
                 .whereEqualTo("status", "ACTIVE")
-                .get();
+                .orderBy("createdAt", Query.Direction.DESCENDING);
 
-        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+        long totalElements = baseQuery.get().get().size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
 
-        List<BlogResponseDto> result = new ArrayList<>();
-        for (QueryDocumentSnapshot doc : documents) {
-            Blog blog = doc.toObject(Blog.class);
-            result.add(blogMapper.toBlogResponseDto(blog));
+        Query pageQuery = baseQuery.limit(size);
+
+        if (page > 0) {
+            QuerySnapshot prevSnapshot = baseQuery
+                    .limit(page * size)
+                    .get()
+                    .get();
+
+            if (!prevSnapshot.isEmpty()) {
+                DocumentSnapshot lastDoc = prevSnapshot.getDocuments().get(prevSnapshot.size() - 1);
+                pageQuery = pageQuery.startAfter(lastDoc);
+            }
         }
 
-        return result;
+        QuerySnapshot snapshot = pageQuery.get().get();
+
+        List<BlogResponseDto> items = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            Blog blog = doc.toObject(Blog.class);
+            items.add(blogMapper.toBlogResponseDto(blog));
+        }
+
+        return new PageResponseDto<>(
+                items,
+                page,
+                size,
+                totalElements,
+                totalPages);
     }
 
 }

@@ -5,11 +5,13 @@ spring:
   application:
     name: cart-service
   rabbitmq:
-    host: rabbitmq
-    port: 5672
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     dynamic: true
+    ssl:
+      enabled: true
     listener:
       simple:
         retry:
@@ -19,11 +21,6 @@ spring:
           multiplier: 2.0
           max-interval: 10000
         default-requeue-rejected: false
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
 
 firebase:
   credentials:
@@ -43,10 +40,6 @@ app:
     order-checkout:
       queue: order_checkout_request_queue
       routing-key: order_checkout_request_routing_key
-
-    order-save:
-      queue: order_save_request_queue
-      routing-key: order_save_request_routing_key
 
     discount:
       queue: discount_queue
